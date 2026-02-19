@@ -410,6 +410,8 @@ impl VaultManager {
     }
 
     /// Call this periodically to process watcher events
+    /// SPEC: COMP-FILE-WATCH-001 FR-7
+    /// Poll for and sync external file changes
     pub fn sync_external_changes(&mut self) -> Result<()> {
         if let Some(ref mut watcher) = self.watcher {
             let events = watcher.poll_events();
@@ -420,6 +422,8 @@ impl VaultManager {
         Ok(())
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-2, FR-3, FR-4, FR-5
+    /// Handle file watcher events and sync to database/index/graph
     fn handle_file_event(&mut self, event: crate::watcher::FileEvent) -> Result<()> {
         use crate::watcher::FileEvent;
         match event {
