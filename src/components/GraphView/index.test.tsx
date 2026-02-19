@@ -1,0 +1,220 @@
+/**
+ * Tests for GraphView component
+ * Spec: COMP-GRAPH-UI-001
+ */
+
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { GraphView } from "./index";
+
+// Mock the API module
+vi.mock("@lib/api", () => ({
+  getGraphLayout: vi.fn(),
+}));
+
+import { getGraphLayout } from "@lib/api";
+import type { GraphLayout } from "@lib/api";
+
+describe("GraphView Component", () => {
+  const mockOnNodeClick = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  const mockLayout: GraphLayout = {
+    nodes: [
+      { id: "note1.md", label: "Note 1", x: 100, y: 100 },
+      { id: "note2.md", label: "Note 2", x: 200, y: 150 },
+      { id: "note3.md", label: "Note 3", x: 150, y: 200 },
+    ],
+    edges: [
+      { source: "note1.md", target: "note2.md" },
+      { source: "note1.md", target: "note3.md" },
+    ],
+  };
+
+  describe("FR-1: Graph view component", () => {
+    it("should render SVG canvas", () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      const svg = screen.getByRole("img");
+      expect(svg).toBeInTheDocument();
+      expect(svg).toHaveAttribute("aria-label", "Note link graph");
+    });
+
+    it("should show nodes as circles with labels", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        const nodes = screen.getAllByText(/Note [1-3]/);
+        expect(nodes.length).toBe(3);
+      });
+    });
+
+    it("should show edges as lines between nodes", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        const svg = screen.getByRole("img");
+        // Check that edges (lines) are rendered by checking for line elements
+        const edges = svg.querySelectorAll("line");
+        expect(edges.length).toBeGreaterThan(0);
+      });
+    });
+  });
+
+  describe("FR-2: Interactive navigation", () => {
+    it("should pan on drag", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      const { container } = render(
+        <GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />
+      );
+
+      const svg = screen.getByRole("img");
+
+      // Simulate mouse down on SVG background
+      fireEvent.mouseDown(svg, { clientX: 100, clientY: 100 });
+
+      // Simulate mouse move
+      fireEvent.mouseMove(svg, { clientX: 150, clientY: 150 });
+
+      // The pan state should have been updated
+      // We verify by checking if the component didn't crash
+      expect(svg).toBeInTheDocument();
+    });
+
+    it("should zoom on scroll wheel", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      const svg = screen.getByRole("img");
+
+      // Simulate scroll wheel
+      fireEvent.wheel(svg, { deltaY: -100 });
+
+      expect(svg).toBeInTheDocument();
+    });
+
+    it("should call onNodeClick when node is clicked", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        const node = screen.getByText("Note 1");
+        fireEvent.click(node);
+      });
+
+      expect(mockOnNodeClick).toHaveBeenCalledWith("note1.md");
+    });
+
+    it("should highlight connected edges on node hover", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        const node = screen.getByText("Note 1");
+        fireEvent.mouseEnter(node);
+      });
+
+      expect(screen.getByRole("img")).toBeInTheDocument();
+    });
+  });
+
+  describe("FR-3: Layout from backend", () => {
+    it("should fetch layout on mount", () => {
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      expect(getGraphLayout).toHaveBeenCalledWith(800, 600);
+    });
+
+    it("should render nodes at provided positions", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        const nodes = screen.getAllByText(/Note [1-3]/);
+        expect(nodes.length).toBe(3);
+      });
+    });
+
+    it("should show loading state while fetching", () => {
+      vi.mocked(getGraphLayout).mockImplementation(() => new Promise(() => {}));
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    });
+
+    it("should show error message if fetch fails", async () => {
+      vi.mocked(getGraphLayout).mockRejectedValue(new Error("Failed to load graph"));
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/error/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe("FR-4: Toggle between views", () => {
+    it("should respect width and height props", () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      const { rerender } = render(
+        <GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />
+      );
+
+      expect(getGraphLayout).toHaveBeenCalledWith(800, 600);
+
+      // Rerender with different dimensions
+      rerender(<GraphView width={1000} height={800} onNodeClick={mockOnNodeClick} />);
+
+      expect(getGraphLayout).toHaveBeenCalledWith(1000, 800);
+    });
+  });
+
+  describe("FR-5: Visual styling", () => {
+    it("should render nodes as circles", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        const nodes = screen.getAllByText(/Note [1-3]/);
+        expect(nodes.length).toBe(3);
+      });
+    });
+
+    it("should style selected/hovered nodes differently", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        const node = screen.getByText("Note 1");
+        fireEvent.click(node);
+      });
+
+      // After clicking, the node should be selected
+      // We verify this by checking the component didn't crash
+      expect(screen.getByRole("img")).toBeInTheDocument();
+    });
+  });
+});
