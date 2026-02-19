@@ -393,6 +393,8 @@ impl VaultManager {
 
     //region File Watching
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-1, FR-6, FR-7
+    /// Start watching vault directory for file changes
     fn start_watcher(&mut self) -> Result<()> {
         let watcher = FileWatcher::new(&self.root)?;
         info!("file watcher started for vault");
@@ -434,6 +436,8 @@ impl VaultManager {
         Ok(())
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-2
+    /// Sync newly created file to database, index, and graph
     fn sync_new_file(&mut self, path: &str) -> Result<()> {
         let full_path = self.root.join(path);
         let content = std::fs::read_to_string(&full_path)?;
@@ -450,6 +454,8 @@ impl VaultManager {
         Ok(())
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-3
+    /// Sync externally modified file to database, index, and graph
     fn sync_modified_file(&mut self, path: &str) -> Result<()> {
         info!(path, "external file modified");
         let full_path = self.root.join(path);
@@ -467,11 +473,15 @@ impl VaultManager {
         Ok(())
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-4
+    /// Sync deleted file removal to database, index, and graph
     fn sync_deleted_file(&mut self, path: &str) -> Result<()> {
         info!(path, "external file deleted");
         self.delete_note(path)
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-5
+    /// Sync renamed/moved file to database, index, and graph
     fn sync_renamed_file(&mut self, from: &str, to: &str) -> Result<()> {
         info!(from, to, "external file renamed");
         let _ = self.sync_deleted_file(from);

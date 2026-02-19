@@ -19,6 +19,7 @@ const DEFAULT_POLL_INTERVAL_MS: u64 = 100;
 /// Markdown file extension.
 const MARKDOWN_EXT: &str = ".md";
 
+/// SPEC: COMP-FILE-WATCH-001 FR-2, FR-3, FR-4, FR-5
 /// Events emitted by the file watcher.
 #[derive(Debug, Clone, PartialEq)]
 pub enum FileEvent {
@@ -40,6 +41,7 @@ impl std::fmt::Display for FileEvent {
     }
 }
 
+/// SPEC: COMP-FILE-WATCH-001 FR-1, FR-6, FR-7
 /// Watches the vault directory for external file changes.
 pub struct FileWatcher {
     /// The notify watcher instance. Kept to maintain watcher lifetime.
@@ -53,6 +55,8 @@ pub struct FileWatcher {
 
 impl FileWatcher {
     /// Create a new file watcher for the given root path.
+    /// SPEC: COMP-FILE-WATCH-001 FR-1
+    /// Create a new file watcher for the given vault root
     pub fn new(root: &Path) -> Result<Self> {
         let (tx, rx) = channel();
 
@@ -77,6 +81,8 @@ impl FileWatcher {
     }
 
     /// Set the debounce duration (default 500ms).
+    /// SPEC: COMP-FILE-WATCH-001 FR-6
+    /// Set the debounce duration in milliseconds
     pub fn with_debounce(mut self, ms: u64) -> Self {
         self.debounce_ms = ms;
         self
@@ -84,6 +90,8 @@ impl FileWatcher {
 
     /// Poll for file events that have passed the debounce period.
     /// Returns a vector of events to process.
+    /// SPEC: COMP-FILE-WATCH-001 FR-6
+    /// Poll for file events that have passed the debounce period
     pub fn poll_events(&mut self) -> Vec<FileEvent> {
         // Drain all pending events from the channel
         while let Ok(result) = self.rx.try_recv() {
