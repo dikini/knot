@@ -1,0 +1,84 @@
+[package]
+name = "knot"
+version = "0.1.0"
+description = "AI-native knowledge base with distraction-free editing"
+authors = ["Knot Contributors"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/knot"
+edition = "2021"
+rust-version = "1.70"
+
+[dependencies]
+# Tauri framework
+tauri = { version = "2", features = [] }
+tauri-build = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Error handling
+thiserror = "2"
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled", "chrono", "uuid"] }
+
+# Search
+tantivy = "0.22"
+
+# File watching
+notify = "7"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUIDs
+uuid = { version = "1", features = ["v4", "serde"] }
+
+# Regex
+regex = "1"
+
+# Markdown parsing
+pulldown-cmark = "0.12"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Graph algorithms
+petgraph = "0.6"
+
+# File walking
+walkdir = "2"
+
+# Configuration
+toml = "0.8"
+dirs = "5"
+
+# WASM runtime (optional, for plugins)
+wasmtime = { version = "16", optional = true }
+
+[dev-dependencies]
+tempfile = "3"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+plugins = ["wasmtime"]
+
+[[bin]]
+name = "knot"
+path = "src/main.rs"
+
+[lib]
+name = "knot"
+path = "src/lib.rs"

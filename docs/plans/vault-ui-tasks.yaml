@@ -1,0 +1,64 @@
+tasks:
+  - id: VUI-001
+    title: "Add dialog plugin npm dependency"
+    status: done
+    size: S
+    spec_refs: [Setup]
+    dependencies: []
+    acceptance: "@tauri-apps/plugin-dialog in package.json"
+    
+  - id: VUI-002
+    title: "Update capabilities for dialog permission"
+    status: done
+    size: S
+    spec_refs: [Setup]
+    dependencies: [VUI-001]
+    acceptance: "dialog:default in capabilities/default.json"
+    
+  - id: VUI-003
+    title: "Add open_vault_dialog Rust command"
+    status: done
+    size: M
+    spec_refs: [FR-1]
+    dependencies: [VUI-002]
+    acceptance: "Command opens dialog, validates vault exists, opens vault"
+    
+  - id: VUI-004
+    title: "Add create_vault_dialog Rust command"
+    status: done
+    size: M
+    spec_refs: [FR-2]
+    dependencies: [VUI-003]
+    acceptance: "Command opens dialog, warns if not empty, creates vault"
+    
+  - id: VUI-005
+    title: "Add recent vaults persistence"
+    status: done
+    size: M
+    spec_refs: [FR-3]
+    dependencies: [VUI-004]
+    acceptance: "Recent vaults persist across restarts, limited to 5"
+    
+  - id: VUI-006
+    title: "Add dialog API functions (TypeScript)"
+    status: done
+    size: S
+    spec_refs: [Interface]
+    dependencies: [VUI-003]
+    acceptance: "API functions defined and callable"
+    
+  - id: VUI-007
+    title: "Update App.tsx with new UI"
+    status: done
+    size: M
+    spec_refs: [All FRs]
+    dependencies: [VUI-006]
+    acceptance: "New buttons work, errors display, loading states work"
+    
+  - id: VUI-008
+    title: "Add recent vaults display"
+    status: done
+    size: M
+    spec_refs: [FR-3]
+    dependencies: [VUI-005, VUI-007]
+    acceptance: "Recent vaults display and are clickable"

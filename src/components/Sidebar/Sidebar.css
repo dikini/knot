@@ -1,0 +1,135 @@
+/**
+ * Sidebar Component Styles
+ */
+
+.sidebar {
+  width: var(--sidebar-width);
+  background-color: var(--color-bg-secondary);
+  border-right: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+}
+
+.sidebar__header {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.sidebar__header .search-box {
+  margin-top: var(--spacing-xs);
+}
+
+.sidebar__title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sidebar__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-xs);
+}
+
+.sidebar__count {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.sidebar__new-btn {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  border-radius: 6px;
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  text-align: center;
+}
+
+.sidebar__new-btn:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+}
+
+.sidebar__loading,
+.sidebar__empty {
+  padding: var(--spacing-md);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.note-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.note-list__item {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  transition: background-color 0.15s ease;
+}
+
+.note-list__item:hover {
+  background-color: var(--color-bg-tertiary);
+}
+
+.note-list__item--active {
+  background-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
+.note-list__item--active .note-list__date,
+.note-list__item--active .note-list__words {
+  color: var(--color-bg);
+  opacity: 0.7;
+}
+
+.note-list__title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.note-list__date {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.note-list__words {
+  font-size: 0.75rem;
+  color: var(--color-text-subtle);
+}

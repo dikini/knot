@@ -1,0 +1,73 @@
+# docs/plans/content-loading-001-tasks.yaml
+tasks:
+  - id: CL-001
+    title: "Write test: load content from filesystem"
+    status: planned
+    size: M
+    spec_refs: [FR-1]
+    concerns: [REL]
+    dependencies: []
+    acceptance: "Test passes - content loaded from file matches expected content"
+    implementation: |
+      Create test file with known content, call get_note_by_path() with vault root,
+      assert returned Note.content matches file content
+
+  - id: CL-002
+    title: "Write test: missing file returns NoteNotFound"
+    status: planned
+    size: S
+    spec_refs: [FR-2]
+    concerns: [SEC]
+    dependencies: []
+    acceptance: "Test passes - NoteNotFound error when file missing"
+    implementation: |
+      Create note metadata in database, delete actual file from filesystem,
+      call get_note_by_path(), assert returns Err(KnotError::NoteNotFound)
+
+  - id: CL-003
+    title: "Write test: IO errors handled gracefully"
+    status: planned
+    size: M
+    spec_refs: [FR-3]
+    concerns: [REL]
+    dependencies: []
+    acceptance: "Test passes - IO error maps to KnotError::Io with message"
+    implementation: |
+      Create file with restricted permissions or simulate IO error,
+      call get_note_by_path(), assert returns Err(KnotError::Io) with descriptive message
+
+  - id: CL-004
+    title: "Write test: content hash and word count consistency"
+    status: planned
+    size: S
+    spec_refs: [FR-4]
+    concerns: [REL]
+    dependencies: []
+    acceptance: "Test passes - hash and word count consistent with loaded content"
+    implementation: |
+      Load note via get_note_by_path(), verify content hash matches loaded content,
+      verify word count matches loaded content
+
+  - id: CL-005
+    title: "Add SPEC markers to db.rs:get_note_by_path()"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4]
+    concerns: [REL, SEC]
+    dependencies: [CL-001, CL-002, CL-003, CL-004]
+    acceptance: "SPEC markers present at function level, linking to all FRs"
+    implementation: |
+      Add /// SPEC: COMP-CONTENT-LOAD-001 FR-1, FR-2, FR-3, FR-4
+      to function doc comment
+
+  - id: CL-006
+    title: "Run bk-verify to generate compliance report"
+    status: planned
+    size: L
+    spec_refs: [FR-1, FR-2, FR-3, FR-4]
+    concerns: [REL, SEC]
+    dependencies: [CL-005]
+    acceptance: "Verification report in docs/audit/content-loading-verification-2026-02-19.md"
+    implementation: |
+      Run bk-verify --scope=component/database, review compliance matrix,
+      ensure all acceptance criteria pass, generate verification report

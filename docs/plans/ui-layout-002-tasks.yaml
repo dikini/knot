@@ -1,0 +1,94 @@
+# docs/plans/ui-layout-002-tasks.yaml
+tasks:
+  - id: UI-001
+    title: "Write test: vault switcher in sidebar"
+    status: planned
+    size: M
+    spec_refs: [FR-1]
+    concerns: [CONF]
+    dependencies: []
+    acceptance: "Test passes - VaultSwitcher displays current vault name and dropdown"
+    implementation: |
+      Test renders VaultSwitcher component, displays vault name when vault provided,
+      displays "No Vault Open" when no vault, dropdown opens on click,
+      dropdown contains "Open Different Vault", "Create New Vault", recent vaults, "Close Vault"
+
+  - id: UI-002
+    title: "Write test: new note button in sidebar"
+    status: planned
+    size: S
+    spec_refs: [FR-2]
+    concerns: [CONF, CAP]
+    dependencies: []
+    acceptance: "Test passes - New note button displays and creates note"
+    implementation: |
+      Test renders "+ New Note" button in sidebar header, visible when vault open,
+      hidden when no vault open, clicking prompts for note name, creates new note
+
+  - id: UI-003
+    title: "Write test: editor takes full central area"
+    status: planned
+    size: M
+    spec_refs: [FR-4]
+    concerns: [CONF, CAP]
+    dependencies: []
+    acceptance: "Test passes - Editor occupies full main content area"
+    implementation: |
+      Test renders Editor component when note selected, editor container has full width,
+      no vault info panel visible in main area, toolbar only shows note title + save status
+
+  - id: UI-004
+    title: "Add SPEC markers to VaultSwitcher component"
+    status: planned
+    size: M
+    spec_refs: [FR-1]
+    concerns: [CONF]
+    dependencies: [UI-001]
+    acceptance: "SPEC markers present at component level"
+    implementation: |
+      Add // SPEC: COMP-UI-LAYOUT-002 FR-1 comment at component level
+
+  - id: UI-005
+    title: "Add SPEC markers to Sidebar component"
+    status: planned
+    size: M
+    spec_refs: [FR-2, FR-6]
+    concerns: [CONF]
+    dependencies: [UI-002]
+    acceptance: "SPEC markers present at component level"
+    implementation: |
+      Add // SPEC: COMP-UI-LAYOUT-002 FR-2, FR-6 comment at component level
+
+  - id: UI-006
+    title: "Add SPEC markers to Editor component"
+    status: planned
+    size: M
+    spec_refs: [FR-4]
+    concerns: [CONF]
+    dependencies: [UI-003]
+    acceptance: "SPEC markers present at component level"
+    implementation: |
+      Add // SPEC: COMP-UI-LAYOUT-002 FR-4 comment at component level
+
+  - id: UI-007
+    title: "Add SPEC markers to App.tsx for layout states"
+    status: planned
+    size: M
+    spec_refs: [FR-5, FR-6]
+    concerns: [CONF]
+    dependencies: [UI-004, UI-005, UI-006]
+    acceptance: "SPEC markers present for conditional rendering"
+    implementation: |
+      Add // SPEC: COMP-UI-LAYOUT-002 FR-5, FR-6 comments for welcome and empty states
+
+  - id: UI-008
+    title: "Run bk-verify to generate compliance report"
+    status: planned
+    size: L
+    spec_refs: [FR-1, FR-2, FR-4, FR-5, FR-6]
+    concerns: [CONF, CAP]
+    dependencies: [UI-007]
+    acceptance: "Verification report in docs/audit/ui-layout-verification-2026-02-19.md"
+    implementation: |
+      Run bk-verify --scope=component/frontend, review compliance matrix,
+      ensure all acceptance criteria pass, generate verification report
