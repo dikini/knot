@@ -40,7 +40,7 @@ impl VaultManager {
         let vault_dir = root.join(VAULT_DIR);
         if vault_dir.exists() {
             return Err(KnotError::VaultAlreadyExists(
-                root.to_string_lossy().to_string()
+                root.to_string_lossy().to_string(),
             ));
         }
 
@@ -81,9 +81,7 @@ impl VaultManager {
     pub fn open(root: &Path) -> Result<Self> {
         let vault_dir = root.join(VAULT_DIR);
         if !vault_dir.exists() {
-            return Err(KnotError::VaultNotFound(
-                root.to_string_lossy().to_string()
-            ));
+            return Err(KnotError::VaultNotFound(root.to_string_lossy().to_string()));
         }
 
         info!(?root, "opening vault");
@@ -166,25 +164,25 @@ impl VaultManager {
     pub fn get_note(&self, path: &str) -> Result<Note> {
         // First try to get from database
         let note = self.db.get_note_by_path(path, &self.root)?;
-        
+
         // If not in database, try to read from filesystem
         if note.is_none() {
             let full_path = self.root.join(path);
             if !full_path.exists() {
                 return Err(KnotError::NoteNotFound(path.to_string()));
             }
-            
+
             let content = std::fs::read_to_string(&full_path)?;
             return Ok(Note::new(path, &content));
         }
-        
+
         note.ok_or_else(|| KnotError::NoteNotFound(path.to_string()))
     }
 
     /// Save a note.
     pub fn save_note(&mut self, path: &str, content: &str) -> Result<()> {
         let full_path = self.root.join(path);
-        
+
         // Ensure parent directory exists
         if let Some(parent) = full_path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -202,7 +200,8 @@ impl VaultManager {
         self.sync_tags(note.id(), &tags)?;
 
         // Update search index WITH tags
-        self.search.index_note(note.path(), note.title(), note.content(), &tags)?;
+        self.search
+            .index_note(note.path(), note.title(), note.content(), &tags)?;
 
         // Update link graph
         self.update_graph_for_note(&note)?;
@@ -213,21 +212,15 @@ impl VaultManager {
 
     fn sync_tags(&self, note_id: &str, tags: &[String]) -> Result<()> {
         let conn = self.db.conn();
-        
+
         // Delete existing tags for this note
-        conn.execute(
-            "DELETE FROM note_tags WHERE note_id = ?1",
-            [note_id],
-        )?;
-        
+        conn.execute("DELETE FROM note_tags WHERE note_id = ?1", [note_id])?;
+
         // Insert/update tags
         for tag in tags {
             // Insert tag if not exists
-            conn.execute(
-                "INSERT OR IGNORE INTO tags (name) VALUES (?1)",
-                [tag],
-            )?;
-            
+            conn.execute("INSERT OR IGNORE INTO tags (name) VALUES (?1)", [tag])?;
+
             // Link note to tag
             conn.execute(
                 "INSERT INTO note_tags (note_id, tag_id) 
@@ -235,14 +228,14 @@ impl VaultManager {
                 [note_id, tag],
             )?;
         }
-        
+
         Ok(())
     }
 
     /// Delete a note.
     pub fn delete_note(&mut self, path: &str) -> Result<()> {
         let full_path = self.root.join(path);
-        
+
         // Delete from filesystem
         if full_path.exists() {
             std::fs::remove_file(&full_path)?;
@@ -287,7 +280,8 @@ impl VaultManager {
         let tags = crate::markdown::extract_tags(&content);
         self.sync_tags(note.id(), &tags)?;
         self.search.remove_note(old_path)?;
-        self.search.index_note(note.path(), note.title(), note.content(), &tags)?;
+        self.search
+            .index_note(note.path(), note.title(), note.content(), &tags)?;
 
         // Update graph
         self.rebuild_graph()?;
@@ -356,9 +350,9 @@ impl VaultManager {
             .filter_entry(|e| {
                 // Skip the .vault directory
                 let path = e.path();
-                !path.components().any(|c| {
-                    c.as_os_str() == std::ffi::OsStr::new(VAULT_DIR)
-                })
+                !path
+                    .components()
+                    .any(|c| c.as_os_str() == std::ffi::OsStr::new(VAULT_DIR))
             })
             .filter_map(|e| e.ok())
         {
@@ -368,7 +362,8 @@ impl VaultManager {
             }
 
             // Get relative path from vault root
-            let relative = path.strip_prefix(&self.root)
+            let relative = path
+                .strip_prefix(&self.root)
                 .map_err(|_| KnotError::InvalidPath(path.to_string_lossy().to_string()))?;
             let path_str = relative.to_string_lossy();
 
@@ -380,7 +375,8 @@ impl VaultManager {
             self.db.save_note(&note)?;
             let tags = crate::markdown::extract_tags(&content);
             self.sync_tags(note.id(), &tags)?;
-            self.search.index_note(note.path(), note.title(), note.content(), &tags)?;
+            self.search
+                .index_note(note.path(), note.title(), note.content(), &tags)?;
 
             synced += 1;
         }
@@ -426,34 +422,76 @@ impl VaultManager {
         use crate::watcher::FileEvent;
         match event {
             FileEvent::Modified { path } => {
-                info!(path, "external file modified");
-                // Read file and update database
-                let full_path = self.root.join(&path);
-                if let Ok(content) = std::fs::read_to_string(&full_path) {
-                    let note = Note::new(&path, &content);
-                    self.db.save_note(&note)?;
-                    self.search.index_note(&path, &note.title(), &content, &[])?;
-                    self.update_graph_for_note(&note)?;
-                }
+                self.sync_modified_file(&path)?;
             }
             FileEvent::Deleted { path } => {
-                info!(path, "external file deleted");
-                self.delete_note(&path)?;
+                self.sync_deleted_file(&path)?;
             }
             FileEvent::Renamed { from, to } => {
-                info!(from, to, "external file renamed");
-                // Treat as delete + create
-                let _ = self.delete_note(&from);
-                let full_path = self.root.join(&to);
-                if let Ok(content) = std::fs::read_to_string(&full_path) {
-                    let note = Note::new(&to, &content);
-                    let tags = crate::markdown::extract_tags(&content);
-                    self.db.save_note(&note)?;
-                    self.sync_tags(note.id(), &tags)?;
-                    self.search.index_note(&to, note.title(), &content, &tags)?;
-                }
+                self.sync_renamed_file(&from, &to)?;
             }
         }
+        Ok(())
+    }
+
+    fn sync_new_file(&mut self, path: &str) -> Result<()> {
+        let full_path = self.root.join(path);
+        let content = std::fs::read_to_string(&full_path)?;
+        let note = Note::new(path, &content);
+        let tags = crate::markdown::extract_tags(&content);
+
+        self.db.save_note(&note)?;
+        self.sync_tags(note.id(), &tags)?;
+        self.search
+            .index_note(path, note.title(), &content, &tags)?;
+        self.update_graph_for_note(&note)?;
+
+        info!(path, "synced new file to database, index, and graph");
+        Ok(())
+    }
+
+    fn sync_modified_file(&mut self, path: &str) -> Result<()> {
+        let full_path = self.root.join(path);
+        let content = std::fs::read_to_string(&full_path)?;
+        let note = Note::new(path, &content);
+        let tags = crate::markdown::extract_tags(&content);
+
+        self.db.save_note(&note)?;
+        self.sync_tags(note.id(), &tags)?;
+        self.search
+            .index_note(path, note.title(), &content, &tags)?;
+        self.update_graph_for_note(&note)?;
+
+        info!(path, "synced new file to database, index, and graph");
+        Ok(())
+    }
+
+    fn sync_modified_file(&mut self, path: &str) -> Result<()> {
+        info!(path, "external file modified");
+        let full_path = self.root.join(path);
+        let content = std::fs::read_to_string(&full_path)?;
+        let note = Note::new(path, &content);
+        let tags = crate::markdown::extract_tags(&content);
+
+        self.db.save_note(&note)?;
+        self.sync_tags(note.id(), &tags)?;
+        self.search
+            .index_note(path, note.title(), &content, &tags)?;
+        self.update_graph_for_note(&note)?;
+
+        info!(path, "synced modified file to database, index, and graph");
+        Ok(())
+    }
+
+    fn sync_deleted_file(&mut self, path: &str) -> Result<()> {
+        info!(path, "external file deleted");
+        self.delete_note(path)
+    }
+
+    fn sync_renamed_file(&mut self, from: &str, to: &str) -> Result<()> {
+        info!(from, to, "external file renamed");
+        let _ = self.sync_deleted_file(from);
+        let _ = self.sync_new_file(to);
         Ok(())
     }
 
@@ -488,7 +526,9 @@ mod tests {
         let mut vault = VaultManager::create(&vault_path).unwrap();
 
         // Save a note
-        vault.save_note("test.md", "# Test Note\n\nContent here.").unwrap();
+        vault
+            .save_note("test.md", "# Test Note\n\nContent here.")
+            .unwrap();
 
         // Get the note
         let note = vault.get_note("test.md").unwrap();
