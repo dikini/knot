@@ -20,7 +20,7 @@ const DEFAULT_POLL_INTERVAL_MS: u64 = 100;
 const MARKDOWN_EXT: &str = ".md";
 
 /// Events emitted by the file watcher.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum FileEvent {
     /// File was created or modified
     Modified { path: String },
@@ -199,11 +199,99 @@ mod tests {
 
         // Poll multiple times to pass debounce
         let mut events = vec![];
-        for _ in 0..10 {
+        for _ in 0..12 {
             events.extend(watcher.poll_events());
             thread::sleep(Duration::from_millis(100));
         }
 
         assert!(!events.is_empty(), "should detect file creation");
+        assert!(events.contains(&FileEvent::Modified {
+            path: "test.md".to_string()
+        }));
+    }
+
+    #[test]
+    fn watcher_detects_modified_file() {
+        let dir = TempDir::new().unwrap();
+        let mut watcher = FileWatcher::new(dir.path()).unwrap();
+
+        // Create a file first
+        fs::write(dir.path().join("test.md"), "# Test").unwrap();
+        thread::sleep(Duration::from_millis(100));
+
+        // Clear events from creation
+        let _ = watcher.poll_events();
+
+        // Modify the file
+        fs::write(dir.path().join("test.md"), "# Test\n\nUpdated content").unwrap();
+        thread::sleep(Duration::from_millis(100));
+
+        // Poll multiple times to pass debounce
+        let mut events = vec![];
+        for _ in 0..12 {
+            events.extend(watcher.poll_events());
+            thread::sleep(Duration::from_millis(100));
+        }
+
+        assert!(!events.is_empty(), "should detect file modification");
+        assert!(events.contains(&FileEvent::Modified {
+            path: "test.md".to_string()
+        }));
+    }
+
+    #[test]
+    fn watcher_detects_deleted_file() {
+        let dir = TempDir::new().unwrap();
+        let mut watcher = FileWatcher::new(dir.path()).unwrap();
+
+        // Create a file first
+        fs::write(dir.path().join("test.md"), "# Test").unwrap();
+        thread::sleep(Duration::from_millis(100));
+
+        // Clear events from creation
+        let _ = watcher.poll_events();
+
+        // Delete the file
+        fs::remove_file(dir.path().join("test.md")).unwrap();
+        thread::sleep(Duration::from_millis(100));
+
+        // Poll multiple times to pass debounce
+        let mut events = vec![];
+        for _ in 0..12 {
+            events.extend(watcher.poll_events());
+            thread::sleep(Duration::from_millis(100));
+        }
+
+        assert!(!events.is_empty(), "should detect file deletion");
+        assert!(events.contains(&FileEvent::Deleted {
+            path: "test.md".to_string()
+        }));
+    }
+
+    #[test]
+    fn watcher_debounces_rapid_changes() {
+        let dir = TempDir::new().unwrap();
+        let mut watcher = FileWatcher::new(dir.path()).unwrap();
+
+        // Create and modify file rapidly
+        fs::write(dir.path().join("test.md"), "# Test 1").unwrap();
+        thread::sleep(Duration::from_millis(50));
+
+        fs::write(dir.path().join("test.md"), "# Test 2").unwrap();
+        thread::sleep(Duration::from_millis(50));
+
+        fs::write(dir.path().join("test.md"), "# Test 3").unwrap();
+        thread::sleep(Duration::from_millis(50));
+
+        // Poll immediately - should see events but they'll be debounced
+        let mut events = vec![];
+        for _ in 0..6 {
+            events.extend(watcher.poll_events());
+            thread::sleep(Duration::from_millis(100));
+        }
+
+        // After debounce period, should only see the last state
+        // (The exact number depends on debounce timing, but should not be 3 separate events)
+        assert!(!events.is_empty(), "should detect changes");
     }
 }

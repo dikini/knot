@@ -451,22 +451,6 @@ impl VaultManager {
     }
 
     fn sync_modified_file(&mut self, path: &str) -> Result<()> {
-        let full_path = self.root.join(path);
-        let content = std::fs::read_to_string(&full_path)?;
-        let note = Note::new(path, &content);
-        let tags = crate::markdown::extract_tags(&content);
-
-        self.db.save_note(&note)?;
-        self.sync_tags(note.id(), &tags)?;
-        self.search
-            .index_note(path, note.title(), &content, &tags)?;
-        self.update_graph_for_note(&note)?;
-
-        info!(path, "synced new file to database, index, and graph");
-        Ok(())
-    }
-
-    fn sync_modified_file(&mut self, path: &str) -> Result<()> {
         info!(path, "external file modified");
         let full_path = self.root.join(path);
         let content = std::fs::read_to_string(&full_path)?;
