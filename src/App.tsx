@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Editor } from "@components/Editor";
 import { GraphView } from "@components/GraphView";
+import { ToolRail } from "@components/Shell/ToolRail";
 import { Sidebar } from "@components/Sidebar";
 import { ToastContainer } from "@components/Toast";
 import { useToast } from "@hooks/useToast";
@@ -89,6 +90,14 @@ function App() {
     const key = `knot:view-mode:${vault.path}`;
     localStorage.setItem(key, viewMode);
   }, [vault, viewMode, hydratedViewModeVaultPath]);
+
+  useEffect(() => {
+    if (shell.toolMode === "graph") {
+      setViewMode("graph");
+      return;
+    }
+    setViewMode("editor");
+  }, [shell.toolMode]);
 
   useEffect(() => {
     if (!vault) return;
@@ -271,14 +280,22 @@ function App() {
   };
 
   return (
-    <div className="app">
-      <Sidebar
-        recentVaults={recentVaults}
-        onOpenVault={handleOpenVault}
-        onCreateVault={handleCreateVault}
-        onOpenRecent={handleOpenRecent}
-        onCloseVault={handleCloseVault}
+    <div className={`app ${shell.densityMode === "comfortable" ? "app--comfortable" : "app--adaptive"}`}>
+      <ToolRail
+        mode={shell.toolMode}
+        collapsed={shell.isToolRailCollapsed}
+        onModeChange={setShellToolMode}
+        onToggleCollapse={toggleToolRail}
       />
+      {!shell.isContextPanelCollapsed && (
+        <Sidebar
+          recentVaults={recentVaults}
+          onOpenVault={handleOpenVault}
+          onCreateVault={handleCreateVault}
+          onOpenRecent={handleOpenRecent}
+          onCloseVault={handleCloseVault}
+        />
+      )}
       <main className="main-content">
         {/* Loading indicator */}
         {isLoading && (
