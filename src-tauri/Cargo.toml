@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/yourusername/knot"
 edition = "2021"
 rust-version = "1.70"
+default-run = "knot"
 
 [dependencies]
 # Tauri framework

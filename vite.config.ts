@@ -18,6 +18,8 @@ export default defineConfig(async () => ({
   // Vite options tailored for Tauri development and specifically ignored the "all" option to avoid Vite issue
   clearScreen: false,
   server: {
+    // BUG-dev-host-localhost-refused-001: pin IPv4 loopback to avoid localhost resolution mismatch in Tauri dev.
+    host: "127.0.0.1",
     port: 1420,
     strictPort: true,
     watch: {
