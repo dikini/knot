@@ -44,9 +44,9 @@ tasks:
     refs: [FR-10, FR-11]
   - id: ET-011
     title: Keyboard navigation and ARIA tree semantics
-    status: pending
+    status: done
     refs: [FR-13]
   - id: ET-012
     title: Hidden-files default policy + tests
-    status: pending
+    status: done
     refs: [FR-12, FR-13]

@@ -585,4 +585,12 @@ mod tests {
         assert!(a.expanded);
         assert!(!b.expanded);
     }
+
+    #[test]
+    fn hidden_rel_paths_are_filtered() {
+        assert!(is_hidden_rel_path(".vault"));
+        assert!(is_hidden_rel_path("Programming/.drafts"));
+        assert!(is_hidden_rel_path(".hidden/file.md"));
+        assert!(!is_hidden_rel_path("Programming/rust"));
+    }
 }

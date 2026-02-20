@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import { IconButton } from "@components/IconButton";
 import { VaultSwitcher } from "@components/VaultSwitcher";
@@ -33,6 +33,7 @@ export function Sidebar({
   const { isDirty, content } = useEditorStore();
   const [explorerRoot, setExplorerRoot] = useState<ExplorerFolderNode | null>(null);
   const [isExplorerLoading, setIsExplorerLoading] = useState(false);
+  const [focusedKey, setFocusedKey] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -284,6 +285,119 @@ export function Sidebar({
     }
   };
 
+  type VisibleTreeItem = {
+    key: string;
+    type: "folder" | "note";
+    path: string;
+    parentFolderPath: string;
+    depth: number;
+    expanded?: boolean;
+  };
+
+  const visibleTreeItems = useMemo<VisibleTreeItem[]>(() => {
+    if (!explorerRoot) return [];
+    const items: VisibleTreeItem[] = [];
+
+    const walk = (folder: ExplorerFolderNode, depth: number, parentFolderPath: string) => {
+      if (folder.path !== "") {
+        items.push({
+          key: `folder:${folder.path}`,
+          type: "folder",
+          path: folder.path,
+          parentFolderPath,
+          depth,
+          expanded: folder.expanded,
+        });
+      }
+
+      if (!folder.expanded) return;
+      const nextDepth = folder.path === "" ? depth : depth + 1;
+
+      for (const child of folder.folders) {
+        walk(child, nextDepth, folder.path);
+      }
+      for (const note of folder.notes) {
+        items.push({
+          key: `note:${note.path}`,
+          type: "note",
+          path: note.path,
+          parentFolderPath: folder.path,
+          depth: nextDepth,
+        });
+      }
+    };
+
+    walk(explorerRoot, 0, "");
+    return items;
+  }, [explorerRoot]);
+
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const focusTreeItem = (itemKey: string) => {
+    const element = itemRefs.current[itemKey];
+    if (!element) return;
+    element.focus();
+    setFocusedKey(itemKey);
+  };
+
+  const handleTreeKeyDown = async (event: React.KeyboardEvent<HTMLUListElement>) => {
+    if (visibleTreeItems.length === 0) return;
+
+    const index = visibleTreeItems.findIndex((item) => item.key === focusedKey);
+    const currentIndex = index >= 0 ? index : 0;
+    const current = visibleTreeItems[currentIndex];
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const next = visibleTreeItems[Math.min(currentIndex + 1, visibleTreeItems.length - 1)];
+      focusTreeItem(next.key);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const prev = visibleTreeItems[Math.max(currentIndex - 1, 0)];
+      focusTreeItem(prev.key);
+      return;
+    }
+
+    if (event.key === "ArrowRight") {
+      if (current.type === "folder") {
+        event.preventDefault();
+        if (!current.expanded) {
+          await handleFolderToggle(current.path, true);
+          return;
+        }
+        const child = visibleTreeItems[currentIndex + 1];
+        if (child) {
+          focusTreeItem(child.key);
+        }
+      }
+      return;
+    }
+
+    if (event.key === "ArrowLeft") {
+      if (current.type === "folder" && current.expanded) {
+        event.preventDefault();
+        await handleFolderToggle(current.path, false);
+        return;
+      }
+      if (current.parentFolderPath) {
+        event.preventDefault();
+        focusTreeItem(`folder:${current.parentFolderPath}`);
+      }
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (current.type === "folder") {
+        await handleFolderToggle(current.path, !current.expanded);
+      } else {
+        await handleNoteClick(current.path);
+      }
+    }
+  };
+
   // SPEC: COMP-EXPLORER-TREE-001 FR-8, FR-9
   const handleNewFolder = async (baseFolderPath: string) => {
     const name = normalizeRelPath(prompt("Folder name:") ?? "");
@@ -373,7 +487,15 @@ export function Sidebar({
             });
           }}
           aria-expanded={folder.expanded}
+          role="treeitem"
+          aria-level={depth + 1}
+          aria-selected={focusedKey === `folder:${folder.path}`}
           aria-label={folder.name}
+          ref={(el) => {
+            itemRefs.current[`folder:${folder.path}`] = el;
+          }}
+          tabIndex={focusedKey === `folder:${folder.path}` || (focusedKey === null && depth === 0) ? 0 : -1}
+          onFocus={() => setFocusedKey(`folder:${folder.path}`)}
         >
           <span className="explorer-tree__chevron">{folder.expanded ? "▾" : "▸"}</span>
           <span className="explorer-tree__folder-name">{folder.name}</span>
@@ -392,6 +514,19 @@ export function Sidebar({
                 }`}
                 style={{ paddingLeft: `${(folder.path === "" ? depth : depth + 1) * 12 + 28}px` }}
                 onClick={() => handleNoteClick(note.path)}
+                role="treeitem"
+                aria-level={(folder.path === "" ? depth : depth + 1) + 1}
+                aria-selected={focusedKey === `note:${note.path}`}
+                ref={(el) => {
+                  itemRefs.current[`note:${note.path}`] = el;
+                }}
+                tabIndex={
+                  focusedKey === `note:${note.path}` ||
+                  (focusedKey === null && folder.path === "" && folder.notes[0]?.path === note.path)
+                    ? 0
+                    : -1
+                }
+                onFocus={() => setFocusedKey(`note:${note.path}`)}
                 onContextMenu={(event) => {
                   event.preventDefault();
                   setContextMenu({
@@ -478,6 +613,7 @@ export function Sidebar({
               className="explorer-tree"
               role="tree"
               aria-label="Notes explorer"
+              onKeyDown={(event) => void handleTreeKeyDown(event)}
               onContextMenu={(event) => {
                 if (event.target !== event.currentTarget) return;
                 event.preventDefault();

@@ -39,11 +39,13 @@ vi.mock("@lib/store", () => ({
 }));
 
 const mockGetExplorerTree = vi.fn();
+const mockSetFolderExpanded = vi.fn();
+const mockLoadNoteApi = vi.fn();
 
 vi.mock("@lib/api", () => ({
   getExplorerTree: (...args: unknown[]) => mockGetExplorerTree(...args),
-  setFolderExpanded: vi.fn(),
-  createNote: vi.fn(),
+  setFolderExpanded: (...args: unknown[]) => mockSetFolderExpanded(...args),
+  createNote: (...args: unknown[]) => mockLoadNoteApi(...args),
   createDirectory: vi.fn(),
   renameDirectory: vi.fn(),
   renameNote: vi.fn(),
@@ -105,11 +107,34 @@ describe("Sidebar Explorer M1", () => {
       />
     );
 
-    const folderButton = await screen.findByRole("button", { name: "Programming" });
+    const folderButton = await screen.findByRole("treeitem", { name: "Programming" });
     fireEvent.contextMenu(folderButton);
 
     expect(await screen.findByRole("button", { name: "New note here" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "New folder" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Rename folder" })).toBeInTheDocument();
+  });
+
+  it("supports keyboard navigation and folder toggle via arrows", async () => {
+    mockSetFolderExpanded.mockResolvedValue(undefined);
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const tree = await screen.findByRole("tree", { name: "Notes explorer" });
+    const folderButton = await screen.findByRole("treeitem", { name: "Programming" });
+    folderButton.focus();
+    fireEvent.keyDown(tree, { key: "ArrowLeft" });
+
+    await waitFor(() => {
+      expect(mockSetFolderExpanded).toHaveBeenCalledWith("Programming", false);
+    });
   });
 });
