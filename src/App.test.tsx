@@ -1,8 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { useEffect } from "react";
 import App from "./App";
 
 const mockLoadNote = vi.fn();
+let editorMountCount = 0;
+let editorUnmountCount = 0;
 const mockStoreState: {
   vault: { path: string; name: string; note_count: number; last_modified: number } | null;
   noteList: Array<{
@@ -109,7 +112,15 @@ vi.mock("@components/Sidebar", () => ({
 }));
 
 vi.mock("@components/Editor", () => ({
-  Editor: () => <div data-testid="editor-view">Editor</div>,
+  Editor: () => {
+    useEffect(() => {
+      editorMountCount += 1;
+      return () => {
+        editorUnmountCount += 1;
+      };
+    }, []);
+    return <div data-testid="editor-view">Editor</div>;
+  },
 }));
 
 vi.mock("@components/GraphView", () => ({
@@ -125,6 +136,8 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    editorMountCount = 0;
+    editorUnmountCount = 0;
     mockStoreState.vault = { path: "/tmp/vault", name: "vault", note_count: 0, last_modified: 0 };
     mockStoreState.noteList = [];
     mockStoreState.currentNote = null;
@@ -280,5 +293,42 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     const { container } = render(<App />);
     const appShell = container.querySelector(".app");
     expect(appShell).toHaveClass("app--comfortable");
+  });
+
+  it("remounts editor when selected note path changes", async () => {
+    mockStoreState.currentNote = {
+      id: "n1",
+      path: "a.md",
+      title: "A",
+      content: "A",
+      created_at: 0,
+      modified_at: 0,
+      word_count: 1,
+      headings: [],
+      backlinks: [],
+    };
+
+    const { rerender } = render(<App />);
+    expect(await screen.findByTestId("editor-view")).toBeInTheDocument();
+    expect(editorMountCount).toBe(1);
+    expect(editorUnmountCount).toBe(0);
+
+    mockStoreState.currentNote = {
+      id: "n2",
+      path: "b.md",
+      title: "B",
+      content: "B",
+      created_at: 0,
+      modified_at: 0,
+      word_count: 1,
+      headings: [],
+      backlinks: [],
+    };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(editorMountCount).toBe(2);
+      expect(editorUnmountCount).toBe(1);
+    });
   });
 });
