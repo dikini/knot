@@ -41,6 +41,12 @@ vi.mock("@lib/store", () => ({
 const mockGetExplorerTree = vi.fn();
 const mockSetFolderExpanded = vi.fn();
 const mockLoadNoteApi = vi.fn();
+const mockListen = vi.fn();
+let treeEventHandler: (() => void) | null = null;
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: (...args: unknown[]) => mockListen(...args),
+}));
 
 vi.mock("@lib/api", () => ({
   getExplorerTree: (...args: unknown[]) => mockGetExplorerTree(...args),
@@ -56,6 +62,12 @@ vi.mock("@lib/api", () => ({
 describe("Sidebar Explorer M1", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    treeEventHandler = null;
+    mockListen.mockResolvedValue(() => {});
+    mockListen.mockImplementation((_eventName: string, handler: () => void) => {
+      treeEventHandler = handler;
+      return Promise.resolve(() => {});
+    });
     mockGetExplorerTree.mockResolvedValue({
       hidden_policy: "hide-dotfiles",
       root: {
@@ -135,6 +147,28 @@ describe("Sidebar Explorer M1", () => {
 
     await waitFor(() => {
       expect(mockSetFolderExpanded).toHaveBeenCalledWith("Programming", false);
+    });
+  });
+
+  it("refreshes explorer tree on vault tree-changed event", async () => {
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    await screen.findByRole("tree", { name: "Notes explorer" });
+    expect(mockListen).toHaveBeenCalledWith("vault://tree-changed", expect.any(Function));
+    expect(treeEventHandler).toBeTruthy();
+
+    treeEventHandler?.();
+
+    await waitFor(() => {
+      expect(mockGetExplorerTree.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
   });
 });

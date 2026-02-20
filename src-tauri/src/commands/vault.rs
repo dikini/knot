@@ -2,16 +2,24 @@
 //!
 //! SPEC: COMP-VAULT-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6
 
-use tauri::State;
+use serde::Serialize;
+use tauri::{State, Window};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tracing::{info, instrument};
 
 use crate::core::VaultManager;
+use crate::commands::emit_event;
 use crate::error::KnotError;
 use crate::recent_vaults::{RecentVault, RecentVaults};
 use crate::state::response::{VaultInfo, NoteSummary};
 use crate::state::AppState;
 use std::path::PathBuf;
+
+#[derive(Debug, Clone, Serialize)]
+struct TreeChangedEventPayload {
+    reason: &'static str,
+    changed_count: usize,
+}
 
 /// Greet command - simple test command.
 #[tauri::command]
@@ -326,13 +334,26 @@ pub async fn get_recent_vaults() -> Result<Vec<RecentVault>, String> {
 /// and syncs them into the vault state.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn sync_external_changes(state: State<'_, AppState>) -> Result<(), String> {
+pub async fn sync_external_changes(
+    window: Window,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let mut vault_guard = state.vault().lock().await;
 
     if let Some(ref mut vault) = vault_guard.as_mut() {
-        vault
+        let changed_count = vault
             .sync_external_changes()
             .map_err(|e| e.to_response_string())?;
+        if changed_count > 0 {
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "watcher-sync",
+                    changed_count,
+                },
+            );
+        }
     }
 
     Ok(())

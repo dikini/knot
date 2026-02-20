@@ -8,7 +8,7 @@ pub mod vault;
 pub mod notes;
 pub mod search;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tracing::info;
 
 /// Initialize the application state and resources.
@@ -27,13 +27,12 @@ pub fn init_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> 
 
 /// Emit an event to all windows.
 #[allow(dead_code)]
-pub fn emit_event<M: Manager<R>, R: tauri::Runtime, S: serde::Serialize>(
-    _manager: &M,
-    _event: &str,
-    _payload: S,
+pub fn emit_event<M: Manager<R> + Emitter<R>, R: tauri::Runtime, S: serde::Serialize + Clone>(
+    manager: &M,
+    event: &str,
+    payload: S,
 ) {
-    // TODO: Fix for Tauri 2.0 API
-    // if let Err(e) = manager.emit(event, payload) {
-    //     tracing::warn!(event, error = ?e, "failed to emit event");
-    // }
+    if let Err(e) = manager.emit(event, payload) {
+        tracing::warn!(event, error = ?e, "failed to emit event");
+    }
 }

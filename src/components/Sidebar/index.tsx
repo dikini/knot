@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import { IconButton } from "@components/IconButton";
 import { VaultSwitcher } from "@components/VaultSwitcher";
@@ -7,6 +7,7 @@ import type { RecentVault } from "@lib/api";
 import * as api from "@lib/api";
 import type { ExplorerFolderNode } from "@/types/vault";
 import { FolderPlus, FilePlus, ChevronDown, ChevronUp, RefreshCcw } from "lucide-react";
+import { listen } from "@tauri-apps/api/event";
 import "./Sidebar.css";
 
 export interface SidebarProps {
@@ -41,7 +42,7 @@ export function Sidebar({
     path: string;
   } | null>(null);
 
-  const refreshExplorerTree = async () => {
+  const refreshExplorerTree = useCallback(async () => {
     setIsExplorerLoading(true);
     try {
       const tree = await api.getExplorerTree();
@@ -51,7 +52,7 @@ export function Sidebar({
     } finally {
       setIsExplorerLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (!vault) {
@@ -59,7 +60,45 @@ export function Sidebar({
       return;
     }
     void refreshExplorerTree();
-  }, [vault, noteList]);
+  }, [vault, noteList, refreshExplorerTree]);
+
+  // SPEC: COMP-EXPLORER-TREE-001 FR-10, FR-11
+  useEffect(() => {
+    if (!vault) return;
+
+    let cancelled = false;
+    let debounceTimer: number | null = null;
+    let unlistenFn: (() => void) | null = null;
+
+    const subscribe = async () => {
+      try {
+        unlistenFn = await listen("vault://tree-changed", () => {
+          if (cancelled) return;
+          if (debounceTimer) {
+            window.clearTimeout(debounceTimer);
+          }
+          debounceTimer = window.setTimeout(() => {
+            void refreshExplorerTree();
+            void useVaultStore.getState().loadNotes();
+          }, 120);
+        });
+      } catch {
+        // Non-tauri test/web contexts: keep polling fallback only.
+      }
+    };
+
+    void subscribe();
+
+    return () => {
+      cancelled = true;
+      if (debounceTimer) {
+        window.clearTimeout(debounceTimer);
+      }
+      if (unlistenFn) {
+        unlistenFn();
+      }
+    };
+  }, [vault, refreshExplorerTree]);
 
   const handleNoteClick = async (path: string) => {
     // Don't reload same note

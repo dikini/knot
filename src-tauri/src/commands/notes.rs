@@ -8,11 +8,20 @@ use tracing::{info, instrument};
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
+use serde::Serialize;
+use tauri::Window;
+use crate::commands::emit_event;
 
 use crate::state::response::{
     Backlink, ExplorerFolderNode, ExplorerNoteNode, ExplorerTree, Heading, NoteData, NoteSummary,
 };
 use crate::state::AppState;
+
+#[derive(Debug, Clone, Serialize)]
+struct TreeChangedEventPayload {
+    reason: &'static str,
+    changed_count: usize,
+}
 
 /// SPEC: COMP-NOTE-001 FR-1
 /// List all notes in the vault.
@@ -93,6 +102,7 @@ pub async fn get_note(
 pub async fn save_note(
     path: String,
     content: String,
+    window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut vault_guard = state.vault().lock().await;
@@ -101,6 +111,14 @@ pub async fn save_note(
         Some(vault) => {
             vault.save_note(&path, &content)
                 .map_err(|e| e.to_response_string())?;
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "save-note",
+                    changed_count: 1,
+                },
+            );
 
             info!(path, "note saved");
             Ok(())
@@ -115,6 +133,7 @@ pub async fn save_note(
 #[instrument(skip(state))]
 pub async fn delete_note(
     path: String,
+    window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut vault_guard = state.vault().lock().await;
@@ -123,6 +142,14 @@ pub async fn delete_note(
         Some(vault) => {
             vault.delete_note(&path)
                 .map_err(|e| e.to_response_string())?;
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "delete-note",
+                    changed_count: 1,
+                },
+            );
 
             info!(path, "note deleted");
             Ok(())
@@ -138,6 +165,7 @@ pub async fn delete_note(
 pub async fn rename_note(
     old_path: String,
     new_path: String,
+    window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut vault_guard = state.vault().lock().await;
@@ -146,6 +174,14 @@ pub async fn rename_note(
         Some(vault) => {
             vault.rename_note(&old_path, &new_path)
                 .map_err(|e| e.to_response_string())?;
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "rename-note",
+                    changed_count: 1,
+                },
+            );
 
             info!(old_path, new_path, "note renamed");
             Ok(())
@@ -161,6 +197,7 @@ pub async fn rename_note(
 pub async fn create_note(
     path: String,
     content: Option<String>,
+    window: Window,
     state: State<'_, AppState>,
 ) -> Result<NoteData, String> {
     let mut vault_guard = state.vault().lock().await;
@@ -199,6 +236,14 @@ pub async fn create_note(
             };
 
             info!(path, "note created");
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "create-note",
+                    changed_count: 1,
+                },
+            );
             Ok(data)
         }
         None => Err("No vault is open".to_string()),
@@ -281,14 +326,26 @@ pub async fn get_explorer_tree(state: State<'_, AppState>) -> Result<ExplorerTre
 pub async fn set_folder_expanded(
     path: String,
     expanded: bool,
+    window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
-        Some(vault) => vault
-            .set_folder_expanded(&path, expanded)
-            .map_err(|e| e.to_response_string()),
+        Some(vault) => {
+            vault
+                .set_folder_expanded(&path, expanded)
+                .map_err(|e| e.to_response_string())?;
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "set-folder-expanded",
+                    changed_count: 1,
+                },
+            );
+            Ok(())
+        }
         None => Err("No vault is open".to_string()),
     }
 }
@@ -297,11 +354,26 @@ pub async fn set_folder_expanded(
 /// Create a directory in the current vault.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn create_directory(path: String, state: State<'_, AppState>) -> Result<(), String> {
+pub async fn create_directory(
+    path: String,
+    window: Window,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
-        Some(vault) => vault.create_directory(&path).map_err(|e| e.to_response_string()),
+        Some(vault) => {
+            vault.create_directory(&path).map_err(|e| e.to_response_string())?;
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "create-directory",
+                    changed_count: 1,
+                },
+            );
+            Ok(())
+        }
         None => Err("No vault is open".to_string()),
     }
 }
@@ -313,14 +385,26 @@ pub async fn create_directory(path: String, state: State<'_, AppState>) -> Resul
 pub async fn delete_directory(
     path: String,
     recursive: bool,
+    window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
-        Some(vault) => vault
-            .delete_directory(&path, recursive)
-            .map_err(|e| e.to_response_string()),
+        Some(vault) => {
+            vault
+                .delete_directory(&path, recursive)
+                .map_err(|e| e.to_response_string())?;
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "delete-directory",
+                    changed_count: 1,
+                },
+            );
+            Ok(())
+        }
         None => Err("No vault is open".to_string()),
     }
 }
@@ -332,14 +416,26 @@ pub async fn delete_directory(
 pub async fn rename_directory(
     old_path: String,
     new_path: String,
+    window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
-        Some(vault) => vault
-            .rename_directory(&old_path, &new_path)
-            .map_err(|e| e.to_response_string()),
+        Some(vault) => {
+            vault
+                .rename_directory(&old_path, &new_path)
+                .map_err(|e| e.to_response_string())?;
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "rename-directory",
+                    changed_count: 1,
+                },
+            );
+            Ok(())
+        }
         None => Err("No vault is open".to_string()),
     }
 }

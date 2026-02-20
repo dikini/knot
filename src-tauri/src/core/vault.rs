@@ -532,14 +532,16 @@ impl VaultManager {
     /// Call this periodically to process watcher events
     /// SPEC: COMP-FILE-WATCH-001 FR-7
     /// Poll for and sync external file changes
-    pub fn sync_external_changes(&mut self) -> Result<()> {
+    pub fn sync_external_changes(&mut self) -> Result<usize> {
+        let mut changed_count = 0usize;
         if let Some(ref mut watcher) = self.watcher {
             let events = watcher.poll_events();
             for event in events {
                 self.handle_file_event(event)?;
+                changed_count += 1;
             }
         }
-        Ok(())
+        Ok(changed_count)
     }
 
     /// SPEC: COMP-FILE-WATCH-001 FR-2, FR-3, FR-4, FR-5

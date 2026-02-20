@@ -29,7 +29,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-LAYOUT-RECOVERY-001 | layout-recovery | designed  | component/layout-recovery-001.md | [REL, CONF]      | implemented (verified 100%)            |
 | COMP-ICON-CHROME-001 | icon-chrome | designed | component/icon-chrome-001.md | [CONF, REL, CAP] | implemented (verified 100%) |
 | COMP-GRAPH-HOVER-001 | graph-hover-stability | designed | component/graph-hover-stability-001.md | [REL, CONF] | implemented (verified 100%) |
-| COMP-EXPLORER-TREE-001 | explorer-tree | designed | component/explorer-tree-001.md | [CONF, REL, CAP] | in progress (M0-M1-M3 implemented, M2 pending) |
+| COMP-EXPLORER-TREE-001 | explorer-tree | designed | component/explorer-tree-001.md | [CONF, REL, CAP] | implemented (M0-M1-M2-M3 complete) |
 
 ## Interfaces
 
@@ -102,4 +102,5 @@ docs/specs/
 | 2026-02-20 | Design explorer tree navigation with backend metadata persistence | COMP-EXPLORER-TREE-001 |
 | 2026-02-20 | Implement explorer tree M0 read model and sidebar rendering | COMP-EXPLORER-TREE-001 |
 | 2026-02-20 | Implement explorer tree M1 context actions and optimistic rollback | COMP-EXPLORER-TREE-001 |
+| 2026-02-20 | Implement explorer tree M2 watcher event reconciliation | COMP-EXPLORER-TREE-001 |
 | 2026-02-20 | Implement explorer tree M3 accessibility and hidden-path hardening | COMP-EXPLORER-TREE-001 |

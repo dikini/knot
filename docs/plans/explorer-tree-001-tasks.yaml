@@ -36,11 +36,11 @@ tasks:
     refs: [FR-9]
   - id: ET-009
     title: Backend watcher event emission
-    status: pending
+    status: done
     refs: [FR-10]
   - id: ET-010
     title: Frontend event reconcile logic
-    status: pending
+    status: done
     refs: [FR-10, FR-11]
   - id: ET-011
     title: Keyboard navigation and ARIA tree semantics
