@@ -1,17 +1,20 @@
 import { useEffect, useRef, useCallback } from "react";
 import { initProseMirrorEditor } from "@editor/index";
+import { IconButton } from "@components/IconButton";
 import { useEditorStore, useVaultStore } from "@lib/store";
 import * as api from "@lib/api";
+import { Save } from "lucide-react";
 import type { ProseMirrorEditor } from "../../types/editor";
 import "./Editor.css";
 
 // SPEC: COMP-UI-LAYOUT-002 FR-4
 // SPEC: COMP-FRONTEND-001 FR-3, FR-6
+// SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
 export function Editor() {
   const editorRef = useRef<HTMLDivElement>(null);
   const pmRef = useRef<ProseMirrorEditor | null>(null);
   const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
-  const { currentNote, setCurrentNote } = useVaultStore();
+  const { currentNote, setCurrentNote, shell } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
 
   if (currentNote?.content && initialContentRef.current === "# New Note\n\nStart writing...") {
@@ -129,9 +132,14 @@ export function Editor() {
           </>
         </div>
         <div className="editor-toolbar__actions">
-          <button onClick={handleSave} disabled={!isDirty} className="editor-toolbar__save">
-            {isDirty ? "Save" : "Saved"}
-          </button>
+          <IconButton
+            icon={Save}
+            label={isDirty ? "Save" : "Saved"}
+            className="editor-toolbar__save"
+            showLabel={shell.showTextLabels}
+            disabled={!isDirty}
+            onClick={handleSave}
+          />
         </div>
       </div>
       <div ref={editorRef} className="editor-container" />

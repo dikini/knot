@@ -39,19 +39,3 @@
   border-color: #6b92c1;
   color: var(--color-heading);
 }
-
-.tool-rail__icon {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(30, 33, 37, 0.85);
-  display: grid;
-  place-items: center;
-  font-size: 0.72rem;
-  font-weight: 600;
-}
-
-.tool-rail__label {
-  font-size: 0.8rem;
-  letter-spacing: 0.02em;
-}

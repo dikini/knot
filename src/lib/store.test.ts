@@ -19,6 +19,7 @@ describe("Vault Store", () => {
         isInspectorRailOpen: false,
         contextPanelWidth: 320,
         densityMode: "comfortable",
+        showTextLabels: false,
       },
     });
     vi.clearAllMocks();
@@ -39,6 +40,7 @@ describe("Vault Store", () => {
       expect(state.shell.isInspectorRailOpen).toBe(false);
       expect(state.shell.contextPanelWidth).toBe(320);
       expect(state.shell.densityMode).toBe("comfortable");
+      expect(state.shell.showTextLabels).toBe(false);
     });
 
     it("should update shell mode and collapse toggles", () => {
@@ -48,6 +50,7 @@ describe("Vault Store", () => {
       useVaultStore.getState().setInspectorRailOpen(true);
       useVaultStore.getState().setContextPanelWidth(512);
       useVaultStore.getState().setDensityMode("adaptive");
+      useVaultStore.getState().setShowTextLabels(true);
 
       const updated = useVaultStore.getState();
       expect(updated.shell.toolMode).toBe("graph");
@@ -56,6 +59,7 @@ describe("Vault Store", () => {
       expect(updated.shell.isInspectorRailOpen).toBe(true);
       expect(updated.shell.contextPanelWidth).toBe(512);
       expect(updated.shell.densityMode).toBe("adaptive");
+      expect(updated.shell.showTextLabels).toBe(true);
     });
 
     it("should set vault", () => {

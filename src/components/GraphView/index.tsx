@@ -5,19 +5,23 @@
  * Supports panning, zooming, and node selection.
  */
 // SPEC: COMP-GRAPH-UI-001 FR-1, FR-2, FR-3, FR-5
+// SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { getGraphLayout } from "@lib/api";
+import { IconButton } from "@components/IconButton";
 import type { GraphLayout, GraphNode } from "@lib/api";
+import { RotateCcw } from "lucide-react";
 import "./GraphView.css";
 
 export interface GraphViewProps {
   width: number;
   height: number;
   onNodeClick: (path: string) => void;
+  showLabels?: boolean;
 }
 
-export function GraphView({ width, height, onNodeClick }: GraphViewProps) {
+export function GraphView({ width, height, onNodeClick, showLabels = false }: GraphViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [layout, setLayout] = useState<GraphLayout | null>(null);
   const [loading, setLoading] = useState(true);
@@ -205,13 +209,13 @@ export function GraphView({ width, height, onNodeClick }: GraphViewProps) {
 
       {/* Controls overlay */}
       <div className="graph-view__controls">
-        <button
+        <IconButton
+          icon={RotateCcw}
+          label="Reset"
+          showLabel={showLabels}
           className="graph-view__control-btn"
           onClick={handleResetView}
-          title="Reset view"
-        >
-          ⊘
-        </button>
+        />
         <div className="graph-view__zoom-info">{Math.round(zoom * 100)}%</div>
       </div>
 

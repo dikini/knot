@@ -1,5 +1,8 @@
+import { IconButton } from "@components/IconButton";
+import { RotateCcw, SquarePen } from "lucide-react";
 import "./GraphView.css";
 
+// SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
 interface GraphContextPanelProps {
   selectedTitle: string | null;
   selectedPath: string | null;
@@ -7,6 +10,7 @@ interface GraphContextPanelProps {
   backlinks: string[];
   onResetView: () => void;
   onOpenEditor: () => void;
+  showLabels?: boolean;
 }
 
 export function GraphContextPanel({
@@ -16,18 +20,27 @@ export function GraphContextPanel({
   backlinks,
   onResetView,
   onOpenEditor,
+  showLabels = false,
 }: GraphContextPanelProps) {
   return (
     <div className="graph-context-panel">
       <section className="graph-context-panel__controls">
         <p className="graph-context-panel__heading">Graph Controls</p>
         <div className="graph-context-panel__actions">
-          <button type="button" className="btn-secondary" onClick={onResetView}>
-            Reset View
-          </button>
-          <button type="button" className="btn-secondary" onClick={onOpenEditor}>
-            Open Editor
-          </button>
+          <IconButton
+            icon={RotateCcw}
+            label="Reset"
+            showLabel={showLabels}
+            className="btn-secondary"
+            onClick={onResetView}
+          />
+          <IconButton
+            icon={SquarePen}
+            label="Editor"
+            showLabel={showLabels}
+            className="btn-secondary"
+            onClick={onOpenEditor}
+          />
         </div>
       </section>
 

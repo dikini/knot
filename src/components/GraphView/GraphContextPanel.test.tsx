@@ -52,8 +52,8 @@ describe("GraphContextPanel", () => {
       />
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /reset view/i }));
-    fireEvent.click(screen.getByRole("button", { name: /open editor/i }));
+    fireEvent.click(screen.getByRole("button", { name: /reset/i }));
+    fireEvent.click(screen.getByRole("button", { name: /editor/i }));
 
     expect(onResetView).toHaveBeenCalledTimes(1);
     expect(onOpenEditor).toHaveBeenCalledTimes(1);

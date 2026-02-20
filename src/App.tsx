@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Editor } from "@components/Editor";
 import { GraphContextPanel } from "@components/GraphView/GraphContextPanel";
 import { GraphView } from "@components/GraphView";
+import { IconButton } from "@components/IconButton";
 import { ContextPanel } from "@components/Shell/ContextPanel";
 import { InspectorRail } from "@components/Shell/InspectorRail";
 import { ToolRail } from "@components/Shell/ToolRail";
@@ -13,12 +14,14 @@ import { useVaultStore } from "@lib/store";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
 import * as api from "@lib/api";
 import type { RecentVault } from "@lib/api";
+import { CaseSensitive, CircleEllipsis, Network, SquarePen } from "lucide-react";
 import "./styles/App.css";
 
 // SPEC: COMP-UI-LAYOUT-002 FR-5, FR-6
 // SPEC: COMP-FRONTEND-001 FR-1, FR-2
 // SPEC: COMP-GRAPH-UI-001 FR-4
 // SPEC: COMP-LAYOUT-RECOVERY-001 FR-1, FR-2
+// SPEC: COMP-ICON-CHROME-001 FR-3, FR-4
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
@@ -45,6 +48,7 @@ function App() {
     setDensityMode,
     setContextPanelWidth,
     setInspectorRailOpen,
+    setShowTextLabels,
   } = useVaultStore();
   const { toasts, removeToast, success, error } = useToast();
 
@@ -145,6 +149,7 @@ function App() {
           isInspectorRailOpen?: boolean;
           contextPanelWidth?: number;
           densityMode?: "comfortable" | "adaptive";
+          showTextLabels?: boolean;
         };
 
         if (parsed.toolMode === "notes" || parsed.toolMode === "search" || parsed.toolMode === "graph") {
@@ -165,6 +170,9 @@ function App() {
         if (parsed.densityMode === "comfortable" || parsed.densityMode === "adaptive") {
           setDensityMode(parsed.densityMode);
         }
+        if (typeof parsed.showTextLabels === "boolean") {
+          setShowTextLabels(parsed.showTextLabels);
+        }
       } catch {
         // Ignore malformed persisted shell state.
       }
@@ -179,6 +187,7 @@ function App() {
     setDensityMode,
     setInspectorRailOpen,
     setShellToolMode,
+    setShowTextLabels,
     toggleContextPanel,
   ]);
 
@@ -195,6 +204,7 @@ function App() {
         isInspectorRailOpen: shell.isInspectorRailOpen,
         contextPanelWidth: shell.contextPanelWidth,
         densityMode: shell.densityMode,
+        showTextLabels: shell.showTextLabels,
       })
     );
   }, [vault, shell, hydratedShellVaultPath]);
@@ -344,6 +354,7 @@ function App() {
       backlinks={[]}
       onResetView={() => setGraphSize({ width: 900, height: 600 })}
       onOpenEditor={() => setViewMode("editor")}
+      showLabels={shell.showTextLabels}
     />
   );
 
@@ -352,6 +363,7 @@ function App() {
     <div className={`app ${shell.densityMode === "comfortable" ? "app--comfortable" : "app--adaptive"}`}>
       <ToolRail
         mode={shell.toolMode}
+        showLabels={shell.showTextLabels}
         onModeChange={setShellToolMode}
       />
       <ContextPanel
@@ -400,23 +412,36 @@ function App() {
             ref={contentAreaRef}
           >
             <div className="content-mode-toggle">
-              <button
-                type="button"
-                onClick={() => setEditorSurfaceMode((mode) => (mode === "sepia" ? "dark" : "sepia"))}
+              <IconButton
+                icon={SquarePen}
+                label="Surface"
                 className="btn-secondary editor-surface-toggle"
-              >
-                Editor: {editorSurfaceMode === "sepia" ? "Sepia" : "Dark"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setInspectorRailOpen(!shell.isInspectorRailOpen)}
+                showLabel={shell.showTextLabels}
+                onClick={() => setEditorSurfaceMode((mode) => (mode === "sepia" ? "dark" : "sepia"))}
+              />
+              <IconButton
+                icon={CaseSensitive}
+                label="Labels"
                 className="btn-secondary"
-              >
-                {shell.isInspectorRailOpen ? "Hide Inspector" : "Inspector"}
-              </button>
-              <button type="button" onClick={toggleViewMode} className="btn-secondary">
-                {viewMode === "editor" ? "Graph View" : "Editor View"}
-              </button>
+                showLabel={shell.showTextLabels}
+                active={shell.showTextLabels}
+                onClick={() => setShowTextLabels(!shell.showTextLabels)}
+              />
+              <IconButton
+                icon={CircleEllipsis}
+                label="Inspector"
+                className="btn-secondary"
+                showLabel={shell.showTextLabels}
+                active={shell.isInspectorRailOpen}
+                onClick={() => setInspectorRailOpen(!shell.isInspectorRailOpen)}
+              />
+              <IconButton
+                icon={Network}
+                label="Mode"
+                className="btn-secondary"
+                showLabel={shell.showTextLabels}
+                onClick={toggleViewMode}
+              />
             </div>
             {viewMode === "editor" ? (
               <Editor key={currentNote?.path ?? "no-note-selected"} />
@@ -425,6 +450,7 @@ function App() {
                 width={graphSize.width}
                 height={Math.max(240, graphSize.height - 52)}
                 onNodeClick={handleGraphNodeClick}
+                showLabels={shell.showTextLabels}
               />
             )}
           </div>

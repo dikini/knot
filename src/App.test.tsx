@@ -36,6 +36,7 @@ const mockStoreState: {
     isInspectorRailOpen: boolean;
     contextPanelWidth: number;
     densityMode: "comfortable" | "adaptive";
+    showTextLabels: boolean;
   };
   setVault: ReturnType<typeof vi.fn>;
   closeVault: ReturnType<typeof vi.fn>;
@@ -47,6 +48,7 @@ const mockStoreState: {
   setInspectorRailOpen: ReturnType<typeof vi.fn>;
   setContextPanelWidth: ReturnType<typeof vi.fn>;
   setDensityMode: ReturnType<typeof vi.fn>;
+  setShowTextLabels: ReturnType<typeof vi.fn>;
 } = {
   vault: { path: "/tmp/vault", name: "vault", note_count: 0, last_modified: 0 },
   noteList: [],
@@ -59,6 +61,7 @@ const mockStoreState: {
     isInspectorRailOpen: false,
     contextPanelWidth: 320,
     densityMode: "comfortable",
+    showTextLabels: false,
   },
   setVault: vi.fn(),
   closeVault: vi.fn(),
@@ -81,6 +84,9 @@ const mockStoreState: {
   }),
   setDensityMode: vi.fn((mode: "comfortable" | "adaptive") => {
     mockStoreState.shell.densityMode = mode;
+  }),
+  setShowTextLabels: vi.fn((show: boolean) => {
+    mockStoreState.shell.showTextLabels = show;
   }),
 };
 
@@ -149,6 +155,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       isInspectorRailOpen: false,
       contextPanelWidth: 320,
       densityMode: "comfortable",
+      showTextLabels: false,
     };
   });
 
@@ -156,7 +163,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     render(<App />);
 
     expect(await screen.findByTestId("editor-view")).toBeInTheDocument();
-    const graphToggle = screen.getByRole("button", { name: /graph view/i });
+    const graphToggle = screen.getByRole("button", { name: /mode/i });
     fireEvent.click(graphToggle);
 
     expect(screen.getByTestId("graph-view")).toBeInTheDocument();
@@ -167,13 +174,13 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     mockStoreState.vault = null;
     render(<App />);
 
-    expect(screen.queryByRole("button", { name: /graph view/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /mode/i })).not.toBeInTheDocument();
   });
 
   it("loads note from graph click and returns to editor view", async () => {
     render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: /graph view/i }));
+    fireEvent.click(screen.getByRole("button", { name: /mode/i }));
     fireEvent.click(await screen.findByRole("button", { name: /open note 1/i }));
 
     await waitFor(() => {
@@ -195,7 +202,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
 
     // Hydrate from vault A preference.
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /graph view/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /mode/i })).toBeInTheDocument();
     });
 
     // Switch store state to vault B and rerender.
@@ -203,7 +210,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     rerender(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /editor view/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /mode/i })).toBeInTheDocument();
     });
 
     expect(setItemSpy).not.toHaveBeenCalledWith(`knot:view-mode:${vaultB}`, "editor");
@@ -224,6 +231,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
         isInspectorRailOpen: true,
         contextPanelWidth: 480,
         densityMode: "adaptive",
+        showTextLabels: true,
       })
     );
     localStorage.setItem(
@@ -235,6 +243,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
         isInspectorRailOpen: false,
         contextPanelWidth: 360,
         densityMode: "comfortable",
+        showTextLabels: false,
       })
     );
 
@@ -245,6 +254,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("graph");
       expect(mockStoreState.setContextPanelWidth).toHaveBeenCalledWith(480);
       expect(mockStoreState.setDensityMode).toHaveBeenCalledWith("adaptive");
+      expect(mockStoreState.setShowTextLabels).toHaveBeenCalledWith(true);
     });
 
     mockStoreState.vault = { path: vaultB, name: "vault-b", note_count: 0, last_modified: 0 };
@@ -254,6 +264,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");
       expect(mockStoreState.setContextPanelWidth).toHaveBeenCalledWith(360);
       expect(mockStoreState.setDensityMode).toHaveBeenCalledWith("comfortable");
+      expect(mockStoreState.setShowTextLabels).toHaveBeenCalledWith(false);
     });
 
     expect(setItemSpy).not.toHaveBeenCalledWith(
@@ -290,6 +301,12 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     expect(mockStoreState.setInspectorRailOpen).toHaveBeenCalledWith(true);
   });
 
+  it("toggles icon label preference from shell controls", async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /labels/i }));
+    expect(mockStoreState.setShowTextLabels).toHaveBeenCalledWith(true);
+  });
+
   it("applies comfortable shell class by default", () => {
     const { container } = render(<App />);
     const appShell = container.querySelector(".app");
@@ -302,7 +319,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     const contentArea = await screen.findByTestId("editor-view");
     expect(contentArea.closest(".content-area")).toHaveClass("content-area--editor-sepia");
 
-    fireEvent.click(screen.getByRole("button", { name: /editor: sepia/i }));
+    fireEvent.click(screen.getByRole("button", { name: /surface/i }));
     expect(contentArea.closest(".content-area")).toHaveClass("content-area--editor-dark");
   });
 

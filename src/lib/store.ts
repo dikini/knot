@@ -12,6 +12,7 @@ export interface ShellState {
   isInspectorRailOpen: boolean;
   contextPanelWidth: number;
   densityMode: ShellDensityMode;
+  showTextLabels: boolean;
 }
 
 interface VaultState {
@@ -34,6 +35,7 @@ interface VaultState {
   setInspectorRailOpen: (isOpen: boolean) => void;
   setContextPanelWidth: (width: number) => void;
   setDensityMode: (mode: ShellDensityMode) => void;
+  setShowTextLabels: (show: boolean) => void;
 
   // API Actions
   openVault: (path: string) => Promise<void>;
@@ -61,6 +63,7 @@ export const useVaultStore = create<VaultState>((set, get) => ({
     isInspectorRailOpen: false,
     contextPanelWidth: 320,
     densityMode: "comfortable",
+    showTextLabels: false,
   },
 
   setVault: (vault) => set({ vault, error: null }),
@@ -91,6 +94,10 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   setDensityMode: (mode) =>
     set((state) => ({
       shell: { ...state.shell, densityMode: mode },
+    })),
+  setShowTextLabels: (show) =>
+    set((state) => ({
+      shell: { ...state.shell, showTextLabels: show },
     })),
 
   // Open vault via API

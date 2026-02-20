@@ -1,0 +1,40 @@
+tasks:
+  - id: IC-001
+    title: "Add failing tests for icon-first controls and label preference"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-3, FR-4]
+    dependencies: []
+    acceptance: "Tests encode icon-only defaults and persisted label preference behavior"
+
+  - id: IC-002
+    title: "Add shared IconButton primitive and lucide-react dependency"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-5]
+    dependencies: [IC-001]
+    acceptance: "Common icon button behavior is reusable and accessible"
+
+  - id: IC-003
+    title: "Convert common shell/editor/graph chrome controls to icons"
+    status: done
+    size: M
+    spec_refs: [FR-1, FR-2, FR-5]
+    dependencies: [IC-002]
+    acceptance: "Tool rail and common toolbars render icon-first controls with short noun tooltips"
+
+  - id: IC-004
+    title: "Add and persist label preference toggle"
+    status: done
+    size: M
+    spec_refs: [FR-3, FR-4]
+    dependencies: [IC-003]
+    acceptance: "Preference toggles icon-only vs icon+label and persists per vault shell state"
+
+  - id: IC-005
+    title: "Run verification and publish audit"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+    dependencies: [IC-004]
+    acceptance: "Verification commands pass and audit is published"
