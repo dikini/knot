@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { Editor } from "./index";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import * as api from "@lib/api";
@@ -158,6 +158,44 @@ describe("Editor Component", () => {
       );
     });
 
+    it("preserves links, blockquote, and code block across source -> view -> source", () => {
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        setContent: (next) =>
+          useEditorStore.setState((prev) => ({
+            ...prev,
+            content: next,
+            isDirty: true,
+          })),
+      });
+
+      const markdown = [
+        "# Fidelity",
+        "",
+        "A [linked note](test.md).",
+        "",
+        "> quoted line",
+        "",
+        "```ts",
+        "const n = 1;",
+        "```",
+      ].join("\n");
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      const sourceEditor = screen.getByLabelText("Source markdown editor");
+      fireEvent.change(sourceEditor, { target: { value: markdown } });
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+      expect(screen.getByRole("heading", { name: "Fidelity" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "linked note" })).toBeInTheDocument();
+      expect(screen.getByText("quoted line")).toBeInTheDocument();
+      expect(screen.getByText("const n = 1;")).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      expect(screen.getByLabelText("Source markdown editor")).toHaveValue(markdown);
+    });
+
     it("switches to view mode and renders markdown output", () => {
       useEditorStore.setState({
         ...useEditorStore.getState(),
@@ -179,7 +217,9 @@ describe("Editor Component", () => {
       const options = initCall?.[1] as {
         onSelectionChange?: (selection: { from: number; to: number; empty: boolean }) => void;
       };
-      options.onSelectionChange?.({ from: 1, to: 4, empty: false });
+      act(() => {
+        options.onSelectionChange?.({ from: 1, to: 4, empty: false });
+      });
 
       await waitFor(() => {
         expect(screen.getByRole("toolbar", { name: "Selection formatting" })).toBeInTheDocument();
@@ -199,11 +239,41 @@ describe("Editor Component", () => {
       const options = initCall?.[1] as {
         onSelectionChange?: (selection: { from: number; to: number; empty: boolean }) => void;
       };
-      options.onSelectionChange?.({ from: 2, to: 2, empty: true });
+      act(() => {
+        options.onSelectionChange?.({ from: 2, to: 2, empty: true });
+      });
 
       await waitFor(() => {
         expect(screen.getByRole("button", { name: "Open block menu" })).toBeInTheDocument();
       });
+    });
+
+    it("supports keyboard navigation and escape in block menu", async () => {
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+
+      const initCall = mockInitProseMirrorEditor.mock.calls[0];
+      const options = initCall?.[1] as {
+        onSelectionChange?: (selection: { from: number; to: number; empty: boolean }) => void;
+      };
+      act(() => {
+        options.onSelectionChange?.({ from: 2, to: 2, empty: true });
+      });
+
+      const toggle = await screen.findByRole("button", { name: "Open block menu" });
+      fireEvent.click(toggle);
+
+      const menu = await screen.findByRole("menu", { name: "Insert block" });
+      const codeItem = screen.getByRole("menuitem", { name: "Code block" });
+      const quoteItem = screen.getByRole("menuitem", { name: "Blockquote" });
+      expect(document.activeElement).toBe(codeItem);
+
+      fireEvent.keyDown(menu, { key: "ArrowRight" });
+      expect(document.activeElement).toBe(quoteItem);
+
+      fireEvent.keyDown(menu, { key: "Escape" });
+      expect(screen.queryByRole("menu", { name: "Insert block" })).not.toBeInTheDocument();
+      expect(document.activeElement).toBe(toggle);
     });
 
     it("should show dirty indicator when content is dirty", () => {

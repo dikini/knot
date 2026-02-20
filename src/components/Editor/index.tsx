@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo, useState } from "react";
+import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { initProseMirrorEditor } from "@editor/index";
 import { renderMarkdownToHtml } from "@editor/render";
 import { IconButton } from "@components/IconButton";
@@ -14,13 +14,15 @@ import "./Editor.css";
 // SPEC: COMP-UI-LAYOUT-002 FR-4
 // SPEC: COMP-FRONTEND-001 FR-3, FR-6
 // SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
-// SPEC: COMP-EDITOR-MODES-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-9
+// SPEC: COMP-EDITOR-MODES-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-9, FR-11
 // TRACE: DESIGN-editor-medium-like-interactions
 export function Editor() {
   const editorRef = useRef<HTMLDivElement>(null);
   const editContainerRef = useRef<HTMLDivElement>(null);
   const pmRef = useRef<ProseMirrorEditor | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const blockMenuRef = useRef<HTMLDivElement>(null);
+  const blockToggleRef = useRef<HTMLButtonElement>(null);
   const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
   const { currentNote, setCurrentNote, shell } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
@@ -191,6 +193,71 @@ export function Editor() {
     []
   );
 
+  const handleLinearToolbarKeydown = useCallback(
+    (event: ReactKeyboardEvent<HTMLElement>, options?: { closeOnEscape?: boolean }) => {
+      const root = event.currentTarget;
+      const controls = Array.from(root.querySelectorAll<HTMLButtonElement>("button:not(:disabled)"));
+      if (controls.length === 0) return;
+
+      const active = document.activeElement as HTMLElement | null;
+      const currentIndex = controls.findIndex((button) => button === active);
+
+      const focusByIndex = (index: number) => {
+        const normalized = (index + controls.length) % controls.length;
+        controls[normalized]?.focus();
+      };
+
+      if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+        event.preventDefault();
+        focusByIndex((currentIndex === -1 ? 0 : currentIndex + 1));
+        return;
+      }
+
+      if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+        event.preventDefault();
+        focusByIndex((currentIndex === -1 ? controls.length - 1 : currentIndex - 1));
+        return;
+      }
+
+      if (event.key === "Home") {
+        event.preventDefault();
+        controls[0]?.focus();
+        return;
+      }
+
+      if (event.key === "End") {
+        event.preventDefault();
+        controls[controls.length - 1]?.focus();
+        return;
+      }
+
+      if (event.key === "Enter" || event.key === " ") {
+        if (currentIndex === -1) return;
+        event.preventDefault();
+        controls[currentIndex]?.click();
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (options?.closeOnEscape) {
+          setBlockMenuOpen(false);
+          blockToggleRef.current?.focus();
+        } else {
+          setSelectionToolbar((prev) => ({ ...prev, visible: false }));
+          pmRef.current?.view.focus();
+        }
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!blockMenuOpen) return;
+    const firstMenuItem = blockMenuRef.current?.querySelector<HTMLButtonElement>("button[role='menuitem']");
+    firstMenuItem?.focus();
+  }, [blockMenuOpen]);
+
   // Load note content when currentNote changes
   useEffect(() => {
     if (!pmRef.current || !currentNote || editorMode !== "edit") return;
@@ -337,6 +404,7 @@ export function Editor() {
               style={{ left: `${selectionToolbar.x}px`, top: `${selectionToolbar.y}px` }}
               role="toolbar"
               aria-label="Selection formatting"
+              onKeyDown={(event) => handleLinearToolbarKeydown(event)}
             >
               <button
                 type="button"
@@ -390,15 +458,28 @@ export function Editor() {
               style={{ left: `${blockTool.x}px`, top: `${blockTool.y}px` }}
             >
               <button
+                ref={blockToggleRef}
                 type="button"
                 className="editor-block-tool__toggle"
                 aria-label={blockMenuOpen ? "Close block menu" : "Open block menu"}
                 onClick={() => setBlockMenuOpen((open) => !open)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    setBlockMenuOpen(false);
+                  }
+                }}
               >
                 {blockMenuOpen ? <X size={13} /> : <Plus size={13} />}
               </button>
               {blockMenuOpen && (
-                <div className="editor-block-tool__menu" role="menu" aria-label="Insert block">
+                <div
+                  ref={blockMenuRef}
+                  className="editor-block-tool__menu"
+                  role="menu"
+                  aria-label="Insert block"
+                  onKeyDown={(event) => handleLinearToolbarKeydown(event, { closeOnEscape: true })}
+                >
                   <button
                     type="button"
                     role="menuitem"

@@ -34,7 +34,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-EXPLORER-PANEL-SEARCH-001 | explorer-panel-search | designed | component/explorer-panel-search-removal-001.md | [CONF] | implemented (verified 100%) |
 | COMP-GRAPH-CONSISTENCY-001 | graph-consistency | designed | component/graph-consistency-001.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-EXPLORER-ICON-ACTIONS-001 | explorer-icon-actions | designed | component/explorer-icon-only-actions-001.md | [CONF] | implemented (verified 100%) |
-| COMP-EDITOR-MODES-001 | editor-modes | designed | component/editor-modes-wysiwym-001.md | [CONF, REL] | implemented (M0-M3 verified) |
+| COMP-EDITOR-MODES-001 | editor-modes | designed | component/editor-modes-wysiwym-001.md | [CONF, REL] | implemented (M0-M4 verified) |
 
 ## Interfaces
 
@@ -121,3 +121,4 @@ docs/specs/
 | 2026-02-20 | Implement editor modes M1 (selection floating toolbar) and verify | COMP-EDITOR-MODES-001 |
 | 2026-02-20 | Implement editor modes M2 (block inserter + contextual separation) and verify | COMP-EDITOR-MODES-001 |
 | 2026-02-20 | Implement editor modes M3 (syntax hardening, control placement, fidelity regression checks) and verify | COMP-EDITOR-MODES-001 |
+| 2026-02-20 | Implement editor modes M4 (floating-control keyboard access, focus states, and expanded markdown fidelity checks) and verify | COMP-EDITOR-MODES-001 |

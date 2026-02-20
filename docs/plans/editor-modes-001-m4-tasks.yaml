@@ -1,0 +1,24 @@
+version: 1
+plan: editor-modes-001-m4
+trace: DESIGN-editor-medium-like-interactions
+tasks:
+  - id: EM4-001
+    title: Add keyboard navigation and activation for floating controls
+    status: done
+    refs: [FR-11]
+  - id: EM4-002
+    title: Add focus-visible states for mode controls and floating controls
+    status: done
+    refs: [FR-11]
+  - id: EM4-003
+    title: Add markdown fidelity regression for link, blockquote, and code block
+    status: done
+    refs: [AC-8]
+  - id: EM4-004
+    title: Wrap selection callback-driven test updates in act(...)
+    status: done
+    refs: [AC-9]
+  - id: EM4-005
+    title: Run tests and typecheck
+    status: done
+    refs: [AC-8, AC-9]

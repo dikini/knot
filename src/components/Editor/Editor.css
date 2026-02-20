@@ -114,6 +114,11 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+.editor-toolbar__mode-btn:focus-visible {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 1px;
+}
+
 .editor-toolbar__save {
   padding: var(--spacing-xs) var(--spacing-md);
   font-size: 0.875rem;
@@ -207,6 +212,12 @@
   background: var(--editor-float-hover);
 }
 
+.editor-selection-toolbar button:focus-visible {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 1px;
+  background: var(--editor-float-hover);
+}
+
 .editor-selection-toolbar button svg,
 .editor-block-tool__toggle svg,
 .editor-block-tool__menu button svg {
@@ -243,6 +254,11 @@
   background: var(--editor-float-hover);
 }
 
+.editor-block-tool__toggle:focus-visible {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 1px;
+}
+
 .editor-block-tool__menu {
   display: inline-flex;
   align-items: center;
@@ -265,6 +281,12 @@
 }
 
 .editor-block-tool__menu button:hover {
+  background: var(--editor-float-hover);
+}
+
+.editor-block-tool__menu button:focus-visible {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 1px;
   background: var(--editor-float-hover);
 }
 

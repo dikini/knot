@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-EDITOR-MODES-001`
 - Scope: `component`
-- Status: `implemented (M0-M3)`
+- Status: `implemented (M0-M4)`
 - Parent: `COMP-FRONTEND-001`, `COMP-EDITOR-READING-001`
 - Concerns: `[CONF, REL]`
 - Trace: `DESIGN-editor-medium-like-interactions`
@@ -24,6 +24,7 @@ Introduce a mode-based editor UX (`source/edit/view`) with contextual interactio
 - FR-8: Markdown syntax tokens MUST NOT be visibly leaked in `Edit` mode.
 - FR-9: Mode switching MUST preserve document content fidelity.
 - FR-10: Source mode edits MUST update markdown state live.
+- FR-11: Floating edit controls (selection toolbar and block menu) MUST support keyboard interaction (`Arrow`, `Enter/Space`, `Escape`).
 
 ## Acceptance Criteria
 - AC-1: Mode switch controls are visible in editor toolbar and persisted per vault.
@@ -34,6 +35,7 @@ Introduce a mode-based editor UX (`source/edit/view`) with contextual interactio
 - AC-6: `Code block` and `Blockquote` insertion works from the `+` menu.
 - AC-7: No heading markdown prefix leakage in `Edit` mode for standard heading editing.
 - AC-8: Round-trip tests pass for source/edit/view mode transitions.
+- AC-9: Keyboard interaction tests validate floating control navigation and close behavior.
 
 ## Non-Goals (Phase 1)
 - Media insertion UX (image/video/embed) beyond placeholder menu wiring.
@@ -58,3 +60,4 @@ Introduce a mode-based editor UX (`source/edit/view`) with contextual interactio
 - M1 complete: selection floating toolbar with contextual placement above selected text.
 - M2 complete: block-level contextual `+` inserter with starter actions (`Code block`, `Blockquote`) and separation from text toolbar actions.
 - M3 complete: edit-mode syntax leak hardening for heading markdown (`## ` shortcut conversion), selection/block control placement hardening, and mode-fidelity regression checks.
+- M4 complete: floating-control keyboard accessibility and expanded markdown fidelity regression coverage (links, blockquote, code block).
