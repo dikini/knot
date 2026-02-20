@@ -1,0 +1,32 @@
+tasks:
+  - id: TL-001
+    title: "Add validator tests for lightweight traceability rules"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3]
+    dependencies: []
+    acceptance: "Tests encode missing trace ID and missing Change-Type failures"
+
+  - id: TL-002
+    title: "Implement staged traceability validator"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3]
+    dependencies: [TL-001]
+    acceptance: "Validator checks staged additions and touched plan headers"
+
+  - id: TL-003
+    title: "Add pre-commit hook and install command"
+    status: done
+    size: S
+    spec_refs: [FR-4]
+    dependencies: [TL-002]
+    acceptance: "Git pre-commit runs validator"
+
+  - id: TL-004
+    title: "Run verification and publish audit report"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4]
+    dependencies: [TL-003]
+    acceptance: "Verification report documents compliance and outputs"
