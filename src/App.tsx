@@ -391,7 +391,7 @@ function App() {
               </button>
             </div>
             {viewMode === "editor" ? (
-              <Editor />
+              <Editor key={currentNote?.path ?? "no-note-selected"} />
             ) : (
               <GraphView
                 width={graphSize.width}
