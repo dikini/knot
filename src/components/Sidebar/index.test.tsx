@@ -102,6 +102,7 @@ describe("Sidebar Explorer M1", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "New Note" })).toBeInTheDocument();
     });
+    expect(screen.queryByText("+ New Note")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "New Folder" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand" })).toBeInTheDocument();

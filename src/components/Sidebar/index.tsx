@@ -125,24 +125,6 @@ export function Sidebar({
     await loadNote(path);
   };
 
-  const handleCreateNote = async () => {
-    if (!vault) return;
-
-    const name = prompt("Enter note name:");
-    if (!name) return;
-
-    const path = name.endsWith(".md") ? name : `${name}.md`;
-
-    try {
-      const note = await api.createNote(path, "# New Note\n\nStart writing...");
-      setCurrentNote(note);
-      // Refresh the notes list
-      await useVaultStore.getState().loadNotes();
-    } catch (error) {
-      alert(`Failed to create note: ${error}`);
-    }
-  };
-
   const withOptimisticTree = async (
     transform: (root: ExplorerFolderNode) => ExplorerFolderNode,
     action: () => Promise<void>
@@ -601,9 +583,6 @@ export function Sidebar({
                 className="sidebar__action-btn"
               />
             </div>
-            <button className="sidebar__new-btn" onClick={handleCreateNote}>
-              + New Note
-            </button>
           </>
         )}
       </header>

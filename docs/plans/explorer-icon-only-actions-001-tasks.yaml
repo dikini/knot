@@ -1,0 +1,16 @@
+version: 1
+plan: explorer-icon-only-actions-001
+trace: DESIGN-explorer-icon-only-actions
+tasks:
+  - id: EIA-001
+    title: Remove textual new note button and redundant handler
+    status: done
+    refs: [FR-1]
+  - id: EIA-002
+    title: Update sidebar tests for icon-only actions
+    status: done
+    refs: [FR-1, FR-2]
+  - id: EIA-003
+    title: Verify and publish audit
+    status: done
+    refs: [FR-1, FR-2]
