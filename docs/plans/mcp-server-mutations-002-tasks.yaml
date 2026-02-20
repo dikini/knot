@@ -1,0 +1,28 @@
+version: 1
+plan: mcp-server-mutations-002
+trace: DESIGN-mcp-server-mutations-directory-tools
+tasks:
+  - id: MCP2-001
+    title: Extend tools/list with note mutation and directory tool definitions
+    status: done
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7]
+  - id: MCP2-002
+    title: Implement create_note delete_note replace_note handlers
+    status: done
+    refs: [FR-1, FR-2, FR-3]
+  - id: MCP2-003
+    title: Implement create/remove/rename/list directory handlers
+    status: done
+    refs: [FR-4, FR-5, FR-6, FR-7]
+  - id: MCP2-004
+    title: Add list_directory path guard
+    status: done
+    refs: [FR-8]
+  - id: MCP2-005
+    title: Add tests for new tools and error path
+    status: done
+    refs: [AC-1, AC-2, AC-3, AC-4]
+  - id: MCP2-006
+    title: Run verification and produce audit
+    status: done
+    refs: [AC-1, AC-2, AC-3, AC-4]

@@ -1,6 +1,7 @@
 //! MCP server implementation for Knot.
 //!
 //! SPEC: COMP-MCP-SERVER-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11
+//! SPEC: COMP-MCP-SERVER-002 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8
 //! TRACE: DESIGN-mcp-server-core-tools-resources
 
 use crate::core::VaultManager;
@@ -118,6 +119,86 @@ impl McpServer {
                             "depth": { "type": "integer", "minimum": 1, "maximum": 8 }
                         },
                         "required": ["path"]
+                    }
+                },
+                {
+                    "name": "create_note",
+                    "description": "Create a new markdown note at path.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" },
+                            "content": { "type": "string" }
+                        },
+                        "required": ["path"]
+                    }
+                },
+                {
+                    "name": "delete_note",
+                    "description": "Delete a markdown note by path.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" }
+                        },
+                        "required": ["path"]
+                    }
+                },
+                {
+                    "name": "replace_note",
+                    "description": "Replace note markdown content by path.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" },
+                            "content": { "type": "string" }
+                        },
+                        "required": ["path", "content"]
+                    }
+                },
+                {
+                    "name": "create_directory",
+                    "description": "Create a directory in the vault.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" }
+                        },
+                        "required": ["path"]
+                    }
+                },
+                {
+                    "name": "remove_directory",
+                    "description": "Remove a directory in the vault.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" },
+                            "recursive": { "type": "boolean" }
+                        },
+                        "required": ["path"]
+                    }
+                },
+                {
+                    "name": "rename_directory",
+                    "description": "Rename or move a directory in the vault.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "old_path": { "type": "string" },
+                            "new_path": { "type": "string" }
+                        },
+                        "required": ["old_path", "new_path"]
+                    }
+                },
+                {
+                    "name": "list_directory",
+                    "description": "List entries in a vault directory.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" }
+                        }
                     }
                 }
             ]
@@ -270,6 +351,200 @@ impl McpServer {
                     "isError": false
                 }))
             }
+            "create_note" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+                let content = arguments
+                    .get("content")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default();
+
+                let mut guard = self
+                    .vault
+                    .lock()
+                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
+                if guard.get_note(path).is_ok() {
+                    return Err((-32000, format!("Note already exists: {path}")));
+                }
+                guard
+                    .save_note(path, content)
+                    .map_err(|e| (-32000, e.to_response_string()))?;
+
+                Ok(json!({
+                    "content": [{ "type": "text", "text": format!("Created note: {path}") }],
+                    "isError": false
+                }))
+            }
+            "delete_note" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+
+                let mut guard = self
+                    .vault
+                    .lock()
+                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
+                guard
+                    .delete_note(path)
+                    .map_err(|e| (-32000, e.to_response_string()))?;
+
+                Ok(json!({
+                    "content": [{ "type": "text", "text": format!("Deleted note: {path}") }],
+                    "isError": false
+                }))
+            }
+            "replace_note" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+                let content = arguments
+                    .get("content")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: content".to_string()))?;
+
+                let mut guard = self
+                    .vault
+                    .lock()
+                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
+                guard
+                    .save_note(path, content)
+                    .map_err(|e| (-32000, e.to_response_string()))?;
+
+                Ok(json!({
+                    "content": [{ "type": "text", "text": format!("Replaced note content: {path}") }],
+                    "isError": false
+                }))
+            }
+            "create_directory" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+
+                let guard = self
+                    .vault
+                    .lock()
+                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
+                guard
+                    .create_directory(path)
+                    .map_err(|e| (-32000, e.to_response_string()))?;
+
+                Ok(json!({
+                    "content": [{ "type": "text", "text": format!("Created directory: {path}") }],
+                    "isError": false
+                }))
+            }
+            "remove_directory" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+                let recursive = arguments
+                    .get("recursive")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(true);
+
+                let mut guard = self
+                    .vault
+                    .lock()
+                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
+                let normalized = normalize_rel_dir_for_mcp(path).map_err(|e| (-32602, e))?;
+                let target = guard.root_path().join(&normalized);
+
+                let prefix = format!("{normalized}/");
+                let notes_to_delete = guard
+                    .list_notes()
+                    .map_err(|e| (-32000, e.to_response_string()))?
+                    .into_iter()
+                    .map(|n| n.path)
+                    .filter(|p| p == &normalized || p.starts_with(&prefix))
+                    .collect::<Vec<_>>();
+
+                for note_path in notes_to_delete {
+                    guard
+                        .delete_note(&note_path)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                }
+
+                if target.exists() {
+                    if recursive {
+                        std::fs::remove_dir_all(&target)
+                            .map_err(|e| (-32000, format!("Failed to remove directory: {e}")))?;
+                    } else {
+                        std::fs::remove_dir(&target)
+                            .map_err(|e| (-32000, format!("Failed to remove directory: {e}")))?;
+                    }
+                }
+
+                Ok(json!({
+                    "content": [{ "type": "text", "text": format!("Removed directory: {path}") }],
+                    "isError": false
+                }))
+            }
+            "rename_directory" => {
+                let old_path = arguments
+                    .get("old_path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: old_path".to_string()))?;
+                let new_path = arguments
+                    .get("new_path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: new_path".to_string()))?;
+
+                let mut guard = self
+                    .vault
+                    .lock()
+                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
+                guard
+                    .rename_directory(old_path, new_path)
+                    .map_err(|e| (-32000, e.to_response_string()))?;
+
+                Ok(json!({
+                    "content": [{ "type": "text", "text": format!("Renamed directory: {old_path} -> {new_path}") }],
+                    "isError": false
+                }))
+            }
+            "list_directory" => {
+                let maybe_path = arguments.get("path").and_then(Value::as_str).map(str::trim);
+                let guard = self
+                    .vault
+                    .lock()
+                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
+                let dir_path = resolve_directory_path(&guard, maybe_path)?;
+                let mut entries = std::fs::read_dir(&dir_path)
+                    .map_err(|e| (-32000, format!("Failed to read directory: {e}")))?
+                    .filter_map(|entry| entry.ok())
+                    .map(|entry| {
+                        let file_type = entry.file_type().ok();
+                        let is_dir = file_type.as_ref().map(|t| t.is_dir()).unwrap_or(false);
+                        let is_file = file_type.as_ref().map(|t| t.is_file()).unwrap_or(false);
+                        let name = entry.file_name().to_string_lossy().to_string();
+                        let rel = entry
+                            .path()
+                            .strip_prefix(guard.root_path())
+                            .map(|p| p.to_string_lossy().replace('\\', "/"))
+                            .unwrap_or_else(|_| name.clone());
+                        json!({
+                            "name": name,
+                            "path": rel,
+                            "entry_type": if is_dir { "directory" } else if is_file { "file" } else { "other" }
+                        })
+                    })
+                    .collect::<Vec<_>>();
+                entries.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+
+                Ok(json!({
+                    "content": [{
+                        "type": "text",
+                        "text": serde_json::to_string_pretty(&entries).unwrap_or_else(|_| "[]".to_string())
+                    }],
+                    "isError": false
+                }))
+            }
             _ => Err((-32601, format!("Unknown tool: {name}"))),
         }
     }
@@ -376,6 +651,50 @@ fn hex_decode(input: &str) -> Result<Vec<u8>, String> {
                 .map_err(|_| "Invalid hex character".to_string())
         })
         .collect()
+}
+
+fn resolve_directory_path(
+    vault: &VaultManager,
+    path: Option<&str>,
+) -> Result<std::path::PathBuf, (i32, String)> {
+    let Some(value) = path else {
+        return Ok(vault.root_path().to_path_buf());
+    };
+
+    if value.is_empty() || value == "." {
+        return Ok(vault.root_path().to_path_buf());
+    }
+
+    if value.starts_with('/') {
+        return Err((-32602, "Directory path must be relative to vault root".to_string()));
+    }
+
+    let normalized = value.replace('\\', "/").trim_matches('/').to_string();
+    if normalized
+        .split('/')
+        .any(|segment| segment.is_empty() || segment == "." || segment == "..")
+    {
+        return Err((-32602, "Invalid directory path".to_string()));
+    }
+
+    Ok(vault.root_path().join(normalized))
+}
+
+fn normalize_rel_dir_for_mcp(path: &str) -> Result<String, String> {
+    let normalized = path.trim().replace('\\', "/").trim_matches('/').to_string();
+    if normalized.is_empty() {
+        return Err("Invalid directory path".to_string());
+    }
+    if normalized.starts_with('.') {
+        return Err("Invalid directory path".to_string());
+    }
+    if normalized
+        .split('/')
+        .any(|segment| segment.is_empty() || segment == "." || segment == "..")
+    {
+        return Err("Invalid directory path".to_string());
+    }
+    Ok(normalized)
 }
 
 pub fn run_stdio_server<R: Read, W: Write>(server: &McpServer, input: R, mut output: W) -> io::Result<()> {
@@ -515,6 +834,13 @@ mod tests {
         assert!(names.contains(&"get_note"));
         assert!(names.contains(&"list_tags"));
         assert!(names.contains(&"graph_neighbors"));
+        assert!(names.contains(&"create_note"));
+        assert!(names.contains(&"delete_note"));
+        assert!(names.contains(&"replace_note"));
+        assert!(names.contains(&"create_directory"));
+        assert!(names.contains(&"remove_directory"));
+        assert!(names.contains(&"rename_directory"));
+        assert!(names.contains(&"list_directory"));
     }
 
     #[test]
@@ -645,5 +971,109 @@ mod tests {
         let uri = note_uri(path);
         let decoded = parse_note_uri(&uri).expect("decode");
         assert_eq!(decoded, path);
+    }
+
+    #[test]
+    fn mutation_and_directory_tools_work() {
+        let server = setup_server();
+
+        let create_dir = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 41,
+                "method": "tools/call",
+                "params": { "name": "create_directory", "arguments": { "path": "scratch" } }
+            }))
+            .expect("create directory response");
+        assert!(create_dir["result"]["content"][0]["text"]
+            .as_str()
+            .unwrap_or_default()
+            .contains("Created directory"));
+
+        let create_note = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 42,
+                "method": "tools/call",
+                "params": { "name": "create_note", "arguments": { "path": "scratch/new.md", "content": "# New" } }
+            }))
+            .expect("create note response");
+        assert!(create_note["result"]["isError"] == json!(false));
+
+        let replace_note = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 43,
+                "method": "tools/call",
+                "params": { "name": "replace_note", "arguments": { "path": "scratch/new.md", "content": "# Updated\\n\\nBody" } }
+            }))
+            .expect("replace note response");
+        assert!(replace_note["result"]["isError"] == json!(false));
+
+        let list_dir = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 44,
+                "method": "tools/call",
+                "params": { "name": "list_directory", "arguments": { "path": "scratch" } }
+            }))
+            .expect("list directory response");
+        let list_text = list_dir["result"]["content"][0]["text"].as_str().expect("list text");
+        assert!(list_text.contains("scratch/new.md"));
+
+        let rename_dir = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 45,
+                "method": "tools/call",
+                "params": { "name": "delete_note", "arguments": { "path": "scratch/new.md" } }
+            }))
+            .expect("delete note response");
+        assert!(rename_dir["result"]["isError"] == json!(false), "{rename_dir:?}");
+
+        let delete_note = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 46,
+                "method": "tools/call",
+                "params": { "name": "rename_directory", "arguments": { "old_path": "scratch", "new_path": "scratch-renamed" } }
+            }))
+            .expect("rename directory response");
+        assert!(delete_note["result"]["isError"] == json!(false), "{delete_note:?}");
+
+        let remove_dir = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 47,
+                "method": "tools/call",
+                "params": { "name": "create_directory", "arguments": { "path": "temp-empty" } }
+            }))
+            .expect("create temp-empty directory response");
+        assert!(remove_dir["result"]["isError"] == json!(false), "{remove_dir:?}");
+
+        let remove_empty_dir = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 49,
+                "method": "tools/call",
+                "params": { "name": "remove_directory", "arguments": { "path": "temp-empty", "recursive": true } }
+            }))
+            .expect("remove directory response");
+        assert!(remove_empty_dir["result"]["isError"] == json!(false), "{remove_empty_dir:?}");
+    }
+
+    #[test]
+    fn list_directory_rejects_traversal_path() {
+        let server = setup_server();
+        let response = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 48,
+                "method": "tools/call",
+                "params": { "name": "list_directory", "arguments": { "path": "../" } }
+            }))
+            .expect("list directory error response");
+
+        assert_eq!(response["error"]["code"], json!(-32602));
     }
 }

@@ -95,6 +95,11 @@ Or with environment variable:
 KNOT_VAULT_PATH=/path/to/vault cargo run --manifest-path src-tauri/Cargo.toml --bin knot-mcp
 ```
 
+Current MCP tools:
+- `search_notes`, `get_note`, `list_tags`, `graph_neighbors`
+- `create_note`, `delete_note`, `replace_note`
+- `create_directory`, `remove_directory`, `rename_directory`, `list_directory`
+
 ### Cross-Platform
 
 Single codebase runs on desktop (Linux, macOS, Windows) and Android.
