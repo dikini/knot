@@ -63,11 +63,11 @@
 /* ProseMirror base styles */
 .ProseMirror {
   outline: none;
-  font-family: var(--font-sans);
+  font-family: var(--font-serif);
   font-size: var(--font-size-base);
   line-height: var(--line-height);
   color: var(--color-text);
-  max-width: 800px;
+  max-width: 72ch;
   margin: 0 auto;
 }
 

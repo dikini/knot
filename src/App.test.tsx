@@ -275,4 +275,10 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     fireEvent.click(await screen.findByRole("button", { name: /inspector/i }));
     expect(mockStoreState.setInspectorRailOpen).toHaveBeenCalledWith(true);
   });
+
+  it("applies comfortable shell class by default", () => {
+    const { container } = render(<App />);
+    const appShell = container.querySelector(".app");
+    expect(appShell).toHaveClass("app--comfortable");
+  });
 });

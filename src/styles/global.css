@@ -1,7 +1,7 @@
 /**
  * Knot - Global Styles
  * 
- * A distraction-free, dark-themed editor for focused writing.
+ * A distraction-free editorial surface for focused writing.
  */
 
 /* CSS Reset & Base */
@@ -14,26 +14,27 @@
 }
 
 :root {
-  /* Color palette - Catppuccin Mocha inspired */
-  --color-bg: #1e1e2e;
-  --color-bg-secondary: #313244;
-  --color-bg-tertiary: #45475a;
-  --color-text: #cdd6f4;
-  --color-text-muted: #a6adc8;
-  --color-text-subtle: #6c7086;
-  --color-accent: #89b4fa;
-  --color-accent-hover: #b4befe;
-  --color-border: #313244;
+  /* Quiet editorial palette */
+  --color-bg: #f4efe6;
+  --color-bg-secondary: #ebe4d8;
+  --color-bg-tertiary: #e2d8c7;
+  --color-text: #2f2b27;
+  --color-text-muted: #62584d;
+  --color-text-subtle: #847869;
+  --color-accent: #3f5e5a;
+  --color-accent-hover: #2f4b47;
+  --color-border: #d4c7b5;
   
   /* Semantic colors */
-  --color-heading: #cdd6f4;
-  --color-link: #89b4fa;
-  --color-code-bg: #313244;
-  --color-code-text: #cdd6f4;
-  --color-blockquote: #6c7086;
+  --color-heading: #1f1b18;
+  --color-link: #2f5d72;
+  --color-code-bg: #e9dfd1;
+  --color-code-text: #2f2b27;
+  --color-blockquote: #7a6d5d;
   
   /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, serif;
   --font-mono: "JetBrains Mono", "Fira Code", Consolas, monospace;
   --font-size-base: 16px;
   --line-height: 1.6;
@@ -97,6 +98,7 @@ body {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
   color: var(--color-heading);
   font-weight: 600;
   line-height: 1.3;
