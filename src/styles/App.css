@@ -107,6 +107,43 @@
   flex-shrink: 0;
 }
 
+.context-search {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.context-search__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.context-search__list button {
+  width: 100%;
+  text-align: left;
+  background: var(--color-bg);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.graph-shell-controls,
+.graph-shell-context {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.graph-shell-controls__label {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
 /* Vault setup when no vault open */
 .vault-setup {
   background-color: var(--color-bg-secondary);

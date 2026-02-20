@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Editor } from "@components/Editor";
 import { GraphView } from "@components/GraphView";
+import { ContextPanel } from "@components/Shell/ContextPanel";
 import { ToolRail } from "@components/Shell/ToolRail";
+import { SearchBox } from "@components/SearchBox";
 import { Sidebar } from "@components/Sidebar";
 import { ToastContainer } from "@components/Toast";
 import { useToast } from "@hooks/useToast";
@@ -23,6 +25,8 @@ function App() {
   const contentAreaRef = useRef<HTMLDivElement>(null);
   const {
     vault,
+    noteList,
+    currentNote,
     isLoading,
     shell,
     setVault,
@@ -279,6 +283,30 @@ function App() {
     }
   };
 
+  const handleSearchResultSelect = async (path: string) => {
+    try {
+      await loadNote(path);
+      setViewMode("editor");
+    } catch (err) {
+      error(err instanceof Error ? err.message : "Failed to load note");
+    }
+  };
+
+  const graphControlsContent = (
+    <div className="graph-shell-controls">
+      <p className="graph-shell-controls__label">Graph Controls</p>
+      <button type="button" className="btn-secondary" onClick={() => setViewMode("editor")}>
+        Open Editor
+      </button>
+    </div>
+  );
+
+  const graphContextContent = (
+    <div className="graph-shell-context">
+      {currentNote ? <p>Selected: {currentNote.title || currentNote.path}</p> : <p>No note selected</p>}
+    </div>
+  );
+
   return (
     <div className={`app ${shell.densityMode === "comfortable" ? "app--comfortable" : "app--adaptive"}`}>
       <ToolRail
@@ -287,15 +315,37 @@ function App() {
         onModeChange={setShellToolMode}
         onToggleCollapse={toggleToolRail}
       />
-      {!shell.isContextPanelCollapsed && (
-        <Sidebar
-          recentVaults={recentVaults}
-          onOpenVault={handleOpenVault}
-          onCreateVault={handleCreateVault}
-          onOpenRecent={handleOpenRecent}
-          onCloseVault={handleCloseVault}
-        />
-      )}
+      <ContextPanel
+        mode={shell.toolMode}
+        collapsed={shell.isContextPanelCollapsed}
+        width={shell.contextPanelWidth}
+        onToggleCollapse={toggleContextPanel}
+        notesContent={
+          <Sidebar
+            recentVaults={recentVaults}
+            onOpenVault={handleOpenVault}
+            onCreateVault={handleCreateVault}
+            onOpenRecent={handleOpenRecent}
+            onCloseVault={handleCloseVault}
+          />
+        }
+        searchContent={
+          <div className="context-search">
+            <SearchBox onResultSelect={handleSearchResultSelect} />
+            <ul className="context-search__list">
+              {noteList.map((note) => (
+                <li key={note.path}>
+                  <button type="button" onClick={() => handleSearchResultSelect(note.path)}>
+                    {note.title || note.path}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        }
+        graphControlsContent={graphControlsContent}
+        graphContextContent={graphContextContent}
+      />
       <main className="main-content">
         {/* Loading indicator */}
         {isLoading && (

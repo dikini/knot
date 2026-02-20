@@ -5,6 +5,25 @@ import App from "./App";
 const mockLoadNote = vi.fn();
 const mockStoreState: {
   vault: { path: string; name: string; note_count: number; last_modified: number } | null;
+  noteList: Array<{
+    id: string;
+    path: string;
+    title: string;
+    created_at: number;
+    modified_at: number;
+    word_count: number;
+  }>;
+  currentNote: {
+    id: string;
+    path: string;
+    title: string;
+    content: string;
+    created_at: number;
+    modified_at: number;
+    word_count: number;
+    headings: unknown[];
+    backlinks: unknown[];
+  } | null;
   isLoading: boolean;
   shell: {
     toolMode: "notes" | "search" | "graph";
@@ -26,6 +45,8 @@ const mockStoreState: {
   setDensityMode: ReturnType<typeof vi.fn>;
 } = {
   vault: { path: "/tmp/vault", name: "vault", note_count: 0, last_modified: 0 },
+  noteList: [],
+  currentNote: null,
   isLoading: false,
   shell: {
     toolMode: "notes",
@@ -105,6 +126,8 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     vi.clearAllMocks();
     localStorage.clear();
     mockStoreState.vault = { path: "/tmp/vault", name: "vault", note_count: 0, last_modified: 0 };
+    mockStoreState.noteList = [];
+    mockStoreState.currentNote = null;
     mockStoreState.shell = {
       toolMode: "notes",
       isToolRailCollapsed: false,
