@@ -6,17 +6,57 @@ const mockLoadNote = vi.fn();
 const mockStoreState: {
   vault: { path: string; name: string; note_count: number; last_modified: number } | null;
   isLoading: boolean;
+  shell: {
+    toolMode: "notes" | "search" | "graph";
+    isToolRailCollapsed: boolean;
+    isContextPanelCollapsed: boolean;
+    isInspectorRailOpen: boolean;
+    contextPanelWidth: number;
+    densityMode: "comfortable" | "adaptive";
+  };
   setVault: ReturnType<typeof vi.fn>;
   closeVault: ReturnType<typeof vi.fn>;
   loadNotes: ReturnType<typeof vi.fn>;
   loadNote: typeof mockLoadNote;
+  setShellToolMode: ReturnType<typeof vi.fn>;
+  toggleToolRail: ReturnType<typeof vi.fn>;
+  toggleContextPanel: ReturnType<typeof vi.fn>;
+  setInspectorRailOpen: ReturnType<typeof vi.fn>;
+  setContextPanelWidth: ReturnType<typeof vi.fn>;
+  setDensityMode: ReturnType<typeof vi.fn>;
 } = {
   vault: { path: "/tmp/vault", name: "vault", note_count: 0, last_modified: 0 },
   isLoading: false,
+  shell: {
+    toolMode: "notes",
+    isToolRailCollapsed: false,
+    isContextPanelCollapsed: false,
+    isInspectorRailOpen: false,
+    contextPanelWidth: 320,
+    densityMode: "comfortable",
+  },
   setVault: vi.fn(),
   closeVault: vi.fn(),
   loadNotes: vi.fn(),
   loadNote: mockLoadNote,
+  setShellToolMode: vi.fn((mode: "notes" | "search" | "graph") => {
+    mockStoreState.shell.toolMode = mode;
+  }),
+  toggleToolRail: vi.fn(() => {
+    mockStoreState.shell.isToolRailCollapsed = !mockStoreState.shell.isToolRailCollapsed;
+  }),
+  toggleContextPanel: vi.fn(() => {
+    mockStoreState.shell.isContextPanelCollapsed = !mockStoreState.shell.isContextPanelCollapsed;
+  }),
+  setInspectorRailOpen: vi.fn((isOpen: boolean) => {
+    mockStoreState.shell.isInspectorRailOpen = isOpen;
+  }),
+  setContextPanelWidth: vi.fn((width: number) => {
+    mockStoreState.shell.contextPanelWidth = width;
+  }),
+  setDensityMode: vi.fn((mode: "comfortable" | "adaptive") => {
+    mockStoreState.shell.densityMode = mode;
+  }),
 };
 
 vi.mock("@hooks/useToast", () => ({
@@ -65,6 +105,14 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     vi.clearAllMocks();
     localStorage.clear();
     mockStoreState.vault = { path: "/tmp/vault", name: "vault", note_count: 0, last_modified: 0 };
+    mockStoreState.shell = {
+      toolMode: "notes",
+      isToolRailCollapsed: false,
+      isContextPanelCollapsed: false,
+      isInspectorRailOpen: false,
+      contextPanelWidth: 320,
+      densityMode: "comfortable",
+    };
   });
 
   it("shows graph toggle when a vault is open and switches views", async () => {
@@ -122,6 +170,59 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     });
 
     expect(setItemSpy).not.toHaveBeenCalledWith(`knot:view-mode:${vaultB}`, "editor");
+    setItemSpy.mockRestore();
+  });
+
+  it("hydrates shell preferences per vault and persists updated shell state", async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+
+    const vaultA = "/tmp/vault-a";
+    const vaultB = "/tmp/vault-b";
+    localStorage.setItem(
+      `knot:shell:${vaultA}`,
+      JSON.stringify({
+        toolMode: "graph",
+        isToolRailCollapsed: true,
+        isContextPanelCollapsed: true,
+        isInspectorRailOpen: true,
+        contextPanelWidth: 480,
+        densityMode: "adaptive",
+      })
+    );
+    localStorage.setItem(
+      `knot:shell:${vaultB}`,
+      JSON.stringify({
+        toolMode: "search",
+        isToolRailCollapsed: false,
+        isContextPanelCollapsed: false,
+        isInspectorRailOpen: false,
+        contextPanelWidth: 360,
+        densityMode: "comfortable",
+      })
+    );
+
+    mockStoreState.vault = { path: vaultA, name: "vault-a", note_count: 0, last_modified: 0 };
+    const { rerender } = render(<App />);
+
+    await waitFor(() => {
+      expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("graph");
+      expect(mockStoreState.setContextPanelWidth).toHaveBeenCalledWith(480);
+      expect(mockStoreState.setDensityMode).toHaveBeenCalledWith("adaptive");
+    });
+
+    mockStoreState.vault = { path: vaultB, name: "vault-b", note_count: 0, last_modified: 0 };
+    rerender(<App />);
+
+    await waitFor(() => {
+      expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");
+      expect(mockStoreState.setContextPanelWidth).toHaveBeenCalledWith(360);
+      expect(mockStoreState.setDensityMode).toHaveBeenCalledWith("comfortable");
+    });
+
+    expect(setItemSpy).not.toHaveBeenCalledWith(
+      `knot:shell:${vaultB}`,
+      expect.stringContaining('"toolMode":"graph"')
+    );
     setItemSpy.mockRestore();
   });
 });

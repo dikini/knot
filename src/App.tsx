@@ -17,9 +17,24 @@ function App() {
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
   // SPEC: COMP-COMPLIANCE-001 FR-1, FR-2
   const [hydratedViewModeVaultPath, setHydratedViewModeVaultPath] = useState<string | null>(null);
+  const [hydratedShellVaultPath, setHydratedShellVaultPath] = useState<string | null>(null);
   const [graphSize, setGraphSize] = useState({ width: 900, height: 600 });
   const contentAreaRef = useRef<HTMLDivElement>(null);
-  const { vault, isLoading, setVault, closeVault, loadNotes, loadNote } = useVaultStore();
+  const {
+    vault,
+    isLoading,
+    shell,
+    setVault,
+    closeVault,
+    loadNotes,
+    loadNote,
+    setShellToolMode,
+    toggleToolRail,
+    toggleContextPanel,
+    setDensityMode,
+    setContextPanelWidth,
+    setInspectorRailOpen,
+  } = useVaultStore();
   const { toasts, removeToast, success, error } = useToast();
 
   // Load recent vaults and check for existing vault on mount
@@ -55,6 +70,7 @@ function App() {
     if (!vault) {
       setViewMode("editor");
       setHydratedViewModeVaultPath(null);
+      setHydratedShellVaultPath(null);
       return;
     }
 
@@ -73,6 +89,78 @@ function App() {
     const key = `knot:view-mode:${vault.path}`;
     localStorage.setItem(key, viewMode);
   }, [vault, viewMode, hydratedViewModeVaultPath]);
+
+  useEffect(() => {
+    if (!vault) return;
+
+    const key = `knot:shell:${vault.path}`;
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as {
+          toolMode?: "notes" | "search" | "graph";
+          isToolRailCollapsed?: boolean;
+          isContextPanelCollapsed?: boolean;
+          isInspectorRailOpen?: boolean;
+          contextPanelWidth?: number;
+          densityMode?: "comfortable" | "adaptive";
+        };
+
+        if (parsed.toolMode === "notes" || parsed.toolMode === "search" || parsed.toolMode === "graph") {
+          setShellToolMode(parsed.toolMode);
+        }
+        if (typeof parsed.isToolRailCollapsed === "boolean" && parsed.isToolRailCollapsed !== shell.isToolRailCollapsed) {
+          toggleToolRail();
+        }
+        if (
+          typeof parsed.isContextPanelCollapsed === "boolean" &&
+          parsed.isContextPanelCollapsed !== shell.isContextPanelCollapsed
+        ) {
+          toggleContextPanel();
+        }
+        if (typeof parsed.isInspectorRailOpen === "boolean") {
+          setInspectorRailOpen(parsed.isInspectorRailOpen);
+        }
+        if (typeof parsed.contextPanelWidth === "number") {
+          setContextPanelWidth(parsed.contextPanelWidth);
+        }
+        if (parsed.densityMode === "comfortable" || parsed.densityMode === "adaptive") {
+          setDensityMode(parsed.densityMode);
+        }
+      } catch {
+        // Ignore malformed persisted shell state.
+      }
+    }
+
+    setHydratedShellVaultPath(vault.path);
+  }, [
+    vault,
+    shell.isContextPanelCollapsed,
+    shell.isToolRailCollapsed,
+    setContextPanelWidth,
+    setDensityMode,
+    setInspectorRailOpen,
+    setShellToolMode,
+    toggleContextPanel,
+    toggleToolRail,
+  ]);
+
+  useEffect(() => {
+    if (!vault || hydratedShellVaultPath !== vault.path) return;
+
+    const key = `knot:shell:${vault.path}`;
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        toolMode: shell.toolMode,
+        isToolRailCollapsed: shell.isToolRailCollapsed,
+        isContextPanelCollapsed: shell.isContextPanelCollapsed,
+        isInspectorRailOpen: shell.isInspectorRailOpen,
+        contextPanelWidth: shell.contextPanelWidth,
+        densityMode: shell.densityMode,
+      })
+    );
+  }, [vault, shell, hydratedShellVaultPath]);
 
   useEffect(() => {
     const element = contentAreaRef.current;
