@@ -112,3 +112,4 @@ docs/specs/
 | 2026-02-20 | Add graph consistency and selection-sync bugfix spec | COMP-GRAPH-CONSISTENCY-001 |
 | 2026-02-20 | Implement and verify graph consistency and selection-sync fixes | COMP-GRAPH-CONSISTENCY-001 |
 | 2026-02-20 | Add graph link-target alias resolution follow-up fix and verification | COMP-GRAPH-CONSISTENCY-001 |
+| 2026-02-20 | Add disconnected-node discoverability layout refinement and verification | COMP-GRAPH-CONSISTENCY-001 |

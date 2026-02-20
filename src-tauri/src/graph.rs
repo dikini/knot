@@ -341,6 +341,8 @@ impl LinkGraph {
     }
 
     /// SPEC: COMP-GRAPH-001 FR-6
+    /// SPEC: COMP-GRAPH-CONSISTENCY-001 FR-6
+    /// TRACE: BUG-graph-consistency-selection-001
     /// Compute a force-directed layout using the Fruchterman-Reingold algorithm.
     ///
     /// Returns a `GraphLayout` with node positions in a coordinate space
@@ -377,6 +379,10 @@ impl LinkGraph {
         let iterations = 100;
         let mut temperature = width / 8.0;
         let cooling = temperature / iterations as f64;
+        let center_x = width / 2.0;
+        let center_y = height / 2.0;
+        let gravity = 0.20_f64;
+        let gravity_max = (k * 1.20).max(36.0);
 
         for _iter in 0..iterations {
             // Displacement accumulator
@@ -418,6 +424,19 @@ impl LinkGraph {
                 }
             }
 
+            // Gentle center-gravity keeps disconnected components discoverable
+            // without forcing aggressive viewport zoom-outs.
+            for i in 0..n {
+                let dx = center_x - pos[i][0];
+                let dy = center_y - pos[i][1];
+                let dist = (dx * dx + dy * dy).sqrt();
+                if dist > 0.0 {
+                    let pull = (dist * gravity).min(gravity_max);
+                    disp[i][0] += (dx / dist) * pull;
+                    disp[i][1] += (dy / dist) * pull;
+                }
+            }
+
             // Apply displacements with temperature limiting
             for i in 0..n {
                 let dx = disp[i][0];
@@ -436,6 +455,32 @@ impl LinkGraph {
             temperature -= cooling;
             if temperature < 0.5 {
                 break;
+            }
+        }
+
+        // Normalize final coordinates into an inner frame so disconnected
+        // components remain discoverable without forcing global viewport zoom-out.
+        if n > 1 {
+            let inset = 72.0_f64;
+            let min_x = pos.iter().map(|p| p[0]).fold(f64::INFINITY, f64::min);
+            let max_x = pos.iter().map(|p| p[0]).fold(f64::NEG_INFINITY, f64::max);
+            let min_y = pos.iter().map(|p| p[1]).fold(f64::INFINITY, f64::min);
+            let max_y = pos.iter().map(|p| p[1]).fold(f64::NEG_INFINITY, f64::max);
+
+            let span_x = (max_x - min_x).max(1.0);
+            let span_y = (max_y - min_y).max(1.0);
+            let target_w = (width - 2.0 * inset).max(1.0);
+            let target_h = (height - 2.0 * inset).max(1.0);
+            let scale = (target_w / span_x).min(target_h / span_y).min(1.0);
+
+            let bbox_center_x = (min_x + max_x) / 2.0;
+            let bbox_center_y = (min_y + max_y) / 2.0;
+
+            for point in &mut pos {
+                point[0] = (point[0] - bbox_center_x) * scale + center_x;
+                point[1] = (point[1] - bbox_center_y) * scale + center_y;
+                point[0] = point[0].clamp(inset, width - inset);
+                point[1] = point[1].clamp(inset, height - inset);
             }
         }
 
@@ -1085,6 +1130,41 @@ mod tests {
         assert!(
             dist_ab < dist_ac,
             "connected a-b ({dist_ab:.1}) should be closer than disconnected a-c ({dist_ac:.1})"
+        );
+    }
+
+    #[test]
+    fn layout_keeps_disconnected_nodes_discoverable() {
+        let mut g = LinkGraph::new();
+
+        for i in 0..8 {
+            let source = format!("core-{i}.md");
+            let target = format!("core-{}.md", (i + 1) % 8);
+            g.update_note(
+                &source,
+                &[Link {
+                    target,
+                    display: "core".into(),
+                    link_type: LinkKind::Wiki,
+                }],
+            );
+        }
+
+        g.ensure_node("isolated-a.md");
+        g.ensure_node("isolated-b.md");
+
+        let layout = g.compute_layout(800.0, 600.0);
+        let center_x = 400.0;
+        let center_y = 300.0;
+        let max_distance = layout
+            .nodes
+            .iter()
+            .map(|node| ((node.x - center_x).powi(2) + (node.y - center_y).powi(2)).sqrt())
+            .fold(0.0_f64, f64::max);
+
+        assert!(
+            max_distance < 400.0,
+            "nodes spread too far from center (max_distance={max_distance})"
         );
     }
 

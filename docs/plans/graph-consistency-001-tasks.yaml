@@ -22,3 +22,11 @@ tasks:
     title: Verify and publish audit
     status: done
     refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+  - id: GCS-006
+    title: Add backend layout test for disconnected-node discoverability
+    status: done
+    refs: [FR-6]
+  - id: GCS-007
+    title: Implement bounded center-gravity and re-verify
+    status: done
+    refs: [FR-6]

@@ -15,11 +15,14 @@
 | FR-3 Selected note is visible in graph mode | `src/App.tsx`, `src/components/GraphView/index.tsx` | GraphView tests | ✅ Full |
 | FR-4 Duplicate labels are disambiguated | `src/components/GraphView/index.tsx` | GraphView tests | ✅ Full |
 | FR-5 Extensionless/title wiki targets resolve when unique | `src-tauri/src/graph.rs` (`target_aliases`, alias mapping in `build_from_db`) | Rust unit test | ✅ Full |
+| FR-6 Disconnected components stay discoverable without aggressive zoom-out | `src-tauri/src/graph.rs` (`compute_layout` center-gravity + inner-frame normalization) | Rust layout unit tests | ✅ Full |
 
 ## Commands Executed
 ```bash
 cargo test --lib graph_build_from_db_includes_disconnected_notes_and_filters_dangling_edges
 cargo test --lib graph_build_from_db_resolves_extensionless_and_title_targets
+cargo test --lib layout_keeps_disconnected_nodes_discoverable
+cargo test --lib layout_connected_nodes_closer_than_disconnected
 npm test -- --run src/components/GraphView/index.test.tsx
 npm run -s typecheck
 ```
@@ -27,6 +30,8 @@ npm run -s typecheck
 ## Results
 - Rust unit test: pass.
 - Rust alias-resolution unit test: pass.
+- Rust discoverability layout test: pass.
+- Rust connected-vs-disconnected distance regression test: pass.
 - GraphView test suite: pass (16/16).
 - Typecheck: pass.
 - Note: existing `act(...)` warnings in legacy GraphView tests remain unchanged and non-blocking.

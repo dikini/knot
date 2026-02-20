@@ -14,6 +14,8 @@ Generated: `2026-02-20`
 | GCS-003 | Add failing backend test for extensionless/title wiki target resolution | S | GCS-002 | FR-5 |
 | GCS-004 | Update graph backend build and frontend rendering to satisfy tests | M | GCS-003 | FR-1, FR-2, FR-3, FR-4, FR-5 |
 | GCS-005 | Verify targeted graph backend/frontend tests and publish audit | S | GCS-004 | FR-1, FR-2, FR-3, FR-4, FR-5 |
+| GCS-006 | Add failing backend layout test for disconnected-node discoverability | S | GCS-005 | FR-6 |
+| GCS-007 | Implement bounded center-gravity in graph layout and re-verify | S | GCS-006 | FR-6 |
 
 ## Verification Commands
 ```bash
