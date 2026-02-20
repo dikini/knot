@@ -451,6 +451,8 @@ function App() {
                 height={Math.max(240, graphSize.height - 52)}
                 onNodeClick={handleGraphNodeClick}
                 showLabels={shell.showTextLabels}
+                // SPEC: COMP-GRAPH-CONSISTENCY-001 FR-3
+                selectedNodeId={currentNote?.path ?? null}
               />
             )}
           </div>

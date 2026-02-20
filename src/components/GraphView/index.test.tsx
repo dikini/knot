@@ -38,6 +38,14 @@ describe("GraphView Component", () => {
     ],
   };
 
+  const duplicateLabelLayout: GraphLayout = {
+    nodes: [
+      { id: "root/type-systems.md", label: "type-systems", x: 120, y: 120 },
+      { id: "programming/type-systems.md", label: "type-systems", x: 260, y: 180 },
+    ],
+    edges: [],
+  };
+
   describe("FR-1: Graph view component", () => {
     it("should render SVG canvas", () => {
       vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
@@ -217,6 +225,34 @@ describe("GraphView Component", () => {
       // After clicking, the node should be selected
       // We verify this by checking the component didn't crash
       expect(screen.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
+    });
+
+    it("should mark externally selected node when selectedNodeId prop is provided", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(
+        <GraphView
+          width={800}
+          height={600}
+          onNodeClick={mockOnNodeClick}
+          selectedNodeId="note2.md"
+        />
+      );
+
+      const selectedLabel = await screen.findByText("Note 2");
+      const selectedNodeGroup = selectedLabel.closest(".graph-node");
+      expect(selectedNodeGroup).toHaveClass("is-selected");
+    });
+
+    it("should disambiguate duplicate labels with path context", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(duplicateLabelLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      expect(await screen.findByText("type-systems (root/type-systems)")).toBeInTheDocument();
+      expect(
+        await screen.findByText("type-systems (programming/type-systems)")
+      ).toBeInTheDocument();
     });
   });
 });

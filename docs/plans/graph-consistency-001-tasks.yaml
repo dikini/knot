@@ -1,0 +1,20 @@
+version: 1
+plan: graph-consistency-001
+trace: BUG-graph-consistency-selection-001
+tasks:
+  - id: GCS-001
+    title: Add backend failing tests for graph completeness and edge filtering
+    status: done
+    refs: [FR-1, FR-2]
+  - id: GCS-002
+    title: Add frontend failing tests for selected node sync and label disambiguation
+    status: done
+    refs: [FR-3, FR-4]
+  - id: GCS-003
+    title: Implement backend and frontend graph fixes
+    status: done
+    refs: [FR-1, FR-2, FR-3, FR-4]
+  - id: GCS-004
+    title: Verify and publish audit
+    status: done
+    refs: [FR-1, FR-2, FR-3, FR-4]

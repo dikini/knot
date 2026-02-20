@@ -84,14 +84,22 @@ impl LinkGraph {
     }
 
     /// SPEC: COMP-GRAPH-001 FR-1
+    /// SPEC: COMP-GRAPH-CONSISTENCY-001 FR-1, FR-2
     /// Build the graph from all links in the database.
     pub fn build_from_db(db: &Database) -> Result<Self> {
         let mut lg = Self::new();
 
+        let mut note_stmt = db.conn().prepare("SELECT path FROM notes")?;
+        let note_rows = note_stmt.query_map([], |row| row.get::<_, String>(0))?;
+        for note in note_rows {
+            lg.ensure_node(&note?);
+        }
+
         let mut stmt = db.conn().prepare(
-            "SELECT n.path, l.target_path, l.link_type
+            "SELECT src.path, tgt.path, l.link_type
              FROM links l
-             JOIN notes n ON n.id = l.source_note_id
+             JOIN notes src ON src.id = l.source_note_id
+             JOIN notes tgt ON tgt.path = l.target_path
              WHERE l.target_path IS NOT NULL",
         )?;
 
@@ -750,6 +758,57 @@ mod tests {
         assert_eq!(loaded[0].text, "Title");
         assert_eq!(loaded[1].text, "Section");
         assert_eq!(loaded[1].anchor, "section");
+    }
+
+    #[test]
+    fn graph_build_from_db_includes_disconnected_notes_and_filters_dangling_edges() {
+        let db = Database::open_in_memory().unwrap();
+
+        db.conn()
+            .execute(
+                "INSERT INTO notes (id, path, title, created_at, modified_at)
+                 VALUES ('n1', 'a.md', 'A', 0, 0)",
+                [],
+            )
+            .unwrap();
+        db.conn()
+            .execute(
+                "INSERT INTO notes (id, path, title, created_at, modified_at)
+                 VALUES ('n2', 'b.md', 'B', 0, 0)",
+                [],
+            )
+            .unwrap();
+        db.conn()
+            .execute(
+                "INSERT INTO notes (id, path, title, created_at, modified_at)
+                 VALUES ('n3', 'isolated.md', 'Isolated', 0, 0)",
+                [],
+            )
+            .unwrap();
+
+        db.conn()
+            .execute(
+                "INSERT INTO links (source_note_id, target_path, link_text, link_type)
+                 VALUES ('n1', 'b.md', 'B', 'wiki')",
+                [],
+            )
+            .unwrap();
+        db.conn()
+            .execute(
+                "INSERT INTO links (source_note_id, target_path, link_text, link_type)
+                 VALUES ('n2', 'missing.md', 'Missing', 'wiki')",
+                [],
+            )
+            .unwrap();
+
+        let graph = LinkGraph::build_from_db(&db).unwrap();
+        let mut nodes = graph.all_nodes();
+        nodes.sort();
+
+        assert_eq!(nodes, vec!["a.md", "b.md", "isolated.md"]);
+        assert_eq!(graph.edge_count(), 1);
+        assert_eq!(graph.get_forward_links("a.md"), vec!["b.md"]);
+        assert!(graph.get_forward_links("b.md").is_empty());
     }
 
     #[test]

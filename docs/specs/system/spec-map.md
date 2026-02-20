@@ -32,6 +32,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-EXPLORER-TREE-001 | explorer-tree | designed | component/explorer-tree-001.md | [CONF, REL, CAP] | implemented (M0-M1-M2-M3 complete) |
 | COMP-EDITOR-EMPTY-DOC-001 | editor-empty-doc | designed | component/editor-empty-doc-001.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-EXPLORER-PANEL-SEARCH-001 | explorer-panel-search | designed | component/explorer-panel-search-removal-001.md | [CONF] | implemented (verified 100%) |
+| COMP-GRAPH-CONSISTENCY-001 | graph-consistency | designed | component/graph-consistency-001.md | [REL, CONF] | implemented (verified 100%) |
 
 ## Interfaces
 
@@ -108,3 +109,5 @@ docs/specs/
 | 2026-02-20 | Implement explorer tree M3 accessibility and hidden-path hardening | COMP-EXPLORER-TREE-001 |
 | 2026-02-20 | Fix editor crash on empty note content parse | COMP-EDITOR-EMPTY-DOC-001 |
 | 2026-02-20 | Remove search box from Notes/Explorer panel | COMP-EXPLORER-PANEL-SEARCH-001 |
+| 2026-02-20 | Add graph consistency and selection-sync bugfix spec | COMP-GRAPH-CONSISTENCY-001 |
+| 2026-02-20 | Implement and verify graph consistency and selection-sync fixes | COMP-GRAPH-CONSISTENCY-001 |
