@@ -1,0 +1,20 @@
+version: 1
+plan: editor-modes-001-m0
+trace: DESIGN-editor-medium-like-interactions
+tasks:
+  - id: EM0-001
+    title: Add mode state, toolbar switcher, and persistence
+    status: done
+    refs: [FR-1, FR-2]
+  - id: EM0-002
+    title: Implement source mode with live markdown updates
+    status: done
+    refs: [FR-3, FR-9]
+  - id: EM0-003
+    title: Implement view mode with frontend markdown rendering
+    status: done
+    refs: [FR-4]
+  - id: EM0-004
+    title: Update tests and run verification
+    status: done
+    refs: [AC-1, AC-2, AC-3]

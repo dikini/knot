@@ -77,7 +77,37 @@
 
 .editor-toolbar__actions {
   display: flex;
+  align-items: center;
   gap: var(--spacing-sm);
+}
+
+.editor-toolbar__modes {
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--editor-shell-bg) 88%, #000 12%);
+}
+
+.editor-toolbar__mode-btn {
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.editor-toolbar__mode-btn:hover {
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--editor-shell-bg) 72%, #fff 28%);
+}
+
+.editor-toolbar__mode-btn.is-active {
+  color: var(--color-heading);
+  background: color-mix(in srgb, var(--editor-shell-bg) 62%, #fff 38%);
 }
 
 .editor-toolbar__save {
@@ -92,6 +122,46 @@
   background: var(--editor-margin-bg);
   container-type: inline-size;
   container-name: editor-surface;
+}
+
+.editor-container--source,
+.editor-container--view {
+  padding: clamp(0.75rem, 1.1vw, 1rem);
+}
+
+.editor-source-textarea {
+  width: min(96ch, 100%);
+  height: 100%;
+  min-height: 360px;
+  display: block;
+  margin: 0 auto;
+  border: 1px solid var(--editor-paper-border);
+  border-radius: 10px;
+  background: var(--editor-paper-bg);
+  color: var(--color-text);
+  padding: 1rem;
+  font-family: var(--font-mono);
+  line-height: 1.55;
+  font-size: 0.95rem;
+  resize: vertical;
+  outline: none;
+}
+
+.editor-view-markdown {
+  width: min(72ch, 100%);
+  margin: 0 auto;
+  border: 1px solid var(--editor-paper-border);
+  border-radius: 10px;
+  background: var(--editor-paper-bg);
+  color: var(--color-text);
+  padding: 1rem 1.1rem;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+  font-family: var(--font-serif);
+  line-height: 1.7;
+}
+
+.editor-view-markdown > :first-child {
+  margin-top: 0;
 }
 
 /* ProseMirror base styles */

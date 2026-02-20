@@ -34,6 +34,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-EXPLORER-PANEL-SEARCH-001 | explorer-panel-search | designed | component/explorer-panel-search-removal-001.md | [CONF] | implemented (verified 100%) |
 | COMP-GRAPH-CONSISTENCY-001 | graph-consistency | designed | component/graph-consistency-001.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-EXPLORER-ICON-ACTIONS-001 | explorer-icon-actions | designed | component/explorer-icon-only-actions-001.md | [CONF] | implemented (verified 100%) |
+| COMP-EDITOR-MODES-001 | editor-modes | designed | component/editor-modes-wysiwym-001.md | [CONF, REL] | implemented (M0 verified) |
 
 ## Interfaces
 
@@ -115,3 +116,5 @@ docs/specs/
 | 2026-02-20 | Add graph link-target alias resolution follow-up fix and verification | COMP-GRAPH-CONSISTENCY-001 |
 | 2026-02-20 | Add disconnected-node discoverability layout refinement and verification | COMP-GRAPH-CONSISTENCY-001 |
 | 2026-02-20 | Remove textual + New Note control; keep explorer icon-only actions | COMP-EXPLORER-ICON-ACTIONS-001 |
+| 2026-02-20 | Explore Medium-like editor interactions and draft mode-based editor spec | COMP-EDITOR-MODES-001 |
+| 2026-02-20 | Implement editor modes M0 (source/edit/view framework) and verify | COMP-EDITOR-MODES-001 |

@@ -55,7 +55,7 @@ describe("Editor Component", () => {
       expect(
         screen.getByText("Select a note from the sidebar to start editing")
       ).toBeInTheDocument();
-      expect(screen.getByText(/Or create a new note using the \+ button/)).toBeInTheDocument();
+      expect(screen.getByText(/Or create a new note using the New Note action/)).toBeInTheDocument();
     });
   });
 
@@ -88,6 +88,33 @@ describe("Editor Component", () => {
         screen.getByText((content) => content.includes("2") && content.includes("words"))
       ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Saved" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Source" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Edit" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getByRole("tab", { name: "View" })).toBeInTheDocument();
+    });
+
+    it("switches to source mode and edits markdown live", () => {
+      render(<Editor />);
+
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      const textarea = screen.getByLabelText("Source markdown editor");
+      expect(textarea).toBeInTheDocument();
+
+      fireEvent.change(textarea, { target: { value: "# Updated\n\nText" } });
+      expect(useEditorStore.getState().setContent).toHaveBeenCalledWith("# Updated\n\nText");
+    });
+
+    it("switches to view mode and renders markdown output", () => {
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: "# Rendered\n\n**Bold**",
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      expect(screen.getByRole("heading", { name: "Rendered" })).toBeInTheDocument();
+      expect(screen.getByText("Bold")).toBeInTheDocument();
     });
 
     it("should show dirty indicator when content is dirty", () => {
