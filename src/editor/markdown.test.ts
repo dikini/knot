@@ -308,6 +308,14 @@ describe("Markdown Parser", () => {
   });
 
   describe("Edge Cases", () => {
+    it("should create a valid empty paragraph doc for empty content", () => {
+      const doc = parseMarkdown("");
+      expect(doc.type.name).toBe("doc");
+      expect(doc.childCount).toBe(1);
+      expect(doc.child(0).type.name).toBe("paragraph");
+      expect(doc.child(0).textContent).toBe("");
+    });
+
     it("should handle empty string", () => {
       const doc = parseMarkdown("  text  ");
       expect(doc.childCount).toBeGreaterThan(0);

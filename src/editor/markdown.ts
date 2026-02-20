@@ -83,6 +83,10 @@ export function parseMarkdown(content: string, _options: ParseOptions = {}): Pro
     }
   }
   
+  if (nodes.length === 0) {
+    nodes.push(schema.node("paragraph"));
+  }
+
   return schema.node("doc", null, nodes);
 }
 

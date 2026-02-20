@@ -1,0 +1,16 @@
+version: 1
+plan: editor-empty-doc-001
+trace: BUG-editor-empty-doc
+tasks:
+  - id: EED-001
+    title: Add failing regression test for empty markdown parse
+    status: done
+    refs: [FR-3]
+  - id: EED-002
+    title: Add fallback paragraph for empty parse output
+    status: done
+    refs: [FR-1, FR-2]
+  - id: EED-003
+    title: Verify and publish audit
+    status: done
+    refs: [FR-1, FR-2, FR-3]
