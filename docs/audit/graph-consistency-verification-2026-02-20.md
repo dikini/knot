@@ -14,16 +14,19 @@
 | FR-2 Graph excludes dangling edges | `src-tauri/src/graph.rs` (`JOIN notes tgt ON tgt.path = l.target_path`) | Rust unit test | ✅ Full |
 | FR-3 Selected note is visible in graph mode | `src/App.tsx`, `src/components/GraphView/index.tsx` | GraphView tests | ✅ Full |
 | FR-4 Duplicate labels are disambiguated | `src/components/GraphView/index.tsx` | GraphView tests | ✅ Full |
+| FR-5 Extensionless/title wiki targets resolve when unique | `src-tauri/src/graph.rs` (`target_aliases`, alias mapping in `build_from_db`) | Rust unit test | ✅ Full |
 
 ## Commands Executed
 ```bash
 cargo test --lib graph_build_from_db_includes_disconnected_notes_and_filters_dangling_edges
+cargo test --lib graph_build_from_db_resolves_extensionless_and_title_targets
 npm test -- --run src/components/GraphView/index.test.tsx
 npm run -s typecheck
 ```
 
 ## Results
 - Rust unit test: pass.
+- Rust alias-resolution unit test: pass.
 - GraphView test suite: pass (16/16).
 - Typecheck: pass.
 - Note: existing `act(...)` warnings in legacy GraphView tests remain unchanged and non-blocking.

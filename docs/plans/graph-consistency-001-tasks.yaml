@@ -11,10 +11,14 @@ tasks:
     status: done
     refs: [FR-3, FR-4]
   - id: GCS-003
+    title: Add backend failing test for extensionless/title target resolution
+    status: done
+    refs: [FR-5]
+  - id: GCS-004
     title: Implement backend and frontend graph fixes
     status: done
-    refs: [FR-1, FR-2, FR-3, FR-4]
-  - id: GCS-004
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+  - id: GCS-005
     title: Verify and publish audit
     status: done
-    refs: [FR-1, FR-2, FR-3, FR-4]
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5]

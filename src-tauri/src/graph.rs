@@ -8,7 +8,7 @@
 //!
 //! SPEC: COMP-GRAPH-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use petgraph::graph::{DiGraph, NodeIndex};
 use petgraph::visit::EdgeRef;
@@ -76,6 +76,66 @@ impl Default for LinkGraph {
 }
 
 impl LinkGraph {
+    fn normalize_alias(value: &str) -> String {
+        value
+            .trim()
+            .replace('\\', "/")
+            .trim_start_matches("./")
+            .to_lowercase()
+    }
+
+    fn strip_md(value: &str) -> &str {
+        value.strip_suffix(".md").unwrap_or(value)
+    }
+
+    fn path_without_fragment(value: &str) -> &str {
+        value.split('#').next().unwrap_or(value)
+    }
+
+    fn note_aliases(path: &str, title: Option<&str>) -> HashSet<String> {
+        let mut aliases = HashSet::new();
+        let normalized_path = Self::normalize_alias(path);
+        aliases.insert(normalized_path.clone());
+
+        aliases.insert(Self::normalize_alias(Self::strip_md(&normalized_path)));
+
+        let filename = normalized_path.rsplit('/').next().unwrap_or(&normalized_path);
+        aliases.insert(Self::normalize_alias(Self::strip_md(filename)));
+
+        if let Some(title) = title {
+            let title = title.trim();
+            if !title.is_empty() {
+                aliases.insert(Self::normalize_alias(title));
+            }
+        }
+
+        aliases
+    }
+
+    fn target_aliases(target_path: &str) -> Vec<String> {
+        let base = Self::normalize_alias(Self::path_without_fragment(target_path));
+        if base.is_empty() {
+            return Vec::new();
+        }
+
+        let mut aliases = Vec::new();
+        aliases.push(base.clone());
+        aliases.push(Self::normalize_alias(Self::strip_md(&base)));
+
+        if !base.ends_with(".md") {
+            aliases.push(format!("{base}.md"));
+        }
+
+        let filename = base.rsplit('/').next().unwrap_or(&base);
+        aliases.push(Self::normalize_alias(Self::strip_md(filename)));
+
+        let mut dedup = HashSet::new();
+        aliases
+            .into_iter()
+            .filter(|alias| !alias.is_empty() && dedup.insert(alias.clone()))
+            .collect()
+    }
+
     pub fn new() -> Self {
         Self {
             graph: DiGraph::new(),
@@ -85,40 +145,95 @@ impl LinkGraph {
 
     /// SPEC: COMP-GRAPH-001 FR-1
     /// SPEC: COMP-GRAPH-CONSISTENCY-001 FR-1, FR-2
+    /// TRACE: BUG-graph-consistency-selection-001
     /// Build the graph from all links in the database.
     pub fn build_from_db(db: &Database) -> Result<Self> {
         let mut lg = Self::new();
 
-        let mut note_stmt = db.conn().prepare("SELECT path FROM notes")?;
-        let note_rows = note_stmt.query_map([], |row| row.get::<_, String>(0))?;
+        let mut id_to_path = HashMap::<String, String>::new();
+        let mut alias_counts = HashMap::<String, usize>::new();
+        let mut alias_to_path = HashMap::<String, String>::new();
+
+        let mut note_stmt = db
+            .conn()
+            .prepare("SELECT id, path, title FROM notes ORDER BY path")?;
+        let note_rows = note_stmt.query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
+        })?;
         for note in note_rows {
-            lg.ensure_node(&note?);
+            let (id, path, title) = note?;
+            lg.ensure_node(&path);
+            id_to_path.insert(id, path.clone());
+
+            for alias in Self::note_aliases(&path, title.as_deref()) {
+                *alias_counts.entry(alias).or_insert(0) += 1;
+            }
+        }
+
+        for path in id_to_path.values() {
+            for alias in Self::note_aliases(path, None) {
+                if alias_counts.get(&alias).copied().unwrap_or(0) == 1 {
+                    alias_to_path.entry(alias).or_insert_with(|| path.clone());
+                }
+            }
+        }
+
+        let mut title_stmt = db.conn().prepare("SELECT path, title FROM notes")?;
+        let title_rows = title_stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, Option<String>>(1)?))
+        })?;
+        for row in title_rows {
+            let (path, title) = row?;
+            for alias in Self::note_aliases(&path, title.as_deref()) {
+                if alias_counts.get(&alias).copied().unwrap_or(0) == 1 {
+                    alias_to_path.entry(alias).or_insert_with(|| path.clone());
+                }
+            }
         }
 
         let mut stmt = db.conn().prepare(
-            "SELECT src.path, tgt.path, l.link_type
+            "SELECT src.path, l.target_note_id, l.target_path, l.link_type
              FROM links l
              JOIN notes src ON src.id = l.source_note_id
-             JOIN notes tgt ON tgt.path = l.target_path
              WHERE l.target_path IS NOT NULL",
         )?;
 
         let rows = stmt.query_map([], |row| {
             Ok((
                 row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
+                row.get::<_, Option<String>>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, String>(3)?,
             ))
         })?;
 
         for row in rows {
-            let (source, target, kind) = row?;
+            let (source, target_note_id, target_path, kind) = row?;
             let link_kind = if kind == "wiki" {
                 LinkKind::Wiki
             } else {
                 LinkKind::Markdown
             };
-            lg.add_edge(&source, &target, link_kind);
+
+            let resolved_target = target_note_id
+                .as_deref()
+                .and_then(|id| id_to_path.get(id))
+                .cloned()
+                .or_else(|| {
+                    target_path.as_deref().and_then(|target| {
+                        Self::target_aliases(target)
+                            .into_iter()
+                            .find_map(|alias| alias_to_path.get(&alias).cloned())
+                    })
+                });
+
+            if let Some(target) = resolved_target {
+                lg.add_edge(&source, &target, link_kind);
+            }
         }
 
         Ok(lg)
@@ -809,6 +924,54 @@ mod tests {
         assert_eq!(graph.edge_count(), 1);
         assert_eq!(graph.get_forward_links("a.md"), vec!["b.md"]);
         assert!(graph.get_forward_links("b.md").is_empty());
+    }
+
+    #[test]
+    fn graph_build_from_db_resolves_extensionless_and_title_targets() {
+        let db = Database::open_in_memory().unwrap();
+
+        db.conn()
+            .execute(
+                "INSERT INTO notes (id, path, title, created_at, modified_at)
+                 VALUES ('n1', 'source.md', 'Source', 0, 0)",
+                [],
+            )
+            .unwrap();
+        db.conn()
+            .execute(
+                "INSERT INTO notes (id, path, title, created_at, modified_at)
+                 VALUES ('n2', 'rust.md', 'Rust', 0, 0)",
+                [],
+            )
+            .unwrap();
+        db.conn()
+            .execute(
+                "INSERT INTO notes (id, path, title, created_at, modified_at)
+                 VALUES ('n3', 'bg/neural-networks.md', 'Невронни мрежи', 0, 0)",
+                [],
+            )
+            .unwrap();
+
+        db.conn()
+            .execute(
+                "INSERT INTO links (source_note_id, target_path, link_text, link_type)
+                 VALUES ('n1', 'rust', 'rust', 'wiki')",
+                [],
+            )
+            .unwrap();
+        db.conn()
+            .execute(
+                "INSERT INTO links (source_note_id, target_path, link_text, link_type)
+                 VALUES ('n1', 'Невронни мрежи', 'Невронни мрежи', 'wiki')",
+                [],
+            )
+            .unwrap();
+
+        let graph = LinkGraph::build_from_db(&db).unwrap();
+        let mut forward = graph.get_forward_links("source.md");
+        forward.sort();
+
+        assert_eq!(forward, vec!["bg/neural-networks.md", "rust.md"]);
     }
 
     #[test]
