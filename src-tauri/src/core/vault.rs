@@ -2,6 +2,12 @@
 //!
 //! This is the refactored version of the original vault.rs,
 //! designed for use with Tauri's state management.
+//!
+//! SPEC: COMP-VAULT-001 FR-1, FR-2, FR-3, FR-7, FR-8
+//! SPEC: COMP-NOTE-001 FR-1, FR-2, FR-3, FR-4, FR-5
+//! SPEC: COMP-SEARCH-001 FR-4
+//! SPEC: COMP-GRAPH-001 FR-2, FR-6, FR-7
+//! SPEC: COMP-TAG-EXTRACTION-001 FR-3
 
 use std::path::{Path, PathBuf};
 
@@ -35,6 +41,7 @@ pub struct VaultManager {
 impl VaultManager {
     //region Creation and Opening
 
+    /// SPEC: COMP-VAULT-001 FR-1
     /// Create a new vault at the given path.
     pub fn create(root: &Path) -> Result<Self> {
         let vault_dir = root.join(VAULT_DIR);
@@ -77,6 +84,7 @@ impl VaultManager {
         Ok(vault)
     }
 
+    /// SPEC: COMP-VAULT-001 FR-2
     /// Open an existing vault.
     pub fn open(root: &Path) -> Result<Self> {
         let vault_dir = root.join(VAULT_DIR);
@@ -114,6 +122,7 @@ impl VaultManager {
         Ok(vault)
     }
 
+    /// SPEC: COMP-VAULT-001 FR-3
     /// Close the vault and clean up resources.
     pub fn close(&mut self) -> Result<()> {
         info!(root = ?self.root, "closing vault");
@@ -155,11 +164,13 @@ impl VaultManager {
 
     //region Note Operations
 
+    /// SPEC: COMP-NOTE-001 FR-1
     /// List all notes in the vault.
     pub fn list_notes(&self) -> Result<Vec<NoteMeta>> {
         self.db.list_notes()
     }
 
+    /// SPEC: COMP-NOTE-001 FR-2
     /// Get a note by its path.
     pub fn get_note(&self, path: &str) -> Result<Note> {
         // First try to get from database
@@ -179,6 +190,7 @@ impl VaultManager {
         note.ok_or_else(|| KnotError::NoteNotFound(path.to_string()))
     }
 
+    /// SPEC: COMP-NOTE-001 FR-3
     /// Save a note.
     pub fn save_note(&mut self, path: &str, content: &str) -> Result<()> {
         let full_path = self.root.join(path);
@@ -195,10 +207,12 @@ impl VaultManager {
         let note = Note::new(path, content);
         self.db.save_note(&note)?;
 
+        // SPEC: COMP-TAG-EXTRACTION-001 FR-3
         // Extract and sync tags
         let tags = crate::markdown::extract_tags(content);
         self.sync_tags(note.id(), &tags)?;
 
+        // SPEC: COMP-TAG-EXTRACTION-001 FR-3
         // Update search index WITH tags
         self.search
             .index_note(note.path(), note.title(), note.content(), &tags)?;
@@ -210,6 +224,7 @@ impl VaultManager {
         Ok(())
     }
 
+    /// SPEC: COMP-TAG-EXTRACTION-001 FR-3
     fn sync_tags(&self, note_id: &str, tags: &[String]) -> Result<()> {
         let conn = self.db.conn();
 
@@ -232,6 +247,7 @@ impl VaultManager {
         Ok(())
     }
 
+    /// SPEC: COMP-NOTE-001 FR-4
     /// Delete a note.
     pub fn delete_note(&mut self, path: &str) -> Result<()> {
         let full_path = self.root.join(path);
@@ -254,6 +270,7 @@ impl VaultManager {
         Ok(())
     }
 
+    /// SPEC: COMP-NOTE-001 FR-5
     /// Rename/move a note.
     pub fn rename_note(&mut self, old_path: &str, new_path: &str) -> Result<()> {
         let old_full = self.root.join(old_path);
@@ -294,6 +311,7 @@ impl VaultManager {
 
     //region Search
 
+    /// SPEC: COMP-SEARCH-001 FR-4
     /// Search notes in the vault.
     pub fn search(&self, query: &str, limit: usize) -> Result<Vec<crate::search::SearchResult>> {
         self.search.search(query, limit)
@@ -308,11 +326,13 @@ impl VaultManager {
         &self.graph
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-7
     /// Get neighbors of a note in the graph.
     pub fn graph_neighbors(&self, path: &str, depth: usize) -> Vec<String> {
         self.graph.neighbors(path, depth)
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-6
     /// Compute graph layout.
     pub fn graph_layout(&self, width: f64, height: f64) -> crate::graph::GraphLayout {
         self.graph.layout(width, height)
@@ -334,6 +354,7 @@ impl VaultManager {
 
     //region Sync
 
+    /// SPEC: COMP-VAULT-001 FR-7
     /// Sync files from filesystem to database.
     ///
     /// This scans the vault directory for .md files and updates

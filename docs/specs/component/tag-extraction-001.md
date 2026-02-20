@@ -3,10 +3,11 @@
 ## Metadata
 - ID: `COMP-TAG-EXTRACTION-001`
 - Scope: `component`
-- Status: `draft`
+- Status: `implemented`
 - Parent: `COMP-MARKDOWN-001`, `COMP-DATABASE-001`
 - Concerns: [CAP]
 - Created: `2026-02-19`
+- Updated: `2026-02-20`
 
 ## Purpose
 Extract tags from note content (e.g., `#important`, `#rust`) and store them in the database for organization and filtering.
@@ -14,7 +15,7 @@ Extract tags from note content (e.g., `#important`, `#rust`) and store them in t
 ## Current State
 - Tags table exists in database
 - Search can filter by `tag:name`
-- No automatic tag extraction from content
+- Automatic tag extraction and sync on save is implemented
 
 ## Contract
 
@@ -39,7 +40,9 @@ Extract tags from note content (e.g., `#important`, `#rust`) and store them in t
 - Remove old tags, add new ones (sync, don't append)
 - Update search index with tags
 
-**FR-4**: Display tags in UI (future)
+### Future Enhancement (Out of Current Scope)
+
+**FE-1**: Display tags in UI (future)
 - Show tag list in sidebar
 - Click tag to filter notes
 - Tag cloud view
@@ -62,7 +65,7 @@ fn sync_tags(&self, note_id: &str, tags: &[String]) -> Result<()>;
 
 **Given** content: "```rust #not-a-tag``` and `#real-tag`"
 **When** parsed
-**Then** returns ["real-tag"]
+**Then** returns []
 
 **Given** content: "Check https://example.com#section"
 **When** parsed
@@ -79,12 +82,18 @@ fn sync_tags(&self, note_id: &str, tags: &[String]) -> Result<()>;
 
 ## Acceptance Criteria
 
-- [ ] Tags parsed from content
-- [ ] Code blocks excluded
-- [ ] URLs excluded
-- [ ] Tags stored in database on save
-- [ ] Search index updated with tags
-- [ ] Case insensitive
+- [x] Tags parsed from content
+- [x] Code blocks and inline code excluded
+- [x] URLs excluded
+- [x] Escaped tags excluded
+- [x] Tags stored in database on save
+- [x] Search index updated with tags
+- [x] Case insensitive
+
+## Verification
+
+- `cargo test extract_tags --lib`
+- `cargo test --lib`
 
 ## Related
 

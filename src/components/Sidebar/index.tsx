@@ -14,6 +14,7 @@ export interface SidebarProps {
 }
 
 // SPEC: COMP-UI-LAYOUT-002 FR-2, FR-6
+// SPEC: COMP-FRONTEND-001 FR-2
 export function Sidebar({
   recentVaults,
   onOpenVault,
@@ -52,6 +53,7 @@ export function Sidebar({
   };
 
   // SPEC: COMP-NOTE-SEL-001 FR-1
+  // SPEC: COMP-SEARCH-UI-001 FR-3
   const handleSearchResultSelect = async (path: string) => {
     // Don't reload same note
     if (currentNote?.path === path) return;
@@ -109,6 +111,7 @@ export function Sidebar({
         />
         {vault && (
           <>
+            {/* SPEC: COMP-SEARCH-UI-001 FR-1 */}
             <SearchBox onResultSelect={handleSearchResultSelect} />
             <button className="sidebar__new-btn" onClick={handleCreateNote}>
               + New Note

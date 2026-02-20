@@ -1,0 +1,48 @@
+tasks:
+  - id: TC-001
+    title: "Add failing version-governance test for target toolchain majors"
+    status: done
+    size: S
+    spec_refs: [FR-5]
+    dependencies: []
+    acceptance: "Test fails before dependency upgrades and passes after"
+
+  - id: TC-002
+    title: "Upgrade React runtime and React type packages"
+    status: done
+    size: M
+    spec_refs: [FR-1, FR-3]
+    dependencies: [TC-001]
+    acceptance: "React 19 line installed and app entrypoint compiles"
+
+  - id: TC-003
+    title: "Upgrade Vite and @vitejs/plugin-react"
+    status: done
+    size: M
+    spec_refs: [FR-2]
+    dependencies: [TC-002]
+    acceptance: "Vite 7 and plugin-react 5 run with current config"
+
+  - id: TC-004
+    title: "Upgrade Vitest and coverage plugin to matching major"
+    status: done
+    size: M
+    spec_refs: [FR-2]
+    dependencies: [TC-003]
+    acceptance: "Vitest and coverage plugin align on 4.x without peer conflicts"
+
+  - id: TC-005
+    title: "Upgrade TypeScript and fix compile/test regressions"
+    status: done
+    size: M
+    spec_refs: [FR-3, FR-4]
+    dependencies: [TC-004]
+    acceptance: "Typecheck and tests pass with TypeScript 5.9.x"
+
+  - id: TC-006
+    title: "Verify migration and update status artifacts"
+    status: done
+    size: S
+    spec_refs: [FR-4]
+    dependencies: [TC-005]
+    acceptance: "Install/typecheck/tests are green and docs reflect implemented state"

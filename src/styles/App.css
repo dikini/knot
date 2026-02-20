@@ -96,6 +96,15 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: var(--spacing-sm);
+}
+
+.content-mode-toggle {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-height: 40px;
+  flex-shrink: 0;
 }
 
 /* Vault setup when no vault open */

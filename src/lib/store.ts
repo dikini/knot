@@ -28,6 +28,7 @@ interface VaultState {
   hasNote: () => boolean;
 }
 
+// SPEC: COMP-FRONTEND-001 FR-5
 export const useVaultStore = create<VaultState>((set, get) => ({
   vault: null,
   currentNote: null,
@@ -142,6 +143,7 @@ interface EditorState {
   reset: () => void;
 }
 
+// SPEC: COMP-FRONTEND-001 FR-5
 export const useEditorStore = create<EditorState>((set) => ({
   content: "",
   isDirty: false,

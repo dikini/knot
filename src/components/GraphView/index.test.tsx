@@ -5,7 +5,6 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
 import { GraphView } from "./index";
 
 // Mock the API module
@@ -45,9 +44,10 @@ describe("GraphView Component", () => {
 
       render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
 
-      const svg = screen.getByRole("img");
-      expect(svg).toBeInTheDocument();
-      expect(svg).toHaveAttribute("aria-label", "Note link graph");
+      return waitFor(() => {
+        const svg = screen.getByRole("img", { name: "Note link graph" });
+        expect(svg).toBeInTheDocument();
+      });
     });
 
     it("should show nodes as circles with labels", async () => {
@@ -79,11 +79,11 @@ describe("GraphView Component", () => {
     it("should pan on drag", async () => {
       vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
 
-      const { container } = render(
+      render(
         <GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />
       );
 
-      const svg = screen.getByRole("img");
+      const svg = await screen.findByRole("img", { name: "Note link graph" });
 
       // Simulate mouse down on SVG background
       fireEvent.mouseDown(svg, { clientX: 100, clientY: 100 });
@@ -101,7 +101,7 @@ describe("GraphView Component", () => {
 
       render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
 
-      const svg = screen.getByRole("img");
+      const svg = await screen.findByRole("img", { name: "Note link graph" });
 
       // Simulate scroll wheel
       fireEvent.wheel(svg, { deltaY: -100 });
@@ -127,12 +127,14 @@ describe("GraphView Component", () => {
 
       render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
 
-      await waitFor(() => {
-        const node = screen.getByText("Note 1");
-        fireEvent.mouseEnter(node);
-      });
+      const svg = await screen.findByRole("img", { name: "Note link graph" });
+      const noteLabel = screen.getByText("Note 1");
+      const nodeGroup = noteLabel.closest("g");
+      expect(nodeGroup).not.toBeNull();
+      fireEvent.mouseEnter(nodeGroup as SVGGElement);
 
-      expect(screen.getByRole("img")).toBeInTheDocument();
+      const highlightedEdges = svg.querySelectorAll(".graph-edge--highlighted");
+      expect(highlightedEdges.length).toBe(2);
     });
   });
 
@@ -214,7 +216,7 @@ describe("GraphView Component", () => {
 
       // After clicking, the node should be selected
       // We verify this by checking the component didn't crash
-      expect(screen.getByRole("img")).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
     });
   });
 });

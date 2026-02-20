@@ -5,6 +5,8 @@
 //!
 //! Also provides force-directed graph layout (Fruchterman-Reingold)
 //! for visualization.
+//!
+//! SPEC: COMP-GRAPH-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12
 
 use std::collections::HashMap;
 
@@ -81,6 +83,7 @@ impl LinkGraph {
         }
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-1
     /// Build the graph from all links in the database.
     pub fn build_from_db(db: &Database) -> Result<Self> {
         let mut lg = Self::new();
@@ -141,6 +144,7 @@ impl LinkGraph {
         }
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-2
     /// Update the graph for a single note: remove old edges, add new ones.
     pub fn update_note(&mut self, source_path: &str, links: &[Link]) {
         self.remove_outgoing(source_path);
@@ -149,6 +153,7 @@ impl LinkGraph {
         }
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-3
     /// Remove a note and all its edges from the graph.
     pub fn remove_note(&mut self, path: &str) {
         if let Some(idx) = self.node_map.remove(path) {
@@ -168,6 +173,7 @@ impl LinkGraph {
         }
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-4
     /// Get all notes that link TO the given path (backlinks).
     pub fn get_backlinks(&self, path: &str) -> Vec<String> {
         let Some(&idx) = self.node_map.get(path) else {
@@ -180,6 +186,7 @@ impl LinkGraph {
             .collect()
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-5
     /// Get all notes that the given path links TO (forward links).
     pub fn get_forward_links(&self, path: &str) -> Vec<String> {
         let Some(&idx) = self.node_map.get(path) else {
@@ -210,6 +217,7 @@ impl LinkGraph {
         self.graph.edge_count()
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-6
     /// Compute a force-directed layout using the Fruchterman-Reingold algorithm.
     ///
     /// Returns a `GraphLayout` with node positions in a coordinate space
@@ -353,6 +361,7 @@ impl LinkGraph {
         self.compute_layout(width, height)
     }
 
+    /// SPEC: COMP-GRAPH-001 FR-7
     /// Get neighbors of a node up to a certain depth.
     pub fn neighbors(&self, path: &str, depth: usize) -> Vec<String> {
         if depth == 0 {
@@ -402,6 +411,7 @@ impl LinkGraph {
     }
 }
 
+/// SPEC: COMP-GRAPH-001 FR-8
 /// Persist links for a note to the database.
 /// Deletes existing links for the source note, then inserts new ones.
 pub fn save_links(db: &Database, note_id: &str, links: &[Link]) -> Result<()> {
@@ -434,6 +444,7 @@ pub fn save_links(db: &Database, note_id: &str, links: &[Link]) -> Result<()> {
     Ok(())
 }
 
+/// SPEC: COMP-GRAPH-001 FR-9
 /// Persist headings for a note to the database.
 /// Deletes existing headings for the note, then inserts new ones.
 pub fn save_headings(db: &Database, note_id: &str, headings: &[Heading]) -> Result<()> {
@@ -458,6 +469,7 @@ pub fn save_headings(db: &Database, note_id: &str, headings: &[Heading]) -> Resu
     Ok(())
 }
 
+/// SPEC: COMP-GRAPH-001 FR-10
 /// Load backlinks for a note path from the database.
 pub fn load_backlinks(db: &Database, note_path: &str) -> Result<Vec<NoteLink>> {
     let mut stmt = db.conn().prepare(
@@ -488,6 +500,7 @@ pub fn load_backlinks(db: &Database, note_path: &str) -> Result<Vec<NoteLink>> {
     Ok(links)
 }
 
+/// SPEC: COMP-GRAPH-001 FR-11
 /// Load forward links for a note path from the database.
 pub fn load_forward_links(db: &Database, note_path: &str) -> Result<Vec<NoteLink>> {
     let mut stmt = db.conn().prepare(
@@ -518,6 +531,7 @@ pub fn load_forward_links(db: &Database, note_path: &str) -> Result<Vec<NoteLink
     Ok(links)
 }
 
+/// SPEC: COMP-GRAPH-001 FR-12
 /// Load headings for a note from the database.
 pub fn load_headings(db: &Database, note_path: &str) -> Result<Vec<Heading>> {
     let mut stmt = db.conn().prepare(

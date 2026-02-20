@@ -24,11 +24,21 @@
   stroke: var(--border-color, #3d3d5c);
   stroke-width: 1.5;
   stroke-opacity: 0.6;
-  transition: stroke-opacity 0.2s ease;
+  transition: stroke-opacity 0.2s ease, stroke 0.2s ease, stroke-width 0.2s ease;
 }
 
 .graph-view__svg:hover .graph-edge {
   stroke-opacity: 0.4;
+}
+
+.graph-edge--highlighted {
+  stroke: var(--accent-color, #4a9eff);
+  stroke-width: 2.25;
+  stroke-opacity: 0.95;
+}
+
+.graph-edge--dimmed {
+  stroke-opacity: 0.2;
 }
 
 /* Nodes */

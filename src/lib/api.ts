@@ -3,6 +3,7 @@
  *
  * Type-safe wrapper around Tauri commands.
  * All functions return Promises and use the refactored Rust core.
+ * SPEC: COMP-FRONTEND-001 FR-4
  */
 
 import { invoke } from "@tauri-apps/api/core";

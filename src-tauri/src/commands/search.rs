@@ -1,4 +1,6 @@
 //! Search-related Tauri commands.
+//!
+//! SPEC: COMP-SEARCH-001 FR-4, FR-8
 
 use tauri::State;
 use tracing::instrument;
@@ -6,6 +8,7 @@ use tracing::instrument;
 use crate::state::response::SearchResult;
 use crate::state::AppState;
 
+/// SPEC: COMP-SEARCH-001 FR-4
 /// Search notes in the vault.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -37,6 +40,7 @@ pub async fn search_notes(
     }
 }
 
+/// SPEC: COMP-SEARCH-001 FR-8
 /// Get search suggestions as user types.
 #[tauri::command]
 #[instrument(skip(state))]

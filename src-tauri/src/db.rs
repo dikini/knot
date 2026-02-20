@@ -4,6 +4,7 @@ use rusqlite::Connection;
 
 use crate::error::{KnotError, Result};
 
+/// SPEC: COMP-DATABASE-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6
 pub const SCHEMA_VERSION: u32 = 1;
 
 pub struct Database {
@@ -11,6 +12,7 @@ pub struct Database {
 }
 
 impl Database {
+    /// SPEC: COMP-DATABASE-001 FR-1
     pub fn open(path: &Path) -> Result<Self> {
         let conn = Connection::open(path)?;
         let db = Self { conn };
@@ -31,6 +33,7 @@ impl Database {
         &self.conn
     }
 
+    /// SPEC: COMP-DATABASE-001 FR-4, FR-5
     fn setup(&self) -> Result<()> {
         self.conn.execute_batch(
             "PRAGMA journal_mode = WAL;
@@ -40,6 +43,7 @@ impl Database {
         Ok(())
     }
 
+    /// SPEC: COMP-DATABASE-001 FR-2
     fn migrate(&self) -> Result<()> {
         self.conn.execute_batch(
             "CREATE TABLE IF NOT EXISTS schema_version (
@@ -143,6 +147,7 @@ impl Database {
         Ok(())
     }
 
+    /// SPEC: COMP-DATABASE-001 FR-6
     pub fn schema_version(&self) -> Result<u32> {
         let version = self.conn.query_row(
             "SELECT COALESCE(MAX(version), 0) FROM schema_version",
@@ -154,6 +159,7 @@ impl Database {
 
     //region Note Operations
 
+    /// SPEC: COMP-DATABASE-001 FR-3
     /// Get the total number of notes.
     pub fn note_count(&self) -> Result<usize> {
         let count: i64 = self
@@ -162,6 +168,7 @@ impl Database {
         Ok(count as usize)
     }
 
+    /// SPEC: COMP-DATABASE-001 FR-3
     /// List all notes in the vault.
     pub fn list_notes(&self) -> Result<Vec<crate::note::NoteMeta>> {
         let mut stmt = self.conn.prepare(
@@ -233,13 +240,13 @@ impl Database {
         }
     }
 
+    /// SPEC: COMP-DATABASE-001 FR-3
     /// Save a note to the database.
     pub fn save_note(&self, note: &crate::note::Note) -> Result<()> {
         self.conn.execute(
             "INSERT INTO notes (id, path, title, created_at, modified_at, word_count, content_hash)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-             ON CONFLICT(id) DO UPDATE SET
-                 path = excluded.path,
+             ON CONFLICT(path) DO UPDATE SET
                  title = excluded.title,
                  modified_at = excluded.modified_at,
                  word_count = excluded.word_count,
@@ -257,6 +264,7 @@ impl Database {
         Ok(())
     }
 
+    /// SPEC: COMP-DATABASE-001 FR-3
     /// Delete a note by its path.
     pub fn delete_note_by_path(&self, path: &str) -> Result<()> {
         self.conn
@@ -264,6 +272,7 @@ impl Database {
         Ok(())
     }
 
+    /// SPEC: COMP-DATABASE-001 FR-3
     /// Rename a note's path.
     pub fn rename_note_path(&self, old_path: &str, new_path: &str) -> Result<()> {
         self.conn.execute(

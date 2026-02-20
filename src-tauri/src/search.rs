@@ -3,6 +3,8 @@
 //! Wraps Tantivy with custom tokenizers for English stemming and
 //! Bulgarian lowercase tokenization. Content is automatically routed
 //! to the appropriate language field based on Cyrillic character detection.
+//!
+//! SPEC: COMP-SEARCH-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7
 
 use std::path::Path;
 use std::sync::Mutex;
@@ -120,6 +122,7 @@ impl SearchIndex {
         builder.build()
     }
 
+    /// SPEC: COMP-SEARCH-001 FR-1
     /// Open or create a search index at the given directory path.
     pub fn open(path: &Path) -> Result<Self> {
         std::fs::create_dir_all(path)?;
@@ -166,6 +169,7 @@ impl SearchIndex {
         })
     }
 
+    /// SPEC: COMP-SEARCH-001 FR-2, FR-5
     /// Index a note, replacing any existing document with the same path.
     ///
     /// Content is automatically split into English and Bulgarian fields
@@ -210,6 +214,7 @@ impl SearchIndex {
         Ok(())
     }
 
+    /// SPEC: COMP-SEARCH-001 FR-3
     /// Remove a note from the index by path.
     pub fn remove_note(&self, path: &str) -> Result<()> {
         let writer = self.writer.lock().unwrap();
@@ -226,6 +231,7 @@ impl SearchIndex {
         Ok(())
     }
 
+    /// SPEC: COMP-SEARCH-001 FR-4, FR-6, FR-7
     /// Search the index and return ranked results with snippets.
     ///
     /// Supports advanced query syntax:

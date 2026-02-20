@@ -1,5 +1,7 @@
 # Implementation Plan: Tag Extraction
 
+> Superseded by `docs/plans/tag-extraction-001-plan.md` and `docs/plans/tag-extraction-001-tasks.yaml`.
+
 ## Metadata
 
 - Spec: `docs/specs/component/tag-extraction-001.md`

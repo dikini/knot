@@ -26,7 +26,7 @@
 | FR-5: Check vault status | high | Implementation in `state.rs:35-38` | no |
 | FR-6: List recent notes | high | Implementation in `commands/vault.rs:142-164` | no |
 | FR-7: Sync files to DB | medium | Implementation in `core/vault.rs:318-363`, no tests | yes |
-| FR-8: File watching | low | Stub in `core/vault.rs:369-374`, TODO comment | yes |
+| FR-8: File watching | high | Implemented and verified via `COMP-FILE-WATCH-001` integration | no |
 
 ## Contract
 
@@ -73,9 +73,9 @@
 - Note: Used during vault creation to import existing notes
 
 **FR-8**: File system watching for external changes
-- Evidence: `core/vault.rs:369-374`
-- Confidence: low
-- Status: Stub implementation, TODO comment indicates not yet implemented
+- Evidence: `core/vault.rs` watcher lifecycle + `COMP-FILE-WATCH-001` verification report
+- Confidence: high
+- Status: Implemented and verified
 
 ### Interface (Rust)
 
@@ -183,7 +183,7 @@ export async function getRecentNotes(limit?: number): Promise<NoteSummary[]>;
 - [ ] Should file watching be enabled by default? Config field exists but isn't used
 - [ ] What happens to unsaved changes when switching vaults? No check implemented
 - [ ] Should vault creation fail if the directory has existing files? Currently imports them
-- [ ] File watcher implementation is stubbed - design decisions needed
+- [ ] File watching behavior evolves under `COMP-FILE-WATCH-001`; keep cross-spec links in sync
 
 ## Acceptance Criteria (Derived from Tests)
 

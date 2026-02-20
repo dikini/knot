@@ -2,6 +2,8 @@
 //!
 //! Handles standard markdown via pulldown-cmark, plus custom wikilink
 //! syntax (`[[Target]]` and `[[Target|Display Text]]`).
+//!
+//! SPEC: COMP-MARKDOWN-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10
 
 use pulldown_cmark::{Event, HeadingLevel, LinkType, Options, Parser, Tag, TagEnd};
 use serde::{Deserialize, Serialize};
@@ -48,6 +50,7 @@ pub struct ParsedNote {
     pub html: String,
 }
 
+/// SPEC: COMP-MARKDOWN-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-10
 /// Parse a markdown document, extracting links, headings, and rendering HTML.
 pub fn parse(content: &str) -> ParsedNote {
     let mut links = Vec::new();
@@ -167,6 +170,7 @@ fn find_wikilink_end(content: &str, start: usize) -> Option<(String, String, usi
     ))
 }
 
+/// SPEC: COMP-MARKDOWN-001 FR-3, FR-8, FR-9
 /// Extract headings from markdown content.
 pub fn extract_headings(content: &str) -> Vec<Heading> {
     let options = Options::ENABLE_TABLES
@@ -275,6 +279,7 @@ fn heading_level_to_u32(level: &HeadingLevel) -> u32 {
     }
 }
 
+/// SPEC: COMP-MARKDOWN-001 FR-8, FR-9
 /// Generate a URL-safe anchor slug from heading text.
 fn slugify(text: &str) -> String {
     text.chars()
@@ -301,6 +306,7 @@ fn slugify(text: &str) -> String {
         .join("-")
 }
 
+/// SPEC: COMP-MARKDOWN-001 FR-10
 /// Check if a link target is internal (not an external URL).
 fn is_internal_link(target: &str) -> bool {
     !target.starts_with("http://")
@@ -309,9 +315,10 @@ fn is_internal_link(target: &str) -> bool {
         && !target.starts_with('#')
 }
 
+/// SPEC: COMP-TAG-EXTRACTION-001 FR-1, FR-2
 /// Extract tags (#tagname) from markdown content.
 /// Returns lowercase tag names without the # prefix.
-/// Excludes tags in code blocks and URLs.
+/// Excludes tags in code blocks, inline code, and URLs.
 pub fn extract_tags(content: &str) -> Vec<String> {
     let mut tags = Vec::new();
     let mut in_code_block = false;
@@ -327,9 +334,11 @@ pub fn extract_tags(content: &str) -> Vec<String> {
             continue;
         }
 
+        let line_without_inline = strip_inline_code(line);
+
         // Find tags in this line
         // Simple approach: find all #word patterns, then filter
-        for word in line.split_whitespace() {
+        for word in line_without_inline.split_whitespace() {
             if let Some(tag) = extract_tag_from_word(word) {
                 let tag_lower = tag.to_lowercase();
                 if !tags.contains(&tag_lower) {
@@ -340,6 +349,24 @@ pub fn extract_tags(content: &str) -> Vec<String> {
     }
 
     tags
+}
+
+fn strip_inline_code(line: &str) -> String {
+    let mut output = String::with_capacity(line.len());
+    let mut in_inline_code = false;
+
+    for ch in line.chars() {
+        if ch == '`' {
+            in_inline_code = !in_inline_code;
+            continue;
+        }
+
+        if !in_inline_code {
+            output.push(ch);
+        }
+    }
+
+    output
 }
 
 fn extract_tag_from_word(word: &str) -> Option<String> {
@@ -562,6 +589,13 @@ Also check [[API Reference|API docs]].
     #[test]
     fn extract_tags_excludes_code_blocks() {
         let content = "```\n#not-a-tag\n```\n#real-tag";
+        let tags = extract_tags(content);
+        assert_eq!(tags, vec!["real-tag"]);
+    }
+
+    #[test]
+    fn extract_tags_excludes_inline_code() {
+        let content = "Use `#not-a-tag` and #real-tag";
         let tags = extract_tags(content);
         assert_eq!(tags, vec!["real-tag"]);
     }

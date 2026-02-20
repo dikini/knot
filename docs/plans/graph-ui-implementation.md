@@ -1,5 +1,7 @@
 # Implementation Plan: Graph Visualization UI
 
+> Superseded by `docs/plans/graph-ui-001-plan.md` and `docs/plans/graph-ui-001-tasks.yaml`.
+
 ## Metadata
 
 - Spec: `docs/specs/component/graph-ui-001.md`

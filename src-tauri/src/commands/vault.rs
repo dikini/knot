@@ -1,4 +1,6 @@
 //! Vault-related Tauri commands.
+//!
+//! SPEC: COMP-VAULT-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6
 
 use tauri::State;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
@@ -17,6 +19,7 @@ pub fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
+/// SPEC: COMP-VAULT-001 FR-1
 /// Create a new vault at the specified path.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -46,6 +49,7 @@ pub async fn create_vault(
     Ok(info)
 }
 
+/// SPEC: COMP-VAULT-001 FR-2
 /// Open an existing vault at the specified path.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -196,6 +200,7 @@ pub async fn open_vault_dialog(
     Ok(info)
 }
 
+/// SPEC: COMP-VAULT-001 FR-3
 /// Close the currently open vault.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -212,6 +217,7 @@ pub async fn close_vault(state: State<'_, AppState>) -> Result<(), String> {
     Ok(())
 }
 
+/// SPEC: COMP-VAULT-001 FR-4
 /// Get information about the currently open vault.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -227,6 +233,7 @@ pub async fn get_vault_info(
     }
 }
 
+/// SPEC: COMP-VAULT-001 FR-5
 /// Check if a vault is currently open.
 #[tauri::command]
 pub async fn is_vault_open(state: State<'_, AppState>) -> Result<bool, String> {
@@ -259,6 +266,7 @@ fn vault_info_from_manager(vault: &VaultManager) -> Result<VaultInfo, KnotError>
     })
 }
 
+/// SPEC: COMP-VAULT-001 FR-6
 /// List recently modified notes.
 #[tauri::command]
 #[instrument(skip(state))]

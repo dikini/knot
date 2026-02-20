@@ -1,0 +1,42 @@
+tasks:
+  - id: GUI-001
+    title: "Finalize Graph UI specification"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+    dependencies: []
+    acceptance: "Spec status updated and acceptance criteria are explicit"
+
+  - id: GUI-002
+    title: "Implement App-level graph/editor toggle with per-vault persistence"
+    status: done
+    size: M
+    spec_refs: [FR-4]
+    dependencies: [GUI-001]
+    acceptance: "Vault-open state shows toggle, mode switches, preference persists by vault key"
+
+  - id: GUI-003
+    title: "Implement hovered-node connected-edge highlighting"
+    status: done
+    size: M
+    spec_refs: [FR-2, FR-5]
+    concerns: [CAP, REL]
+    dependencies: [GUI-002]
+    acceptance: "Hovering node applies highlighted style to connected edges"
+
+  - id: GUI-004
+    title: "Wire graph node click to note load and editor return"
+    status: done
+    size: M
+    spec_refs: [FR-2, FR-4]
+    concerns: [REL]
+    dependencies: [GUI-002]
+    acceptance: "Node click loads note by path and switches app mode to editor"
+
+  - id: GUI-005
+    title: "Run verification and update status artifacts"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+    dependencies: [GUI-003, GUI-004]
+    acceptance: "Typecheck/tests pass and audit/project status docs are updated"

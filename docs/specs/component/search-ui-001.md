@@ -3,10 +3,11 @@
 ## Metadata
 - ID: `COMP-SEARCH-UI-001`
 - Scope: `component`
-- Status: `draft`
+- Status: `implemented`
 - Parent: `COMP-FRONTEND-001`, `COMP-SEARCH-001`
 - Concerns: [CAP, REL]
 - Created: `2026-02-19`
+- Updated: `2026-02-20`
 
 ## Purpose
 Provide a user interface for searching notes. Backend search is fully functional; this adds the frontend interface.
@@ -31,7 +32,7 @@ Provide a user interface for searching notes. Backend search is fully functional
 - Click to open note
 
 **FR-4**: Empty state
-- No query: Show "Type to search"
+- Focused with no query: Show "Type to search"
 - No results: Show "No notes found"
 
 **FR-5**: Keyboard navigation
@@ -84,13 +85,13 @@ interface SearchResult {
 
 ## Acceptance Criteria
 
-- [ ] Search box visible in sidebar
-- [ ] Real-time search with debounce
-- [ ] Results show title and excerpt
-- [ ] Click result to open note
-- [ ] Keyboard navigation works
-- [ ] Empty states handled
-- [ ] Syntax hints visible
+- [x] Search box visible in sidebar
+- [x] Real-time search with debounce
+- [x] Results show title and excerpt
+- [x] Click result to open note
+- [x] Keyboard navigation works
+- [x] Empty states handled
+- [x] Syntax hints visible
 
 ## Related
 

@@ -1,4 +1,7 @@
 //! Note-related Tauri commands.
+//!
+//! SPEC: COMP-NOTE-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-10
+//! SPEC: COMP-GRAPH-001 FR-6
 
 use tauri::State;
 use tracing::{info, instrument};
@@ -6,6 +9,7 @@ use tracing::{info, instrument};
 use crate::state::response::{NoteData, NoteSummary, Heading, Backlink};
 use crate::state::AppState;
 
+/// SPEC: COMP-NOTE-001 FR-1
 /// List all notes in the vault.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -27,6 +31,7 @@ pub async fn list_notes(state: State<'_, AppState>) -> Result<Vec<NoteSummary>, 
     }
 }
 
+/// SPEC: COMP-NOTE-001 FR-2, FR-10
 /// Get a note by its path.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -76,6 +81,7 @@ pub async fn get_note(
     }
 }
 
+/// SPEC: COMP-NOTE-001 FR-3
 /// Save a note.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -98,6 +104,7 @@ pub async fn save_note(
     }
 }
 
+/// SPEC: COMP-NOTE-001 FR-4
 /// Delete a note.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -119,6 +126,7 @@ pub async fn delete_note(
     }
 }
 
+/// SPEC: COMP-NOTE-001 FR-5
 /// Rename/move a note.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -141,6 +149,7 @@ pub async fn rename_note(
     }
 }
 
+/// SPEC: COMP-NOTE-001 FR-6
 /// Create a new note.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -191,6 +200,7 @@ pub async fn create_note(
     }
 }
 
+/// SPEC: COMP-GRAPH-001 FR-6
 /// Get the link graph layout.
 #[tauri::command]
 #[instrument(skip(state))]

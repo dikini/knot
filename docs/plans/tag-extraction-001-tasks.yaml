@@ -1,0 +1,32 @@
+tasks:
+  - id: TAG-001
+    title: "Implement tag extraction parser in markdown module"
+    status: done
+    size: M
+    spec_refs: [FR-1, FR-2]
+    dependencies: []
+    acceptance: "Tag parser extracts valid tags and excludes blocked contexts"
+
+  - id: TAG-002
+    title: "Integrate tag sync into note save and search indexing"
+    status: done
+    size: M
+    spec_refs: [FR-3]
+    dependencies: [TAG-001]
+    acceptance: "Tags are synced on save and search index receives tag payload"
+
+  - id: TAG-003
+    title: "Add/extend tests for extraction edge cases"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2]
+    dependencies: [TAG-001]
+    acceptance: "Tests cover code block, inline code, URL, escaped and dedupe cases"
+
+  - id: TAG-004
+    title: "Run verification and update status artifacts"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3]
+    dependencies: [TAG-002, TAG-003]
+    acceptance: "Verification commands pass and docs reflect implemented state"

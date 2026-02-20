@@ -1,100 +1,39 @@
-# Implementation Plan: File System Watcher
+# Implementation Plan: File System Watcher Completion
 
 ## Metadata
 - Spec: `docs/specs/component/file-watcher-001.md`
 - Generated: `2026-02-19`
+- Updated: `2026-02-19`
 - Approach: `sequential`
 
 ## Summary
-- Total tasks: 6
-- Size: 1 Small, 4 Medium, 1 Large
+- Total tasks: 5
+- Size: 2 Small, 3 Medium
+- Objective: close compliance gaps for an already-implemented watcher system
 
 ## Tasks
 
 | ID | Task | Size | Depends | Spec Ref |
 |----|------|------|---------|----------|
-| FW-001 | Review existing watcher.rs | S | - | - |
-| FW-002 | Create FileWatcher integration struct | M | FW-001 | FR-1 |
-| FW-003 | Implement event handling in VaultManager | L | FW-002 | FR-2,3,4,5 |
-| FW-004 | Add debouncing | M | FW-002 | FR-6 |
-| FW-005 | Wire to VaultManager lifecycle | M | FW-003 | FR-1,7 |
-| FW-006 | Add tests | M | FW-005 | Acceptance |
+| FW-001 | Refresh spec scope and acceptance criteria | S | - | FR-1..FR-7 |
+| FW-002 | Fix integration tests to target current `knot` APIs | M | FW-001 | FR-2, FR-3, FR-4, FR-5, FR-6 |
+| FW-003 | Add missing watcher SPEC markers in legacy/public vault API | S | FW-001 | FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7 |
+| FW-004 | Validate watcher behavior with focused Rust test runs | M | FW-002, FW-003 | FR-1..FR-7 |
+| FW-005 | Publish updated verification report and state updates | M | FW-004 | FR-1..FR-7 |
 
-## Task Details
+## Dependency DAG
 
-### FW-001: Review existing watcher.rs
-Read and understand: `src-tauri/src/watcher.rs`
+`FW-001 -> FW-002 -> FW-004 -> FW-005`
 
-### FW-002: Create FileWatcher integration
-Location: `src-tauri/src/core/vault.rs` or new `src-tauri/src/file_watcher.rs`
+`FW-001 -> FW-003 -> FW-004`
 
-Create wrapper that:
-- Uses `notify` crate
-- Filters for `.md` files
-- Excludes `.vault/` directory
-- Sends events to handler
-
-### FW-003: Implement event handling
-Location: `src-tauri/src/core/vault.rs`
-
-In VaultManager:
-```rust
-fn handle_watcher_event(&mut self, event: notify::Event) {
-    match event.kind {
-        Create(_) => self.sync_new_file(&path),
-        Modify(_) => self.sync_modified_file(&path),
-        Remove(_) => self.sync_deleted_file(&path),
-        _ => {}
-    }
-}
-```
-
-Implement sync methods:
-- `sync_new_file` → read file, add to DB, index, graph
-- `sync_modified_file` → read file, update DB, reindex, update graph
-- `sync_deleted_file` → remove from DB, index, graph
-
-### FW-004: Add debouncing
-Use `notify-debouncer-mini` or simple timer-based approach:
-```rust
-// Collect events in buffer
-// After 1 second of no new events, process batch
-// Clear buffer
-```
-
-### FW-005: Wire to lifecycle
-In VaultManager:
-```rust
-pub fn open(...) -> Result<Self> {
-    // ... existing code ...
-    if config.watch_files {
-        vault.start_watching()?;
-    }
-    Ok(vault)
-}
-
-pub fn close(&mut self) {
-    self.stop_watching();
-    // ... existing code ...
-}
-```
-
-### FW-006: Add tests
-Test scenarios:
-- File created externally → appears in vault
-- File modified externally → updates in vault
-- File deleted externally → removed from vault
-- Rapid changes → debounced correctly
-
-## Verification
+## Verification Commands
 
 ```bash
-cargo test --lib
-cargo test --test file_watcher  # if integration tests added
-```
-
-Manual test:
-```bash
-cd /path/to/vault
-echo "# Test" > test.md  # Should appear in app
+cd src-tauri
+cargo test --test watcher_integration_test
+cargo test watcher::tests::watcher_detects_new_file
+cargo test watcher::tests::watcher_detects_modified_file
+cargo test watcher::tests::watcher_detects_deleted_file
+cargo test watcher::tests::watcher_debounces_rapid_changes
 ```

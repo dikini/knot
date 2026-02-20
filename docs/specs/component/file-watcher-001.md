@@ -8,7 +8,8 @@
 - Parent: `COMP-VAULT-001`
 - Concerns: [REL, CONS]
 - Created: `2026-02-19`
-- Verified: `2026-02-19` (25% compliance - stub only)
+- Updated: `2026-02-19`
+- Verified: `2026-02-19` (partial; integration test and traceability gaps)
 
 ## Purpose
 
@@ -16,21 +17,13 @@ Detect external changes to notes (made outside the app) and sync them to the dat
 
 ## Current State
 
-**Stub implementation** in `core/vault.rs:369-374`:
+`src-tauri/src/watcher.rs` has an implemented `FileWatcher` using `notify` with markdown filtering, `.vault/` exclusion, and debounce batching.
 
-```rust
-fn start_watcher(&mut self) -> Result<()> {
-    // File watcher implementation
-    // TODO: Port from watcher.rs
-    warn!("file watcher not yet implemented in refactored core");
-    Ok(())
-}
-```
+`src-tauri/src/core/vault.rs` integrates watcher startup and event syncing (`Modified`, `Deleted`, `Renamed`) into database, search index, and graph update paths.
 
-**Existing watcher module** (`src-tauri/src/watcher.rs`):
-
-- Has some implementation using `notify` crate
-- Needs to be integrated with VaultManager
+Remaining gaps are compliance-focused:
+- integration tests in `src-tauri/tests/watcher_integration_test.rs` are outdated
+- legacy `src-tauri/src/vault.rs` methods need explicit SPEC markers for this spec
 
 ## Contract
 
@@ -118,31 +111,29 @@ pub fn stop_watching(&mut self);
 
 ## Implementation Strategy
 
-Integrate with existing `watcher.rs` or rewrite. The existing code has:
+Use the existing `watcher.rs` implementation and close compliance gaps:
 
-- `FileWatcher` struct
-- `Event` enum for changes
-- Uses `notify` crate
-
-Update `VaultManager` to:
-
-1. Create watcher on vault open (optional/configurable)
-2. Handle events by syncing to DB/index
-3. Stop watcher on vault close
+1. Keep watcher lifecycle managed by `VaultManager` in `src-tauri/src/core/vault.rs`
+2. Ensure external create/modify/delete/rename flows are covered by integration tests
+3. Add missing SPEC markers for public watcher lifecycle and sync methods in `src-tauri/src/vault.rs`
+4. Re-run verification and publish updated compliance report
 
 ## Acceptance Criteria
 
-- [ ] File watcher starts when vault opens
-- [ ] External file changes detected
-- [ ] Database updated on changes
-- [ ] Search index updated on changes
-- [ ] Graph updated on changes
-- [ ] UI reflects external changes
-- [ ] Debouncing prevents thrashing
-- [ ] Watcher stops cleanly on vault close
+- [ ] `watcher_detects_external_file_creation` passes (FR-1, FR-2)
+- [ ] `watcher_detects_external_file_modification` passes (FR-3)
+- [ ] `watcher_detects_external_file_deletion` passes (FR-4)
+- [ ] `watcher_detects_external_file_rename` passes (FR-5)
+- [ ] `watcher_debounce_prevents_duplicate_events` or equivalent debounce test passes (FR-6)
+- [ ] Watcher errors are logged and do not crash sync loop (FR-7)
+- [ ] All watcher lifecycle/sync API entry points have SPEC markers for traceability
 
 ## Related
 
 - Existing: `src-tauri/src/watcher.rs`
 - Updates: `COMP-VAULT-001`
 - Uses: `notify` crate
+
+## Revision History
+
+- 2026-02-19: Updated from "stub-only" framing to "implemented with compliance gaps", aligned acceptance criteria to executable tests.

@@ -1,5 +1,7 @@
 # Implementation Plan: Search UI
 
+> Superseded by `docs/plans/search-ui-001-plan.md` and `docs/plans/search-ui-001-tasks.yaml`.
+
 ## Metadata
 - Spec: `docs/specs/component/search-ui-001.md`
 - Generated: `2026-02-19`

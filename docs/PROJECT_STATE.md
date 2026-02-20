@@ -10,17 +10,21 @@
 
 | Spec ID               | Component       | Status          | Compliance | Tested | Traceable |
 | --------------------- | --------------- | --------------- | ---------- | ------ | --------- |
-| COMP-VAULT-001        | vault           | active          | 85%        | ✅     | ❌        |
-| COMP-NOTE-001         | note            | active          | 100%       | ✅     | ❌        |
-| COMP-SEARCH-001       | search          | active          | 100%       | ✅     | ❌        |
-| COMP-GRAPH-001        | graph           | active          | 100%       | ✅     | ❌        |
-| COMP-MARKDOWN-001     | markdown        | active          | 100%       | ✅     | ❌        |
-| COMP-DATABASE-001     | database        | active          | 100%       | ✅     | ❌        |
-| COMP-FRONTEND-001     | frontend        | active          | 90%        | ✅     | ❌        |
+| COMP-VAULT-001        | vault           | active          | 100%       | ✅     | ✅        |
+| COMP-NOTE-001         | note            | active          | 100%       | ✅     | ✅        |
+| COMP-SEARCH-001       | search          | active          | 100%       | ✅     | ✅        |
+| COMP-GRAPH-001        | graph           | active          | 100%       | ✅     | ✅        |
+| COMP-MARKDOWN-001     | markdown        | active          | 100%       | ✅     | ✅        |
+| COMP-DATABASE-001     | database        | active          | 100%       | ✅     | ✅        |
+| COMP-FRONTEND-001     | frontend        | active          | 90%        | ✅     | ✅        |
 | COMP-VAULT-UI-001     | vault-ui        | **implemented** | 100%       | ⚠️     | ❌        |
 | COMP-CONTENT-LOAD-001 | content-loading | **implemented** | 100%       | ✅     | ✅        |
-| COMP-NOTE-SEL-001     | note-selection  | **implemented** | 100%       | ⚠️     | ❌        |
-| COMP-FILE-WATCH-001   | file-watcher    | **partial**     | 25%        | ❌     | ❌        |
+| COMP-NOTE-SEL-001     | note-selection  | **implemented** | 100%       | ✅     | ✅        |
+| COMP-FILE-WATCH-001   | file-watcher    | **implemented** | 100%       | ✅     | ✅        |
+| COMP-GRAPH-UI-001     | graph-ui        | **implemented** | 100%       | ✅     | ✅        |
+| COMP-SEARCH-UI-001    | search-ui       | **implemented** | 100%       | ✅     | ✅        |
+| COMP-TAG-EXTRACTION-001 | tag-extraction | **implemented** | 100%     | ✅     | ✅        |
+| COMP-TOOLCHAIN-001    | toolchain       | **implemented** | 100%       | ✅     | ✅        |
 | COMP-UI-LAYOUT-002    | ui-layout       | **implemented** | 100%       | ✅     | ✅        |
 
 ## Legend
@@ -147,82 +151,171 @@
 
 ---
 
-### ⚠️ COMP-NOTE-SEL-001
+### ✅ COMP-FILE-WATCH-001
 
-**Status**: Implemented but missing SPEC markers (100% functional)
-**Spec**: `docs/specs/component/note-selection-001.md`
-**Plan**: `docs/plans/note-selection-implementation.md`
-**Verification**: `docs/audit/note-selection-verification-2026-02-19.md`
+**Status**: Fully implemented and verified (100%)
+**Spec**: `docs/specs/component/file-watcher-001.md`
+**Plan**: `docs/plans/file-watcher-implementation.md`
+**Tasks**: `docs/plans/file-watcher-001-tasks.yaml`
+**Verification**: `docs/audit/file-watcher-verification-2026-02-19.md`
 
-**Implementation** (no SPEC markers):
+**Implementation**:
 
-- `src/components/Sidebar/index.tsx:28` - `handleNoteClick()`
-- `src/components/Sidebar/index.tsx:54` - `handleSearchResultSelect()`
+- `src-tauri/src/watcher.rs` - watcher implementation and debounce
+- `src-tauri/src/core/vault.rs` - watcher lifecycle and sync handlers
+- `src-tauri/src/vault.rs` - watcher lifecycle/sync API with SPEC markers
 
 **Functional Requirements Met**:
 
-- ✅ FR-1: Wire sidebar note list to editor
-- ✅ FR-2: Show dirty state warning
+- ✅ FR-1: Watch vault directory
+- ✅ FR-2: Handle file creation
+- ✅ FR-3: Handle file modification
+- ✅ FR-4: Handle file deletion
+- ✅ FR-5: Handle file rename/move
+- ✅ FR-6: Debounce/batch events
+- ✅ FR-7: Error handling without crash
 
-**Missing**:
+**Tests**:
 
-- ❌ SPEC markers in code for traceability
-- ❌ Automated tests (manual verification only)
+- `watcher_detects_external_file_creation`
+- `watcher_detects_external_file_modification`
+- `watcher_detects_external_file_deletion`
+- `watcher_detects_external_file_rename`
+- `watcher_debounce_prevents_duplicate_events`
 
-**Traceability**: Incomplete - implementation exists but no SPEC markers
-
-**Action Required**: Add SPEC markers to trace implementation decisions
+**Traceability**: Complete - watcher API and implementation paths include SPEC markers
 
 ---
 
-### ⚠️ COMP-FILE-WATCH-001
+### ✅ COMP-GRAPH-UI-001
 
-**Status**: Partial implementation - stub only (25%)
-**Spec**: `docs/specs/component/file-watcher-001.md`
-**Plan**: `docs/plans/file-watcher-implementation.md`
-**Verification**: `docs/audit/file-watcher-verification-2026-02-19.md`
+**Status**: Fully implemented and verified (100%)
+**Spec**: `docs/specs/component/graph-ui-001.md`
+**Plan**: `docs/plans/graph-ui-001-plan.md`
+**Tasks**: `docs/plans/graph-ui-001-tasks.yaml`
+**Verification**: `docs/audit/graph-ui-verification-2026-02-19.md`
 
-**Implementation** (stub only, no SPEC markers):
+**Implementation**:
 
-- `src-tauri/src/core/vault.rs:369-374` - `start_watcher()` stub
-- `src-tauri/src/watcher.rs` - exists but not integrated
+- `src/components/GraphView/index.tsx` - graph rendering and interactions
+- `src/App.tsx` - editor/graph toggle and node-click note-open flow
 
 **Functional Requirements Met**:
 
-- ⚠️ FR-1: Start watcher when vault opens (stub only)
-- ❌ FR-2: Watch vault directory for changes (not implemented)
-- ❌ FR-3: Sync changes to database (not implemented)
-- ❌ FR-4: Update search index (not implemented)
+- ✅ FR-1: Graph view component
+- ✅ FR-2: Interactive navigation
+- ✅ FR-3: Layout from backend
+- ✅ FR-4: Toggle between views
+- ✅ FR-5: Visual styling
 
-**Missing**:
+**Tests**:
 
-- ❌ Actual file watching implementation
-- ❌ Database sync on file changes
-- ❌ Search index update on file changes
-- ❌ SPEC markers
-- ❌ Tests
+- `src/components/GraphView/index.test.tsx`
+- `src/App.test.tsx`
 
-**Traceability**: Incomplete - stub exists but no traceability
+**Traceability**: Complete - App/GraphView include SPEC markers tied to FRs
 
-**Action Required**: Full implementation needed - this is a stub
+---
+
+### ✅ COMP-SEARCH-UI-001
+
+**Status**: Fully implemented and verified (100%)
+**Spec**: `docs/specs/component/search-ui-001.md`
+**Plan**: `docs/plans/search-ui-001-plan.md`
+**Tasks**: `docs/plans/search-ui-001-tasks.yaml`
+**Verification**: `docs/audit/search-ui-verification-2026-02-20.md`
+
+**Implementation**:
+
+- `src/components/SearchBox/index.tsx` - search UI behavior and results rendering
+- `src/components/Sidebar/index.tsx` - search integration and note-open flow
+
+**Functional Requirements Met**:
+
+- ✅ FR-1: Search input in sidebar
+- ✅ FR-2: Real-time search with debounce
+- ✅ FR-3: Search result display and selection
+- ✅ FR-4: Empty states for focused empty query and no results
+- ✅ FR-5: Keyboard navigation
+- ✅ FR-6: Advanced syntax hinting
+
+**Tests**:
+
+- `src/components/SearchBox/index.test.tsx`
+
+**Traceability**: Complete - SearchBox/Sidebar include SPEC markers tied to FRs
+
+---
+
+### ✅ COMP-TAG-EXTRACTION-001
+
+**Status**: Fully implemented and verified (100%)
+**Spec**: `docs/specs/component/tag-extraction-001.md`
+**Plan**: `docs/plans/tag-extraction-001-plan.md`
+**Tasks**: `docs/plans/tag-extraction-001-tasks.yaml`
+**Verification**: `docs/audit/tag-extraction-verification-2026-02-20.md`
+
+**Implementation**:
+
+- `src-tauri/src/markdown.rs` - extraction parser and context filtering
+- `src-tauri/src/core/vault.rs` - tag sync on save + index updates
+
+**Functional Requirements Met**:
+
+- ✅ FR-1: Parse tags from markdown content
+- ✅ FR-2: Exclude tags in code blocks/inline code/URLs/escaped forms
+- ✅ FR-3: Store and sync tags on note save
+
+**Tests**:
+
+- `markdown::tests::extract_tags_*` (9 extraction tests)
+- Included in `cargo test --lib` pass set
+
+**Traceability**: Complete - markdown and vault save/sync paths include SPEC markers
+
+---
+
+### ✅ COMP-TOOLCHAIN-001
+
+**Status**: Fully implemented and verified (100%)
+**Spec**: `docs/specs/component/frontend-toolchain-modernization-001.md`
+**Plan**: `docs/plans/frontend-toolchain-modernization-001-plan.md`
+**Tasks**: `docs/plans/frontend-toolchain-modernization-001-tasks.yaml`
+**Verification**: `docs/audit/toolchain-verification-2026-02-20.md`
+
+**Implementation**:
+
+- `package.json` - upgraded runtime/build/test/compiler dependency sets
+- `src/tooling/toolchain-modernization.test.ts` - toolchain major-version governance checks
+- `src/components/SearchBox/index.tsx` - React 19 type-compatibility update (`ReactNode`)
+
+**Functional Requirements Met**:
+
+- ✅ FR-1: Runtime packages upgraded
+- ✅ FR-2: Build/test tooling upgraded
+- ✅ FR-3: TypeScript/types upgraded
+- ✅ FR-4: Install/typecheck/tests green
+- ✅ FR-5: Version drift guard test added
+
+**Traceability**: Complete - dependency changes and governance test mapped to spec requirements
 
 ---
 
 ## Extracted Specs (Active, Code Exists)
 
-These specs were machine-generated from existing code. They represent the core system architecture but lack formal verification artifacts.
+These specs were machine-generated from existing code. They now have SPEC-marker traceability and dedicated verification reports.
 
 | Spec ID           | Compliance | Tested | Traceable | Notes                                            |
 | ----------------- | ---------- | ------ | --------- | ------------------------------------------------ |
-| COMP-VAULT-001    | 85%        | ✅     | ❌        | Has uncertainties, needs review                  |
-| COMP-NOTE-001     | 100%       | ✅     | ❌        | Uncertainties about hash usage, concurrent edits |
-| COMP-SEARCH-001   | 100%       | ✅     | ❌        | 24 flagged uncertainties                         |
-| COMP-GRAPH-001    | 100%       | ✅     | ❌        | 6 uncertainties about performance and layout     |
-| COMP-MARKDOWN-001 | 100%       | ✅     | ❌        | 5 uncertainties about link handling              |
-| COMP-DATABASE-001 | 100%       | ✅     | ❌        | 5 uncertainties about schema and features        |
-| COMP-FRONTEND-001 | 90%        | ⚠️     | ❌        | 6 flagged requirements need review               |
+| COMP-VAULT-001    | 100%       | ✅     | ✅        | Verified via `docs/audit/vault-verification-2026-02-19.md` |
+| COMP-NOTE-001     | 100%       | ✅     | ✅        | Verified via `docs/audit/note-verification-2026-02-19.md` |
+| COMP-SEARCH-001   | 100%       | ✅     | ✅        | Verified via `docs/audit/search-verification-2026-02-19.md` |
+| COMP-GRAPH-001    | 100%       | ✅     | ✅        | Verified via `docs/audit/graph-verification-2026-02-19.md` |
+| COMP-MARKDOWN-001 | 100%       | ✅     | ✅        | Verified via `docs/audit/markdown-verification-2026-02-19.md` |
+| COMP-DATABASE-001 | 100%       | ✅     | ✅        | Verified via `docs/audit/database-verification-2026-02-19.md` |
+| COMP-FRONTEND-001 | 90%        | ✅     | ✅        | Verified via `docs/audit/frontend-verification-2026-02-19.md` |
 
-**Action Required**: Add SPEC markers to extract specs and create verification reports
+**Action Required**: Continue iterating extracted-spec completeness (compliance target beyond current 90% for `COMP-FRONTEND-001`)
 
 ---
 
@@ -232,9 +325,7 @@ These specs are designed but have no implementation yet.
 
 | Spec ID                 | Purpose                     | Status |
 | ----------------------- | --------------------------- | ------ |
-| COMP-GRAPH-UI-001       | Graph visualization UI      | draft  |
-| COMP-SEARCH-UI-001      | Search interface component  | draft  |
-| COMP-TAG-EXTRACTION-001 | Tag extraction from content | draft  |
+| (none)                  | -                           | -      |
 
 **Action Required**: Implement via bk-workflow (design → plan → tdd → implement → verify)
 
@@ -248,24 +339,29 @@ These specs are designed but have no implementation yet.
 - ✅ COMP-UI-LAYOUT-002
 - ✅ COMP-VAULT-UI-001
 - ✅ COMP-NOTE-SEL-001
+- ✅ COMP-GRAPH-UI-001
+- ✅ COMP-SEARCH-UI-001
+- ✅ COMP-TAG-EXTRACTION-001
+- ✅ COMP-TOOLCHAIN-001
 
 ### Partially Implemented
 
-- ⚠️ COMP-FILE-WATCH-001 (stub only, needs full implementation)
+- None
 
-### Core System (Extracted, Not Verified)
+### Core System (Extracted, Verified)
 
-- ⚠️ COMP-VAULT-001, COMP-NOTE-001, COMP-SEARCH-001, COMP-GRAPH-001, COMP-MARKDOWN-001, COMP-DATABASE-001, COMP-FRONTEND-001
-  - All have 85-100% compliance
-  - All have tests
-  - ❌ None have SPEC markers for traceability
-  - ❌ None have formal verification reports
+- ✅ COMP-VAULT-001, COMP-NOTE-001, COMP-SEARCH-001, COMP-GRAPH-001, COMP-MARKDOWN-001, COMP-DATABASE-001
+  - All are traceable via SPEC markers
+  - All have formal verification reports in `docs/audit/`
+- ✅ COMP-FRONTEND-001
+  - Traceability is complete
+  - Verification report exists
+  - Automated frontend verification is green (`npm run typecheck`, `npm test -- --run`)
+  - Current extracted-spec compliance: 90%
 
 ### Not Started
 
-- ❌ COMP-GRAPH-UI-001
-- ❌ COMP-SEARCH-UI-001
-- ❌ COMP-TAG-EXTRACTION-001
+- None
 
 ---
 
@@ -278,15 +374,25 @@ These specs are designed but have no implementation yet.
 | `src/components/Sidebar`                  | ✅             | COMP-UI-LAYOUT-002 FR-2, FR-6 | SPEC marker comment |
 | `src/components/Editor`                   | ✅             | COMP-UI-LAYOUT-002 FR-4       | SPEC marker comment |
 | `src/App.tsx`                             | ✅             | COMP-UI-LAYOUT-002 FR-5, FR-6 | SPEC marker comment |
-| `src-tauri/src/vault.rs`                  | ❌             | COMP-VAULT-001                | None                |
-| `src-tauri/src/note.rs`                   | ❌             | COMP-NOTE-001                 | None                |
-| `src-tauri/src/search.rs`                 | ❌             | COMP-SEARCH-001               | None                |
-| `src-tauri/src/graph.rs`                  | ❌             | COMP-GRAPH-001                | None                |
-| `src-tauri/src/markdown.rs`               | ❌             | COMP-MARKDOWN-001             | None                |
-| `src-tauri/src/db.rs` (rest of)           | ❌             | COMP-DATABASE-001             | None                |
-| `src/lib/api.ts` (dialogs)                | ❌             | COMP-VAULT-UI-001             | None                |
-| `src/components/Sidebar` (note selection) | ❌             | COMP-NOTE-SEL-001             | None                |
-| `src-tauri/src/watcher.rs`                | ❌             | COMP-FILE-WATCH-001           | None                |
+| `src-tauri/src/core/vault.rs`             | ✅             | COMP-VAULT-001                | SPEC marker comment |
+| `src-tauri/src/note.rs`                   | ✅             | COMP-NOTE-001                 | SPEC marker comment |
+| `src-tauri/src/search.rs`                 | ✅             | COMP-SEARCH-001               | SPEC marker comment |
+| `src-tauri/src/graph.rs`                  | ✅             | COMP-GRAPH-001                | SPEC marker comment |
+| `src-tauri/src/markdown.rs`               | ✅             | COMP-MARKDOWN-001             | SPEC marker comment |
+| `src-tauri/src/db.rs`                     | ✅             | COMP-DATABASE-001             | SPEC marker comment |
+| `src/App.tsx`                             | ✅             | COMP-FRONTEND-001             | SPEC marker comment |
+| `src/lib/api.ts`                          | ✅             | COMP-FRONTEND-001             | SPEC marker comment |
+| `src/lib/store.ts`                        | ✅             | COMP-FRONTEND-001             | SPEC marker comment |
+| `src/lib/api.ts` (dialogs)                | ✅             | COMP-VAULT-UI-001             | SPEC marker comment |
+| `src/components/Sidebar` (note selection) | ✅             | COMP-NOTE-SEL-001             | SPEC marker comment |
+| `src-tauri/src/watcher.rs`                | ✅             | COMP-FILE-WATCH-001           | SPEC marker comment |
+| `src/components/GraphView/index.tsx`      | ✅             | COMP-GRAPH-UI-001 FR-1,2,3,5  | SPEC marker comment |
+| `src/App.tsx` (view toggle)               | ✅             | COMP-GRAPH-UI-001 FR-4        | SPEC marker comment |
+| `src/components/SearchBox/index.tsx`      | ✅             | COMP-SEARCH-UI-001 FR-1..FR-6 | SPEC marker comment |
+| `src/components/Sidebar/index.tsx` (search) | ✅           | COMP-SEARCH-UI-001 FR-1, FR-3 | SPEC marker comment |
+| `src-tauri/src/markdown.rs`               | ✅             | COMP-TAG-EXTRACTION-001 FR-1, FR-2 | SPEC marker comment |
+| `src-tauri/src/core/vault.rs`             | ✅             | COMP-TAG-EXTRACTION-001 FR-3  | SPEC marker comment |
+| `src/tooling/toolchain-modernization.test.ts` | ✅         | COMP-TOOLCHAIN-001 FR-5       | TEST marker comment |
 
 ---
 
@@ -299,35 +405,9 @@ These specs are designed but have no implementation yet.
    - ~~`src/components/VaultSwitcher`: component (COMP-VAULT-UI-001 FR-1, FR-3)~~ ✅
    - ~~`src/components/Sidebar`: `handleNoteClick()`, `handleSearchResultSelect()` (COMP-NOTE-SEL-001)~~ ✅
 
-### P1 - High (Complete Partial)
+### P1 - Low (Implement Draft Specs)
 
-2. **Complete COMP-FILE-WATCH-001**:
-   - Integrate `notify` crate into VaultManager
-   - Implement file watching for vault directory
-   - Add database sync on file changes
-   - Add search index update on file changes
-   - Add SPEC markers
-   - Add tests
-   - Verify with bk-verify
-
-### P2 - Medium (Make Core Traceable)
-
-3. **Add SPEC markers to extracted specs** (7 specs):
-   - COMP-VAULT-001
-   - COMP-NOTE-001
-   - COMP-SEARCH-001
-   - COMP-GRAPH-001
-   - COMP-MARKDOWN-001
-   - COMP-DATABASE-001
-   - COMP-FRONTEND-001
-   - Create verification reports for each
-
-### P3 - Low (Implement Draft Specs)
-
-4. **Implement remaining draft specs** (choose one):
-   - COMP-GRAPH-UI-001
-   - COMP-SEARCH-UI-001
-   - COMP-TAG-EXTRACTION-001
+2. **No remaining draft specs** ✅
 
 ---
 
@@ -341,7 +421,18 @@ All verification reports in `docs/audit/`:
 | COMP-UI-LAYOUT-002    | ui-layout-verification-2026-02-19.md       | 2026-02-19 | 100%       |
 | COMP-VAULT-UI-001     | vault-ui-verification-2026-02-19.md        | 2026-02-19 | 100%       |
 | COMP-NOTE-SEL-001     | note-selection-verification-2026-02-19.md  | 2026-02-19 | 100%       |
-| COMP-FILE-WATCH-001   | file-watcher-verification-2026-02-19.md    | 2026-02-19 | 25%        |
+| COMP-FILE-WATCH-001   | file-watcher-verification-2026-02-19.md    | 2026-02-19 | 100%       |
+| COMP-VAULT-001        | vault-verification-2026-02-19.md           | 2026-02-19 | 100%       |
+| COMP-NOTE-001         | note-verification-2026-02-19.md            | 2026-02-19 | 100%       |
+| COMP-SEARCH-001       | search-verification-2026-02-19.md          | 2026-02-19 | 100%       |
+| COMP-GRAPH-001        | graph-verification-2026-02-19.md           | 2026-02-19 | 100%       |
+| COMP-MARKDOWN-001     | markdown-verification-2026-02-19.md        | 2026-02-19 | 100%       |
+| COMP-DATABASE-001     | database-verification-2026-02-19.md        | 2026-02-19 | 100%       |
+| COMP-FRONTEND-001     | frontend-verification-2026-02-19.md        | 2026-02-19 | 90%        |
+| COMP-GRAPH-UI-001     | graph-ui-verification-2026-02-19.md        | 2026-02-19 | 100%       |
+| COMP-SEARCH-UI-001    | search-ui-verification-2026-02-20.md       | 2026-02-20 | 100%       |
+| COMP-TAG-EXTRACTION-001 | tag-extraction-verification-2026-02-20.md | 2026-02-20 | 100%       |
+| COMP-TOOLCHAIN-001    | toolchain-verification-2026-02-20.md       | 2026-02-20 | 100%       |
 
 ---
 
@@ -425,10 +516,15 @@ Implementation exists (no SPEC marker)
 | 2026-02-19 | Create canonical project state document | All specs             |
 | 2026-02-19 | Verify COMP-CONTENT-LOAD-001            | COMP-CONTENT-LOAD-001 |
 | 2026-02-19 | Verify COMP-UI-LAYOUT-002               | COMP-UI-LAYOUT-002    |
-| 2026-02-19 | Verify COMP-VAULT-UI-001                | COMP-VAULT-001        |
+| 2026-02-19 | Verify COMP-VAULT-UI-001                | COMP-VAULT-UI-001     |
 | 2026-02-19 | Verify COMP-NOTE-SEL-001                | COMP-NOTE-SEL-001     |
 | 2026-02-19 | Verify COMP-FILE-WATCH-001              | COMP-FILE-WATCH-001   |
+| 2026-02-19 | Add traceability + verification for extracted core specs | COMP-VAULT-001, COMP-NOTE-001, COMP-SEARCH-001, COMP-GRAPH-001, COMP-MARKDOWN-001, COMP-DATABASE-001, COMP-FRONTEND-001 |
+| 2026-02-19 | Implement and verify Graph UI component | COMP-GRAPH-UI-001     |
+| 2026-02-20 | Implement and verify Search UI component | COMP-SEARCH-UI-001 |
+| 2026-02-20 | Implement and verify Tag Extraction component | COMP-TAG-EXTRACTION-001 |
+| 2026-02-20 | Implement and verify frontend toolchain modernization | COMP-TOOLCHAIN-001 |
 
 ---
 
-**Next Action**: Run P0 task - add SPEC markers to implemented components for traceability.
+**Next Action**: Start next planned feature via bk-workflow (`bk-design → bk-plan → bk-tdd → bk-implement → bk-verify`).

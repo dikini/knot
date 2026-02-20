@@ -50,9 +50,9 @@ Three draft specs were executed in parallel across separate worktrees. All imple
 
 ### Verification Reports
 
-- `docs/audit/search-ui-verification-2026-02-19.md`
+- `docs/audit/search-ui-verification-2026-02-20.md` (supersedes prior blocked report)
 - `docs/audit/graph-ui-verification-2026-02-19.md`
-- `docs/audit/tag-extraction-verification-2026-02-19.md`
+- `docs/audit/tag-extraction-verification-2026-02-20.md` (supersedes prior report)
 
 ## Worktrees Status
 

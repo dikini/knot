@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use crate::markdown::Heading;
 
+/// SPEC: COMP-NOTE-001 FR-7, FR-8, FR-9
 /// Metadata about a note stored in the database.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NoteMeta {
@@ -22,6 +23,7 @@ pub struct Note {
 }
 
 impl Note {
+    /// SPEC: COMP-NOTE-001 FR-3
     /// Create a new note from path and content.
     pub fn new(path: &str, content: &str) -> Self {
         let id = uuid::Uuid::new_v4().to_string();
@@ -87,6 +89,7 @@ impl Note {
 }
 
 impl NoteMeta {
+    /// SPEC: COMP-NOTE-001 FR-7
     /// Extract title from the first line of markdown content.
     /// Uses the first `# Heading` or falls back to the filename.
     pub fn title_from_content(content: &str, path: &str) -> String {
@@ -104,11 +107,13 @@ impl NoteMeta {
             .to_string()
     }
 
+    /// SPEC: COMP-NOTE-001 FR-8
     /// Count words in content.
     pub fn word_count(content: &str) -> i64 {
         content.split_whitespace().count() as i64
     }
 
+    /// SPEC: COMP-NOTE-001 FR-9
     /// Compute a simple hash of content for change detection.
     pub fn content_hash(content: &str) -> String {
         use std::collections::hash_map::DefaultHasher;

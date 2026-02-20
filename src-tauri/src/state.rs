@@ -2,6 +2,8 @@
 //!
 //! This module provides the shared state that is managed by Tauri
 //! and accessible from command handlers.
+//!
+//! SPEC: COMP-VAULT-001 FR-5
 
 use crate::core::VaultManager;
 use std::sync::Arc;
@@ -31,6 +33,7 @@ impl AppState {
         &self.vault
     }
 
+    /// SPEC: COMP-VAULT-001 FR-5
     /// Check if a vault is currently open.
     pub async fn is_vault_open(&self) -> bool {
         let vault = self.vault.lock().await;

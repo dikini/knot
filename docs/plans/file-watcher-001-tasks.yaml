@@ -1,0 +1,45 @@
+tasks:
+  - id: FW-001
+    title: "Refresh file watcher spec scope and acceptance criteria"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7]
+    concerns: [REL, CONS]
+    dependencies: []
+    acceptance: "Spec describes implemented architecture and executable acceptance criteria"
+
+  - id: FW-002
+    title: "Fix watcher integration tests for the current knot crate API"
+    status: done
+    size: M
+    spec_refs: [FR-2, FR-3, FR-4, FR-5, FR-6]
+    concerns: [REL]
+    dependencies: [FW-001]
+    acceptance: "watcher integration tests compile and pass against VaultManager"
+
+  - id: FW-003
+    title: "Add missing SPEC markers to watcher lifecycle and sync API surface"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7]
+    concerns: [REL, CONS]
+    dependencies: [FW-001]
+    acceptance: "Watcher-related public API methods have COMP-FILE-WATCH-001 trace markers"
+
+  - id: FW-004
+    title: "Run watcher-focused test verification"
+    status: done
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7]
+    concerns: [REL, CONS]
+    dependencies: [FW-002, FW-003]
+    acceptance: "Rust watcher tests pass with no file watcher regressions"
+
+  - id: FW-005
+    title: "Publish verification report and update project state"
+    status: done
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7]
+    concerns: [REL, CONS]
+    dependencies: [FW-004]
+    acceptance: "docs/audit/file-watcher-verification-2026-02-19.md reflects current compliance"

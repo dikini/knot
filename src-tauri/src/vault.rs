@@ -580,6 +580,7 @@ impl Vault {
             .map_err(|_| VaultError::NoteNotFound(rel_path.to_string()))
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-1
     /// Start watching the vault directory for external changes.
     pub fn start_watching(&mut self) -> Result<()> {
         if self.watcher.is_some() {
@@ -590,6 +591,7 @@ impl Vault {
         Ok(())
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-1, FR-7
     /// Stop watching the vault directory.
     pub fn stop_watching(&mut self) {
         if self.watcher.take().is_some() {
@@ -597,6 +599,7 @@ impl Vault {
         }
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-1
     /// Check if file watching is active.
     pub fn is_watching(&self) -> bool {
         self.watcher.is_some()
@@ -617,6 +620,7 @@ impl Vault {
         self.config.plugins_enabled
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7
     /// Poll for file system changes and sync them to the vault.
     /// Returns the number of changes processed.
     pub fn sync_external_changes(&mut self) -> Result<usize> {
@@ -648,6 +652,7 @@ impl Vault {
         Ok(count)
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-2, FR-3
     fn sync_file_modified(&self, rel_path: &str) -> Result<()> {
         let full_path = self.root.join(rel_path);
 
@@ -716,6 +721,7 @@ impl Vault {
         Ok(())
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-4
     fn sync_file_deleted(&self, rel_path: &str) -> Result<()> {
         self.db
             .conn()
@@ -727,6 +733,7 @@ impl Vault {
         Ok(())
     }
 
+    /// SPEC: COMP-FILE-WATCH-001 FR-5
     fn sync_file_renamed(&self, from_path: &str, to_path: &str) -> Result<()> {
         // Update database path
         self.db.conn().execute(
