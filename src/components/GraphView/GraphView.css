@@ -44,11 +44,6 @@
 /* Nodes */
 .graph-node {
   cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.graph-node:hover {
-  transform: scale(1.15);
 }
 
 .graph-node__circle {

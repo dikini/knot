@@ -1,0 +1,16 @@
+version: 1
+plan: graph-hover-stability-001
+trace: BUG-graph-hover-node-stability
+tasks:
+  - id: GHS-001
+    title: Add failing regression test for hover transform override
+    status: done
+    refs: [FR-3]
+  - id: GHS-002
+    title: Remove hover transform from graph node group
+    status: done
+    refs: [FR-1, FR-2]
+  - id: GHS-003
+    title: Verify and document compliance
+    status: done
+    refs: [FR-1, FR-2, FR-3]

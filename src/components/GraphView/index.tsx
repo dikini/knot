@@ -6,6 +6,7 @@
  */
 // SPEC: COMP-GRAPH-UI-001 FR-1, FR-2, FR-3, FR-5
 // SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
+// SPEC: COMP-GRAPH-HOVER-001 FR-1, FR-2
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { getGraphLayout } from "@lib/api";

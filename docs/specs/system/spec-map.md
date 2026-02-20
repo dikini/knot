@@ -28,6 +28,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-EDITOR-READING-001 | editor-reading | designed  | component/editor-reading-001.md | [CONF, CAP, REL] | implemented (verified 100%)            |
 | COMP-LAYOUT-RECOVERY-001 | layout-recovery | designed  | component/layout-recovery-001.md | [REL, CONF]      | implemented (verified 100%)            |
 | COMP-ICON-CHROME-001 | icon-chrome | designed | component/icon-chrome-001.md | [CONF, REL, CAP] | implemented (verified 100%) |
+| COMP-GRAPH-HOVER-001 | graph-hover-stability | designed | component/graph-hover-stability-001.md | [REL, CONF] | implemented (verified 100%) |
 
 ## Interfaces
 
@@ -96,3 +97,4 @@ docs/specs/
 | 2026-02-20 | Document editor reading refresh and verification | COMP-EDITOR-READING-001 |
 | 2026-02-20 | Add left-pane collapse recovery guard and verification | COMP-LAYOUT-RECOVERY-001 |
 | 2026-02-20 | Add icon-first common chrome and label preference | COMP-ICON-CHROME-001 |
+| 2026-02-20 | Fix graph node hover transform instability | COMP-GRAPH-HOVER-001 |
