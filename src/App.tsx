@@ -18,6 +18,7 @@ import "./styles/App.css";
 // SPEC: COMP-UI-LAYOUT-002 FR-5, FR-6
 // SPEC: COMP-FRONTEND-001 FR-1, FR-2
 // SPEC: COMP-GRAPH-UI-001 FR-4
+// SPEC: COMP-LAYOUT-RECOVERY-001 FR-1, FR-2
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
@@ -131,6 +132,7 @@ function App() {
 
   useEffect(() => {
     if (!vault) return;
+    if (hydratedShellVaultPath === vault.path) return;
 
     const key = `knot:shell:${vault.path}`;
     const raw = localStorage.getItem(key);
@@ -147,9 +149,6 @@ function App() {
 
         if (parsed.toolMode === "notes" || parsed.toolMode === "search" || parsed.toolMode === "graph") {
           setShellToolMode(parsed.toolMode);
-        }
-        if (typeof parsed.isToolRailCollapsed === "boolean" && parsed.isToolRailCollapsed !== shell.isToolRailCollapsed) {
-          toggleToolRail();
         }
         if (
           typeof parsed.isContextPanelCollapsed === "boolean" &&
@@ -174,14 +173,13 @@ function App() {
     setHydratedShellVaultPath(vault.path);
   }, [
     vault,
+    hydratedShellVaultPath,
     shell.isContextPanelCollapsed,
-    shell.isToolRailCollapsed,
     setContextPanelWidth,
     setDensityMode,
     setInspectorRailOpen,
     setShellToolMode,
     toggleContextPanel,
-    toggleToolRail,
   ]);
 
   useEffect(() => {
@@ -200,6 +198,14 @@ function App() {
       })
     );
   }, [vault, shell, hydratedShellVaultPath]);
+
+  // Left tool rail is non-collapsible; normalize legacy persisted states.
+  useEffect(() => {
+    if (!vault) return;
+    if (shell.isToolRailCollapsed) {
+      toggleToolRail();
+    }
+  }, [vault, shell.isToolRailCollapsed, toggleToolRail]);
 
   useEffect(() => {
     const stored = localStorage.getItem("knot:editor-surface-mode");
@@ -342,14 +348,11 @@ function App() {
   );
 
   const graphContextContent = null;
-
   return (
     <div className={`app ${shell.densityMode === "comfortable" ? "app--comfortable" : "app--adaptive"}`}>
       <ToolRail
         mode={shell.toolMode}
-        collapsed={shell.isToolRailCollapsed}
         onModeChange={setShellToolMode}
-        onToggleCollapse={toggleToolRail}
       />
       <ContextPanel
         mode={shell.toolMode}

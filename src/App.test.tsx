@@ -342,6 +342,16 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       expect(editorUnmountCount).toBe(1);
     });
   });
+
+  it("auto-expands tool rail if legacy collapsed state is hydrated", async () => {
+    mockStoreState.shell.isToolRailCollapsed = true;
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockStoreState.toggleToolRail).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe("getEditorMeasureBand (COMP-EDITOR-READING-001 FR-4)", () => {

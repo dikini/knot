@@ -1,0 +1,24 @@
+tasks:
+  - id: LR-001
+    title: "Add failing test for tool-rail legacy collapsed normalization"
+    status: done
+    size: S
+    spec_refs: [FR-2, FR-3]
+    dependencies: []
+    acceptance: "Test verifies auto-expansion when tool rail starts collapsed"
+
+  - id: LR-002
+    title: "Remove tool-rail collapse control and normalize legacy collapsed state"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2]
+    dependencies: [LR-001]
+    acceptance: "Tool rail cannot be collapsed via UI; legacy collapsed state is auto-expanded"
+
+  - id: LR-003
+    title: "Run verification and publish audit"
+    status: done
+    size: S
+    spec_refs: [FR-3]
+    dependencies: [LR-002]
+    acceptance: "App tests/typecheck/lint pass and report is published"

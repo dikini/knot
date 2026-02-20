@@ -9,11 +9,6 @@
   gap: 12px;
 }
 
-.tool-rail--collapsed {
-  width: 56px;
-  padding-inline: 6px;
-}
-
 .tool-rail__tools {
   display: flex;
   flex-direction: column;
@@ -59,18 +54,4 @@
 .tool-rail__label {
   font-size: 0.8rem;
   letter-spacing: 0.02em;
-}
-
-.tool-rail__collapse {
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-muted);
-  border-radius: 8px;
-  height: 30px;
-  cursor: pointer;
-}
-
-.tool-rail__collapse:hover {
-  color: var(--color-heading);
-  background: rgba(128, 114, 94, 0.2);
 }
