@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Editor } from "@components/Editor";
 import { GraphView } from "@components/GraphView";
 import { ContextPanel } from "@components/Shell/ContextPanel";
+import { InspectorRail } from "@components/Shell/InspectorRail";
 import { ToolRail } from "@components/Shell/ToolRail";
 import { SearchBox } from "@components/SearchBox";
 import { Sidebar } from "@components/Sidebar";
@@ -102,6 +103,27 @@ function App() {
     }
     setViewMode("editor");
   }, [shell.toolMode]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!vault) return;
+      if (!(event.ctrlKey || event.metaKey)) return;
+
+      if (event.key === "1") {
+        event.preventDefault();
+        setShellToolMode("notes");
+      } else if (event.key === "2") {
+        event.preventDefault();
+        setShellToolMode("search");
+      } else if (event.key === "3") {
+        event.preventDefault();
+        setShellToolMode("graph");
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [setShellToolMode, vault]);
 
   useEffect(() => {
     if (!vault) return;
@@ -298,6 +320,13 @@ function App() {
       <button type="button" className="btn-secondary" onClick={() => setViewMode("editor")}>
         Open Editor
       </button>
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={() => setInspectorRailOpen(!shell.isInspectorRailOpen)}
+      >
+        {shell.isInspectorRailOpen ? "Hide Inspector" : "Show Inspector"}
+      </button>
     </div>
   );
 
@@ -358,6 +387,13 @@ function App() {
         {vault ? (
           <div className="content-area" ref={contentAreaRef}>
             <div className="content-mode-toggle">
+              <button
+                type="button"
+                onClick={() => setInspectorRailOpen(!shell.isInspectorRailOpen)}
+                className="btn-secondary"
+              >
+                {shell.isInspectorRailOpen ? "Hide Inspector" : "Inspector"}
+              </button>
               <button type="button" onClick={toggleViewMode} className="btn-secondary">
                 {viewMode === "editor" ? "Graph View" : "Editor View"}
               </button>
@@ -410,6 +446,10 @@ function App() {
           </div>
         )}
       </main>
+      <InspectorRail isOpen={shell.isInspectorRailOpen} onClose={() => setInspectorRailOpen(false)}>
+        <p>Mode: {shell.toolMode}</p>
+        {currentNote ? <p>Note: {currentNote.title || currentNote.path}</p> : <p>No note selected</p>}
+      </InspectorRail>
 
       {/* Toast notifications */}
       <ToastContainer toasts={toasts} onRemove={removeToast} />

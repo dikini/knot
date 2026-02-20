@@ -1,0 +1,32 @@
+.inspector-rail {
+  width: 280px;
+  border-left: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+  display: flex;
+  flex-direction: column;
+}
+
+.inspector-rail__header {
+  height: 42px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+
+.inspector-rail__header button {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.inspector-rail__body {
+  flex: 1;
+  padding: 12px;
+  overflow: auto;
+}

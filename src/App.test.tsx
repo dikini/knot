@@ -248,4 +248,31 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     );
     setItemSpy.mockRestore();
   });
+
+  it("switches shell tool mode with Ctrl/Cmd+1/2/3", () => {
+    render(<App />);
+
+    fireEvent.keyDown(window, { key: "1", ctrlKey: true });
+    fireEvent.keyDown(window, { key: "2", metaKey: true });
+    fireEvent.keyDown(window, { key: "3", ctrlKey: true });
+
+    expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("notes");
+    expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");
+    expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("graph");
+  });
+
+  it("ignores shell shortcuts when no vault is open", () => {
+    mockStoreState.vault = null;
+    render(<App />);
+
+    fireEvent.keyDown(window, { key: "1", ctrlKey: true });
+    expect(mockStoreState.setShellToolMode).not.toHaveBeenCalled();
+  });
+
+  it("toggles inspector rail from shell controls", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /inspector/i }));
+    expect(mockStoreState.setInspectorRailOpen).toHaveBeenCalledWith(true);
+  });
 });
