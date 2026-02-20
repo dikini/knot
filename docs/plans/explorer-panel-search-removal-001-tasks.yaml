@@ -1,0 +1,16 @@
+version: 1
+plan: explorer-panel-search-removal-001
+trace: DESIGN-explorer-panel-no-search
+tasks:
+  - id: EPS-001
+    title: Remove SearchBox from explorer panel
+    status: done
+    refs: [FR-1]
+  - id: EPS-002
+    title: Remove unused sidebar search handler logic
+    status: done
+    refs: [FR-1]
+  - id: EPS-003
+    title: Verify and publish audit
+    status: done
+    refs: [FR-1, FR-2]

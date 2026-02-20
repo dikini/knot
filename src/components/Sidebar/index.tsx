@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import { IconButton } from "@components/IconButton";
 import { VaultSwitcher } from "@components/VaultSwitcher";
-import { SearchBox } from "@components/SearchBox";
 import type { RecentVault } from "@lib/api";
 import * as api from "@lib/api";
 import type { ExplorerFolderNode } from "@/types/vault";
@@ -101,34 +100,6 @@ export function Sidebar({
   }, [vault, refreshExplorerTree]);
 
   const handleNoteClick = async (path: string) => {
-    // Don't reload same note
-    if (currentNote?.path === path) return;
-
-    // Check for unsaved changes
-    if (isDirty && currentNote) {
-      const choice = confirm(
-        `You have unsaved changes in "${currentNote.title}".\n\n` +
-          "Click OK to save and switch, Cancel to discard changes and switch."
-      );
-
-      if (choice) {
-        // Save then switch
-        try {
-          await saveCurrentNote(content);
-        } catch (error) {
-          alert("Failed to save note. Switching cancelled.");
-          return;
-        }
-      }
-      // If cancel clicked, we proceed without saving (discard changes)
-    }
-
-    await loadNote(path);
-  };
-
-  // SPEC: COMP-NOTE-SEL-001 FR-1
-  // SPEC: COMP-SEARCH-UI-001 FR-3
-  const handleSearchResultSelect = async (path: string) => {
     // Don't reload same note
     if (currentNote?.path === path) return;
 
@@ -598,8 +569,6 @@ export function Sidebar({
         />
         {vault && (
           <>
-            {/* SPEC: COMP-SEARCH-UI-001 FR-1 */}
-            <SearchBox onResultSelect={handleSearchResultSelect} />
             <div className="sidebar__actions">
               <IconButton
                 icon={FilePlus}
