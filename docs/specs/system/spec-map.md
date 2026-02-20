@@ -6,18 +6,24 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 
 | Spec ID               | Component       | Source    | Path                             | Concerns         | Status                                 |
 | --------------------- | --------------- | --------- | -------------------------------- | ---------------- | -------------------------------------- |
-| COMP-VAULT-001        | vault           | extracted | extracted/vault-001.md           | [REL, SEC, CAP]  | active                                 |
-| COMP-NOTE-001         | note            | extracted | extracted/note-001.md            | [REL, CAP]       | active                                 |
-| COMP-SEARCH-001       | search          | extracted | extracted/search-001.md          | [CAP, REL]       | active                                 |
-| COMP-GRAPH-001        | graph           | extracted | extracted/graph-001.md           | [CAP, REL]       | active                                 |
-| COMP-MARKDOWN-001     | markdown        | extracted | extracted/markdown-001.md        | [CAP]            | active                                 |
-| COMP-DATABASE-001     | database        | extracted | extracted/database-001.md        | [REL, SEC, CAP]  | active                                 |
-| COMP-FRONTEND-001     | frontend        | extracted | extracted/frontend-001.md        | [CAP, REL]       | active                                 |
+| COMP-VAULT-001        | vault           | extracted | extracted/vault-001.md           | [REL, SEC, CAP]  | active (traceable, verified 100%)      |
+| COMP-NOTE-001         | note            | extracted | extracted/note-001.md            | [REL, CAP]       | active (traceable, verified 100%)      |
+| COMP-SEARCH-001       | search          | extracted | extracted/search-001.md          | [CAP, REL]       | active (traceable, verified 100%)      |
+| COMP-GRAPH-001        | graph           | extracted | extracted/graph-001.md           | [CAP, REL]       | active (traceable, verified 100%)      |
+| COMP-MARKDOWN-001     | markdown        | extracted | extracted/markdown-001.md        | [CAP]            | active (traceable, verified 100%)      |
+| COMP-DATABASE-001     | database        | extracted | extracted/database-001.md        | [REL, SEC, CAP]  | active (traceable, verified 100%)      |
+| COMP-FRONTEND-001     | frontend        | extracted | extracted/frontend-001.md        | [CAP, REL]       | active (traceable, verified 90%)       |
 | COMP-VAULT-UI-001     | vault-ui        | designed  | component/vault-ui-001.md        | [REL, SEC, CONF] | implemented (verified 100%)            |
 | COMP-CONTENT-LOAD-001 | content-loading | designed  | component/content-loading-001.md | [REL, SEC]       | implemented (bug fixed, verified 100%) |
 | COMP-NOTE-SEL-001     | note-selection  | designed  | component/note-selection-001.md  | [REL, CAP]       | implemented (verified 100%)            |
-| COMP-FILE-WATCH-001   | file-watcher    | designed  | component/file-watcher-001.md    | [REL, CONS]      | partial (stub only, verified 25%)      |
+| COMP-FILE-WATCH-001   | file-watcher    | designed  | component/file-watcher-001.md    | [REL, CONS]      | implemented (verified 100%)            |
+| COMP-GRAPH-UI-001     | graph-ui        | designed  | component/graph-ui-001.md        | [CAP, REL]       | implemented (verified 100%)            |
+| COMP-SEARCH-UI-001    | search-ui       | designed  | component/search-ui-001.md       | [CAP, REL]       | implemented (verified 100%)            |
+| COMP-TAG-EXTRACTION-001 | tag-extraction | designed  | component/tag-extraction-001.md  | [CAP]            | implemented (verified 100%)            |
+| COMP-TOOLCHAIN-001    | toolchain       | designed  | component/frontend-toolchain-modernization-001.md | [REL, CAP, COMP] | implemented (verified 100%)            |
 | COMP-UI-LAYOUT-002    | ui-layout       | designed  | component/ui-layout-002.md       | [CONF, CAP]      | implemented (all FR complete)          |
+| COMP-COMPLIANCE-001   | compliance-fixes | designed  | component/compliance-fixes-001.md | [REL, COMP]      | implemented (verified 100%)            |
+| COMP-LINT-001         | lint-cleanup    | designed  | component/lint-cleanup-001.md | [COMP, REL]      | implemented (verified 100%)            |
 
 ## Interfaces
 
@@ -66,10 +72,19 @@ docs/specs/
 2. Address flagged uncertainties
 3. Add missing acceptance criteria
 4. Transition extracted specs to designed specs as they stabilize
-5. Add SPEC markers to codebase for traceability
+5. Maintain SPEC marker coverage as frontend scope evolves
 
 ## Change Log
 
 | Date       | Action                           | Specs Affected  |
 | ---------- | -------------------------------- | --------------- |
 | 2026-02-19 | Initial extraction from codebase | All COMP-\*-001 |
+| 2026-02-19 | Implement Graph UI component     | COMP-GRAPH-UI-001 |
+| 2026-02-20 | Add frontend toolchain modernization spec | COMP-TOOLCHAIN-001 |
+| 2026-02-20 | Implement and verify frontend toolchain modernization | COMP-TOOLCHAIN-001 |
+| 2026-02-20 | Implement Search UI component     | COMP-SEARCH-UI-001 |
+| 2026-02-20 | Implement Tag Extraction component | COMP-TAG-EXTRACTION-001 |
+| 2026-02-20 | Add compliance fixes spec and plan | COMP-COMPLIANCE-001 |
+| 2026-02-20 | Verify compliance fixes implementation | COMP-COMPLIANCE-001 |
+| 2026-02-20 | Add lint cleanup spec and plan | COMP-LINT-001 |
+| 2026-02-20 | Verify lint cleanup implementation | COMP-LINT-001 |

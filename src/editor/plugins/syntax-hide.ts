@@ -33,10 +33,7 @@ export function syntaxHidePlugin(): Plugin {
         return DecorationSet.empty;
       },
       
-      apply(tr, decorationSet) {
-        // Map existing decorations through the transaction
-        decorationSet = decorationSet.map(tr.mapping, tr.doc);
-        
+      apply(tr, _decorationSet) {
         // Get current selection
         const { selection } = tr;
         const decorations: Decoration[] = [];

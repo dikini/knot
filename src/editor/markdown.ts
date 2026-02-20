@@ -395,20 +395,23 @@ function isBlockStart(line: string): boolean {
 
 function serializeNode(node: ProseMirrorNode): string {
   switch (node.type.name) {
-    case "paragraph":
+    case "paragraph": {
       return serializeInline(node);
-    
-    case "heading":
+    }
+
+    case "heading": {
       const level = node.attrs.level as number;
       const hashes = "#".repeat(level);
       return `${hashes} ${serializeInline(node)}`;
-    
-    case "code_block":
+    }
+
+    case "code_block": {
       const lang = node.attrs.language || "";
       const code = node.textContent;
       return "```" + lang + "\n" + code + "\n```";
-    
-    case "blockquote":
+    }
+
+    case "blockquote": {
       const content = [] as string[];
       node.forEach((child) => {
         content.push(serializeNode(child));
@@ -418,8 +421,9 @@ function serializeNode(node: ProseMirrorNode): string {
         .split("\n")
         .map((line) => "> " + line)
         .join("\n");
-    
-    case "bullet_list":
+    }
+
+    case "bullet_list": {
       const bulletItems: string[] = [];
       node.forEach((item) => {
         const itemContent: string[] = [];
@@ -429,8 +433,9 @@ function serializeNode(node: ProseMirrorNode): string {
         bulletItems.push("- " + itemContent.join("\n"));
       });
       return bulletItems.join("\n");
-    
-    case "ordered_list":
+    }
+
+    case "ordered_list": {
       const orderedItems: string[] = [];
       let num = 1;
       node.forEach((item) => {
@@ -442,12 +447,15 @@ function serializeNode(node: ProseMirrorNode): string {
         num++;
       });
       return orderedItems.join("\n");
-    
-    case "horizontal_rule":
+    }
+
+    case "horizontal_rule": {
       return "---";
-    
-    default:
+    }
+
+    default: {
       return "";
+    }
   }
 }
 
@@ -462,19 +470,23 @@ function serializeInline(node: ProseMirrorNode): string {
       // Apply marks in reverse order (innermost first)
       for (const mark of marks) {
         switch (mark.type.name) {
-          case "strong":
+          case "strong": {
             text = `**${text}**`;
             break;
-          case "em":
+          }
+          case "em": {
             text = `*${text}*`;
             break;
-          case "code":
+          }
+          case "code": {
             text = "`" + text + "`";
             break;
-          case "strike":
+          }
+          case "strike": {
             text = `~~${text}~~`;
             break;
-          case "link":
+          }
+          case "link": {
             const href = mark.attrs.href;
             const title = mark.attrs.title;
             if (title) {
@@ -483,7 +495,8 @@ function serializeInline(node: ProseMirrorNode): string {
               text = `[${text}](${href})`;
             }
             break;
-          case "wikilink":
+          }
+          case "wikilink": {
             const target = mark.attrs.target;
             if (target === text) {
               text = `[[${target}]]`;
@@ -491,6 +504,7 @@ function serializeInline(node: ProseMirrorNode): string {
               text = `[[${target}|${text}]]`;
             }
             break;
+          }
         }
       }
       

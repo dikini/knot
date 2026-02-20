@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Editor } from "@components/Editor";
+import { GraphView } from "@components/GraphView";
 import { Sidebar } from "@components/Sidebar";
 import { ToastContainer } from "@components/Toast";
 import { useToast } from "@hooks/useToast";
@@ -9,9 +10,16 @@ import type { RecentVault } from "@lib/api";
 import "./styles/App.css";
 
 // SPEC: COMP-UI-LAYOUT-002 FR-5, FR-6
+// SPEC: COMP-FRONTEND-001 FR-1, FR-2
+// SPEC: COMP-GRAPH-UI-001 FR-4
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
-  const { vault, isLoading, setVault, closeVault, loadNotes } = useVaultStore();
+  const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
+  // SPEC: COMP-COMPLIANCE-001 FR-1, FR-2
+  const [hydratedViewModeVaultPath, setHydratedViewModeVaultPath] = useState<string | null>(null);
+  const [graphSize, setGraphSize] = useState({ width: 900, height: 600 });
+  const contentAreaRef = useRef<HTMLDivElement>(null);
+  const { vault, isLoading, setVault, closeVault, loadNotes, loadNote } = useVaultStore();
   const { toasts, removeToast, success, error } = useToast();
 
   // Load recent vaults and check for existing vault on mount
@@ -42,6 +50,51 @@ function App() {
 
     return () => clearInterval(interval);
   }, [vault]);
+
+  useEffect(() => {
+    if (!vault) {
+      setViewMode("editor");
+      setHydratedViewModeVaultPath(null);
+      return;
+    }
+
+    const key = `knot:view-mode:${vault.path}`;
+    const stored = localStorage.getItem(key);
+    if (stored === "graph" || stored === "editor") {
+      setViewMode(stored);
+    } else {
+      setViewMode("editor");
+    }
+    setHydratedViewModeVaultPath(vault.path);
+  }, [vault]);
+
+  useEffect(() => {
+    if (!vault || hydratedViewModeVaultPath !== vault.path) return;
+    const key = `knot:view-mode:${vault.path}`;
+    localStorage.setItem(key, viewMode);
+  }, [vault, viewMode, hydratedViewModeVaultPath]);
+
+  useEffect(() => {
+    const element = contentAreaRef.current;
+    if (!element) return;
+
+    const updateSize = () => {
+      const width = Math.max(320, Math.floor(element.clientWidth));
+      const height = Math.max(240, Math.floor(element.clientHeight));
+      setGraphSize({ width, height });
+    };
+
+    updateSize();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateSize);
+      return () => window.removeEventListener("resize", updateSize);
+    }
+
+    const resizeObserver = new ResizeObserver(updateSize);
+    resizeObserver.observe(element);
+    return () => resizeObserver.disconnect();
+  }, [viewMode, vault]);
 
   const handleOpenVault = async () => {
     try {
@@ -116,6 +169,19 @@ function App() {
     }
   };
 
+  const toggleViewMode = () => {
+    setViewMode((mode) => (mode === "editor" ? "graph" : "editor"));
+  };
+
+  const handleGraphNodeClick = async (path: string) => {
+    try {
+      await loadNote(path);
+      setViewMode("editor");
+    } catch (err) {
+      error(err instanceof Error ? err.message : "Failed to open note from graph");
+    }
+  };
+
   return (
     <div className="app">
       <Sidebar
@@ -135,8 +201,21 @@ function App() {
         )}
 
         {vault ? (
-          <div className="content-area">
-            <Editor />
+          <div className="content-area" ref={contentAreaRef}>
+            <div className="content-mode-toggle">
+              <button type="button" onClick={toggleViewMode} className="btn-secondary">
+                {viewMode === "editor" ? "Graph View" : "Editor View"}
+              </button>
+            </div>
+            {viewMode === "editor" ? (
+              <Editor />
+            ) : (
+              <GraphView
+                width={graphSize.width}
+                height={Math.max(240, graphSize.height - 52)}
+                onNodeClick={handleGraphNodeClick}
+              />
+            )}
           </div>
         ) : (
           <div className="vault-setup">

@@ -1,0 +1,36 @@
+tasks:
+  - id: CFX-001
+    title: "Add failing App regression test for vault-switch hydration/write ordering"
+    status: done
+    size: M
+    spec_refs: [FR-1, FR-2]
+    concerns: [REL]
+    dependencies: []
+    acceptance: "Regression test covers vault-switch hydration/write ordering behavior"
+
+  - id: CFX-002
+    title: "Implement vault-scoped view mode hydration guard"
+    status: done
+    size: M
+    spec_refs: [FR-1, FR-2]
+    concerns: [REL]
+    dependencies: [CFX-001]
+    acceptance: "No stale mode write on vault switch and resolved mode matches target vault preference"
+
+  - id: CFX-003
+    title: "Replace explicit any in SearchBox async loading test"
+    status: done
+    size: S
+    spec_refs: [FR-3]
+    concerns: [COMP]
+    dependencies: [CFX-001]
+    acceptance: "No explicit any in modified SearchBox tests"
+
+  - id: CFX-004
+    title: "Fix SearchBox keyboard callback dependency chain"
+    status: done
+    size: S
+    spec_refs: [FR-4]
+    concerns: [COMP]
+    dependencies: [CFX-001]
+    acceptance: "Keyboard callback references current selection handler dependency chain"

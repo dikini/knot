@@ -6,9 +6,10 @@
  */
 
 import { Plugin, PluginKey } from "prosemirror-state";
+import { Node as ProseMirrorNode } from "prosemirror-model";
 import { Decoration, DecorationSet } from "prosemirror-view";
 
-const wikilinkKey = new PluginKey("wikilinks");
+const wikilinkKey = new PluginKey<DecorationSet>("wikilinks");
 
 interface WikilinkMatch {
   text: string;
@@ -19,13 +20,13 @@ interface WikilinkMatch {
 /**
  * Find all wikilink patterns in the document
  */
-function findWikilinks(doc: any): WikilinkMatch[] {
+function findWikilinks(doc: ProseMirrorNode): WikilinkMatch[] {
   const links: WikilinkMatch[] = [];
   
-  doc.descendants((node: any, pos: number) => {
+  doc.descendants((node: ProseMirrorNode, pos: number) => {
     if (!node.isText) return;
     
-    const text: string = node.text;
+    const text = node.text ?? "";
     const regex = /\[\[([^\]]+)\]\]/g;
     let match;
     
@@ -50,7 +51,7 @@ function findWikilinks(doc: any): WikilinkMatch[] {
  * - Provides decorations for styling
  */
 export function wikilinkPlugin(): Plugin {
-  return new Plugin({
+  return new Plugin<DecorationSet>({
     key: wikilinkKey,
     
     state: {
@@ -58,9 +59,7 @@ export function wikilinkPlugin(): Plugin {
         return DecorationSet.empty;
       },
       
-      apply(tr, decorationSet) {
-        decorationSet = decorationSet.map(tr.mapping, tr.doc);
-        
+      apply(tr, _decorationSet) {
         // Find wikilinks and add decorations
         const links = findWikilinks(tr.doc);
         const decorations = links.map((link) =>

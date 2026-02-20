@@ -6,11 +6,17 @@ import type { ProseMirrorEditor } from "../../types/editor";
 import "./Editor.css";
 
 // SPEC: COMP-UI-LAYOUT-002 FR-4
+// SPEC: COMP-FRONTEND-001 FR-3, FR-6
 export function Editor() {
   const editorRef = useRef<HTMLDivElement>(null);
   const pmRef = useRef<ProseMirrorEditor | null>(null);
+  const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
   const { currentNote, setCurrentNote } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
+
+  if (currentNote?.content && initialContentRef.current === "# New Note\n\nStart writing...") {
+    initialContentRef.current = currentNote.content;
+  }
 
   // Initialize editor
   useEffect(() => {
@@ -21,7 +27,7 @@ export function Editor() {
         setContent(state.markdown);
         markDirty(true);
       },
-      initialContent: currentNote?.content || "# New Note\n\nStart writing...",
+      initialContent: initialContentRef.current,
     });
 
     pmRef.current = pm;

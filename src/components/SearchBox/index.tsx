@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import type { ReactNode } from "react";
 import { searchNotes } from "@lib/api";
 import type { SearchResult } from "@lib/api";
 import "./SearchBox.css";
+// SPEC: COMP-SEARCH-UI-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6
 
 export interface SearchBoxProps {
   onResultSelect: (path: string) => void;
@@ -87,6 +89,17 @@ export function SearchBox({ onResultSelect }: SearchBoxProps) {
     };
   }, [query]);
 
+  const handleSelect = useCallback(
+    (path: string) => {
+      setIsOpen(false);
+      setQuery("");
+      setResults([]);
+      setSelectedIndex(-1);
+      onResultSelect(path);
+    },
+    [onResultSelect]
+  );
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -125,18 +138,7 @@ export function SearchBox({ onResultSelect }: SearchBoxProps) {
           break;
       }
     },
-    [isOpen, results, selectedIndex]
-  );
-
-  const handleSelect = useCallback(
-    (path: string) => {
-      setIsOpen(false);
-      setQuery("");
-      setResults([]);
-      setSelectedIndex(-1);
-      onResultSelect(path);
-    },
-    [onResultSelect]
+    [handleSelect, isOpen, results, selectedIndex]
   );
 
   const handleClear = useCallback(() => {
@@ -154,13 +156,11 @@ export function SearchBox({ onResultSelect }: SearchBoxProps) {
   );
 
   const handleInputFocus = useCallback(() => {
-    if (query.trim() !== "" || results.length > 0) {
-      setIsOpen(true);
-    }
-  }, [query, results.length]);
+    setIsOpen(true);
+  }, []);
 
   // Highlight matching text in title
-  const highlightMatch = (text: string, queryText: string): JSX.Element => {
+  const highlightMatch = (text: string, queryText: string): ReactNode => {
     if (!queryText.trim()) return <>{text}</>;
 
     const parts = text.split(new RegExp(`(${escapeRegex(queryText)})`, "gi"));
@@ -183,7 +183,7 @@ export function SearchBox({ onResultSelect }: SearchBoxProps) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   };
 
-  const showDropdown = isOpen && (query.trim() !== "" || isSearching);
+  const showDropdown = isOpen;
 
   return (
     <div className="search-box" ref={containerRef}>
@@ -278,6 +278,8 @@ export function SearchBox({ onResultSelect }: SearchBoxProps) {
         >
           {isSearching ? (
             <div className="search-box__loading">Searching...</div>
+          ) : query.trim() === "" ? (
+            <div className="search-box__empty">Type to search</div>
           ) : results.length === 0 ? (
             <div className="search-box__empty">No notes found</div>
           ) : (

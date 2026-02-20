@@ -1,0 +1,32 @@
+tasks:
+  - id: LINT-001
+    title: "Scope markdown switch-case lexical declarations"
+    status: done
+    size: S
+    spec_refs: [FR-1]
+    dependencies: []
+    acceptance: "No no-case-declarations lint errors in src/editor/markdown.ts"
+
+  - id: LINT-002
+    title: "Fix plugin typing and unused variables"
+    status: done
+    size: M
+    spec_refs: [FR-2]
+    dependencies: [LINT-001]
+    acceptance: "No explicit any or unused variable lint errors in plugin files"
+
+  - id: LINT-003
+    title: "Resolve React hook dependency warnings"
+    status: done
+    size: S
+    spec_refs: [FR-3]
+    dependencies: [LINT-002]
+    acceptance: "No exhaustive-deps warnings in touched component files"
+
+  - id: LINT-004
+    title: "Run verification gates and publish report"
+    status: done
+    size: S
+    spec_refs: [FR-4]
+    dependencies: [LINT-003]
+    acceptance: "npm run lint passes cleanly"
