@@ -2,12 +2,25 @@ import { create } from "zustand";
 import * as api from "./api";
 import type { VaultInfo, NoteData, NoteSummary } from "../types/vault";
 
+export type ShellToolMode = "notes" | "search" | "graph";
+export type ShellDensityMode = "comfortable" | "adaptive";
+
+export interface ShellState {
+  toolMode: ShellToolMode;
+  isToolRailCollapsed: boolean;
+  isContextPanelCollapsed: boolean;
+  isInspectorRailOpen: boolean;
+  contextPanelWidth: number;
+  densityMode: ShellDensityMode;
+}
+
 interface VaultState {
   vault: VaultInfo | null;
   currentNote: NoteData | null;
   noteList: NoteSummary[];
   isLoading: boolean;
   error: string | null;
+  shell: ShellState;
 
   // Actions
   setVault: (vault: VaultInfo | null) => void;
@@ -15,6 +28,12 @@ interface VaultState {
   setNoteList: (notes: NoteSummary[]) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setShellToolMode: (mode: ShellToolMode) => void;
+  toggleToolRail: () => void;
+  toggleContextPanel: () => void;
+  setInspectorRailOpen: (isOpen: boolean) => void;
+  setContextPanelWidth: (width: number) => void;
+  setDensityMode: (mode: ShellDensityMode) => void;
 
   // API Actions
   openVault: (path: string) => Promise<void>;
@@ -35,12 +54,44 @@ export const useVaultStore = create<VaultState>((set, get) => ({
   noteList: [],
   isLoading: false,
   error: null,
+  shell: {
+    toolMode: "notes",
+    isToolRailCollapsed: false,
+    isContextPanelCollapsed: false,
+    isInspectorRailOpen: false,
+    contextPanelWidth: 320,
+    densityMode: "comfortable",
+  },
 
   setVault: (vault) => set({ vault, error: null }),
   setCurrentNote: (note) => set({ currentNote: note }),
   setNoteList: (noteList) => set({ noteList }),
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
+  setShellToolMode: (mode) =>
+    set((state) => ({
+      shell: { ...state.shell, toolMode: mode },
+    })),
+  toggleToolRail: () =>
+    set((state) => ({
+      shell: { ...state.shell, isToolRailCollapsed: !state.shell.isToolRailCollapsed },
+    })),
+  toggleContextPanel: () =>
+    set((state) => ({
+      shell: { ...state.shell, isContextPanelCollapsed: !state.shell.isContextPanelCollapsed },
+    })),
+  setInspectorRailOpen: (isOpen) =>
+    set((state) => ({
+      shell: { ...state.shell, isInspectorRailOpen: isOpen },
+    })),
+  setContextPanelWidth: (width) =>
+    set((state) => ({
+      shell: { ...state.shell, contextPanelWidth: Math.max(240, Math.floor(width)) },
+    })),
+  setDensityMode: (mode) =>
+    set((state) => ({
+      shell: { ...state.shell, densityMode: mode },
+    })),
 
   // Open vault via API
   openVault: async (path: string) => {

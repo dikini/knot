@@ -12,6 +12,14 @@ describe("Vault Store", () => {
       noteList: [],
       isLoading: false,
       error: null,
+      shell: {
+        toolMode: "notes",
+        isToolRailCollapsed: false,
+        isContextPanelCollapsed: false,
+        isInspectorRailOpen: false,
+        contextPanelWidth: 320,
+        densityMode: "comfortable",
+      },
     });
     vi.clearAllMocks();
   });
@@ -25,6 +33,29 @@ describe("Vault Store", () => {
       expect(state.noteList).toEqual([]);
       expect(state.isLoading).toBe(false);
       expect(state.error).toBeNull();
+      expect(state.shell.toolMode).toBe("notes");
+      expect(state.shell.isToolRailCollapsed).toBe(false);
+      expect(state.shell.isContextPanelCollapsed).toBe(false);
+      expect(state.shell.isInspectorRailOpen).toBe(false);
+      expect(state.shell.contextPanelWidth).toBe(320);
+      expect(state.shell.densityMode).toBe("comfortable");
+    });
+
+    it("should update shell mode and collapse toggles", () => {
+      useVaultStore.getState().setShellToolMode("graph");
+      useVaultStore.getState().toggleToolRail();
+      useVaultStore.getState().toggleContextPanel();
+      useVaultStore.getState().setInspectorRailOpen(true);
+      useVaultStore.getState().setContextPanelWidth(512);
+      useVaultStore.getState().setDensityMode("adaptive");
+
+      const updated = useVaultStore.getState();
+      expect(updated.shell.toolMode).toBe("graph");
+      expect(updated.shell.isToolRailCollapsed).toBe(true);
+      expect(updated.shell.isContextPanelCollapsed).toBe(true);
+      expect(updated.shell.isInspectorRailOpen).toBe(true);
+      expect(updated.shell.contextPanelWidth).toBe(512);
+      expect(updated.shell.densityMode).toBe("adaptive");
     });
 
     it("should set vault", () => {
