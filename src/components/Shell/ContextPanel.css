@@ -1,7 +1,7 @@
 .context-panel {
   width: 320px;
   border-right: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
+  background: linear-gradient(180deg, #20252b 0%, #1c2127 100%);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -26,13 +26,13 @@
 
 .context-panel__title {
   font-size: 0.8rem;
-  color: var(--color-text-muted);
+  color: var(--color-text-subtle);
   letter-spacing: 0.03em;
 }
 
 .context-panel__collapse {
   border: 1px solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-bg-tertiary);
   color: var(--color-text-muted);
   border-radius: 8px;
   width: 24px;
@@ -41,8 +41,8 @@
 }
 
 .context-panel__collapse:hover {
-  color: var(--color-text);
-  background: var(--color-bg-tertiary);
+  color: var(--color-heading);
+  background: rgba(128, 114, 94, 0.2);
 }
 
 .context-panel__body {

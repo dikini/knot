@@ -7,6 +7,10 @@
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(149, 126, 95, 0.18) 0%, rgba(149, 126, 95, 0) 42%),
+    radial-gradient(circle at 20% -12%, rgba(123, 147, 182, 0.16) 0%, rgba(123, 147, 182, 0) 34%),
+    var(--color-bg);
 }
 
 .app--comfortable .main-content {
@@ -19,6 +23,7 @@
   flex-direction: column;
   overflow: hidden;
   padding: var(--spacing-lg);
+  background: linear-gradient(180deg, rgba(26, 30, 34, 0.92) 0%, rgba(20, 24, 28, 0.95) 100%);
 }
 
 .main-content h1 {
@@ -29,7 +34,7 @@
 /* Error banner */
 .error-banner {
   background-color: #f38ba8;
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   padding: var(--spacing-md);
   border-radius: 8px;
   margin-bottom: var(--spacing-md);
@@ -41,7 +46,7 @@
 .error-banner .dismiss-btn {
   background: transparent;
   border: none;
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   font-size: 1.25rem;
   line-height: 1;
   padding: 0;
@@ -101,9 +106,13 @@
   flex-direction: column;
   overflow: hidden;
   gap: var(--spacing-sm);
-  max-width: 980px;
+  max-width: 1280px;
   margin: 0 auto;
   width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: rgba(35, 37, 40, 0.72);
+  box-shadow: 0 24px 38px rgba(0, 0, 0, 0.28);
 }
 
 .content-mode-toggle {
@@ -112,6 +121,12 @@
   align-items: center;
   min-height: 40px;
   flex-shrink: 0;
+  gap: 8px;
+  padding: 0.45rem 0.55rem 0;
+}
+
+.editor-surface-toggle {
+  min-width: 132px;
 }
 
 .context-search {
@@ -133,7 +148,7 @@
 .context-search__list button {
   width: 100%;
   text-align: left;
-  background: var(--color-bg);
+  background: var(--color-bg-tertiary);
   color: var(--color-text);
   border: 1px solid var(--color-border);
 }
@@ -153,9 +168,10 @@
 
 /* Vault setup when no vault open */
 .vault-setup {
-  background-color: var(--color-bg-secondary);
+  background-color: rgba(36, 38, 41, 0.82);
   padding: var(--spacing-lg);
-  border-radius: 8px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
   margin-bottom: var(--spacing-lg);
   text-align: center;
   max-width: 600px;
@@ -189,7 +205,7 @@
 
 .btn-primary {
   background-color: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border: none;
 }
 
@@ -238,7 +254,7 @@
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
-  background-color: var(--color-bg);
+  background-color: var(--color-bg-tertiary);
   border: 1px solid var(--color-border);
   border-radius: 6px;
   text-align: left;
@@ -283,7 +299,7 @@
   padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background-color: var(--color-bg);
+  background-color: var(--color-bg-tertiary);
   color: var(--color-text);
   font-size: 0.875rem;
 }
@@ -298,7 +314,7 @@
 /* Button styles */
 button {
   background-color: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border: none;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: 6px;

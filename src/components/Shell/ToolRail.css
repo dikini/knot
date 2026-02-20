@@ -1,7 +1,7 @@
 .tool-rail {
   width: 104px;
   border-right: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
+  background: linear-gradient(180deg, #1e2329 0%, #1b2026 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -34,22 +34,22 @@
 }
 
 .tool-rail__tool:hover {
-  border-color: var(--color-border);
-  color: var(--color-text);
-  background: var(--color-bg-tertiary);
+  border-color: #575048;
+  color: var(--color-heading);
+  background: rgba(128, 114, 94, 0.2);
 }
 
 .tool-rail__tool--active {
-  background: var(--color-bg);
-  border-color: var(--color-border);
-  color: var(--color-text);
+  background: rgba(115, 152, 200, 0.22);
+  border-color: #6b92c1;
+  color: var(--color-heading);
 }
 
 .tool-rail__icon {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: var(--color-bg-tertiary);
+  background: rgba(30, 33, 37, 0.85);
   display: grid;
   place-items: center;
   font-size: 0.72rem;
@@ -63,7 +63,7 @@
 
 .tool-rail__collapse {
   border: 1px solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-bg-tertiary);
   color: var(--color-text-muted);
   border-radius: 8px;
   height: 30px;
@@ -71,6 +71,6 @@
 }
 
 .tool-rail__collapse:hover {
-  color: var(--color-text);
-  background: var(--color-bg-tertiary);
+  color: var(--color-heading);
+  background: rgba(128, 114, 94, 0.2);
 }

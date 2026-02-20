@@ -1,7 +1,7 @@
 .inspector-rail {
   width: 280px;
   border-left: 1px solid var(--color-border);
-  background: var(--color-bg-secondary);
+  background: linear-gradient(180deg, #20242a 0%, #1b2026 100%);
   display: flex;
   flex-direction: column;
 }
@@ -17,7 +17,7 @@
 
 .inspector-rail__header button {
   border: 1px solid var(--color-border);
-  background: var(--color-bg);
+  background: var(--color-bg-tertiary);
   color: var(--color-text-muted);
   border-radius: 8px;
   width: 24px;
@@ -29,4 +29,5 @@
   flex: 1;
   padding: 12px;
   overflow: auto;
+  color: var(--color-text);
 }

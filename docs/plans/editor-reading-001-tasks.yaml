@@ -1,0 +1,40 @@
+tasks:
+  - id: ER-001
+    title: "Refresh dark chrome and panel contrast tokens"
+    status: done
+    size: M
+    spec_refs: [FR-1]
+    dependencies: []
+    acceptance: "Shell and panel styles use updated warm-dark palette and active-state contrast"
+
+  - id: ER-002
+    title: "Add editor surface mode toggle and persistence"
+    status: done
+    size: S
+    spec_refs: [FR-2, FR-3]
+    dependencies: [ER-001]
+    acceptance: "Editor surface toggles sepia/dark and persists via localStorage"
+
+  - id: ER-003
+    title: "Implement deterministic measure bands and padding-aware measure width"
+    status: done
+    size: M
+    spec_refs: [FR-4, FR-5]
+    dependencies: [ER-002]
+    acceptance: "App assigns measure-band class and editor CSS maps band to effective text measure"
+
+  - id: ER-004
+    title: "Add coverage for measure band mapping and keep remount regression"
+    status: done
+    size: S
+    spec_refs: [FR-2, FR-4, FR-6]
+    dependencies: [ER-003]
+    acceptance: "App tests include editor mode and band mapping checks; remount regression remains passing"
+
+  - id: ER-005
+    title: "Publish verification report with automated and manual evidence"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6]
+    dependencies: [ER-004]
+    acceptance: "Audit report captures pass/fail status and residual manual-verification scope"

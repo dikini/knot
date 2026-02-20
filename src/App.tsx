@@ -10,6 +10,7 @@ import { Sidebar } from "@components/Sidebar";
 import { ToastContainer } from "@components/Toast";
 import { useToast } from "@hooks/useToast";
 import { useVaultStore } from "@lib/store";
+import { getEditorMeasureBand } from "@lib/editorMeasure";
 import * as api from "@lib/api";
 import type { RecentVault } from "@lib/api";
 import "./styles/App.css";
@@ -20,6 +21,8 @@ import "./styles/App.css";
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
+  const [editorSurfaceMode, setEditorSurfaceMode] = useState<"sepia" | "dark">("sepia");
+  const [editorMeasureBand, setEditorMeasureBand] = useState<45 | 54 | 62 | 70>(54);
   // SPEC: COMP-COMPLIANCE-001 FR-1, FR-2
   const [hydratedViewModeVaultPath, setHydratedViewModeVaultPath] = useState<string | null>(null);
   const [hydratedShellVaultPath, setHydratedShellVaultPath] = useState<string | null>(null);
@@ -199,6 +202,17 @@ function App() {
   }, [vault, shell, hydratedShellVaultPath]);
 
   useEffect(() => {
+    const stored = localStorage.getItem("knot:editor-surface-mode");
+    if (stored === "sepia" || stored === "dark") {
+      setEditorSurfaceMode(stored);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("knot:editor-surface-mode", editorSurfaceMode);
+  }, [editorSurfaceMode]);
+
+  useEffect(() => {
     const element = contentAreaRef.current;
     if (!element) return;
 
@@ -206,6 +220,7 @@ function App() {
       const width = Math.max(320, Math.floor(element.clientWidth));
       const height = Math.max(240, Math.floor(element.clientHeight));
       setGraphSize({ width, height });
+      setEditorMeasureBand(getEditorMeasureBand(width));
     };
 
     updateSize();
@@ -377,8 +392,18 @@ function App() {
         )}
 
         {vault ? (
-          <div className="content-area" ref={contentAreaRef}>
+          <div
+            className={`content-area content-area--editor-${editorSurfaceMode} content-area--measure-${editorMeasureBand}`}
+            ref={contentAreaRef}
+          >
             <div className="content-mode-toggle">
+              <button
+                type="button"
+                onClick={() => setEditorSurfaceMode((mode) => (mode === "sepia" ? "dark" : "sepia"))}
+                className="btn-secondary editor-surface-toggle"
+              >
+                Editor: {editorSurfaceMode === "sepia" ? "Sepia" : "Dark"}
+              </button>
               <button
                 type="button"
                 onClick={() => setInspectorRailOpen(!shell.isInspectorRailOpen)}

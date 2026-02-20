@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import App from "./App";
+import { getEditorMeasureBand } from "@lib/editorMeasure";
 
 const mockLoadNote = vi.fn();
 let editorMountCount = 0;
@@ -295,6 +296,16 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     expect(appShell).toHaveClass("app--comfortable");
   });
 
+  it("defaults editor surface to sepia and toggles to dark", async () => {
+    render(<App />);
+
+    const contentArea = await screen.findByTestId("editor-view");
+    expect(contentArea.closest(".content-area")).toHaveClass("content-area--editor-sepia");
+
+    fireEvent.click(screen.getByRole("button", { name: /editor: sepia/i }));
+    expect(contentArea.closest(".content-area")).toHaveClass("content-area--editor-dark");
+  });
+
   it("remounts editor when selected note path changes", async () => {
     mockStoreState.currentNote = {
       id: "n1",
@@ -330,5 +341,27 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       expect(editorMountCount).toBe(2);
       expect(editorUnmountCount).toBe(1);
     });
+  });
+});
+
+describe("getEditorMeasureBand (COMP-EDITOR-READING-001 FR-4)", () => {
+  it("maps narrow widths to 45ch band", () => {
+    expect(getEditorMeasureBand(320)).toBe(45);
+    expect(getEditorMeasureBand(759)).toBe(45);
+  });
+
+  it("maps medium widths to 54ch band", () => {
+    expect(getEditorMeasureBand(760)).toBe(54);
+    expect(getEditorMeasureBand(839)).toBe(54);
+  });
+
+  it("maps large widths to 62ch band", () => {
+    expect(getEditorMeasureBand(840)).toBe(62);
+    expect(getEditorMeasureBand(1079)).toBe(62);
+  });
+
+  it("maps extra large widths to 70ch band", () => {
+    expect(getEditorMeasureBand(1080)).toBe(70);
+    expect(getEditorMeasureBand(1800)).toBe(70);
   });
 });

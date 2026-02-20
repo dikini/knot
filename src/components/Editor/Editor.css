@@ -2,13 +2,44 @@
  * Editor Component Styles
  * 
  * ProseMirror-specific styling for distraction-free editing.
+ * SPEC: COMP-EDITOR-READING-001 FR-1, FR-2, FR-4, FR-5
  */
 
 .editor-wrapper {
+  --editor-shell-bg: #121b28;
+  --editor-margin-bg: #121c29;
+  --editor-paper-bg: #172232;
+  --editor-paper-border: #2c3f55;
+  --editor-text: #dde6f4;
+  --editor-heading: #f3f7fd;
+  --editor-muted: #9eb0c6;
+  --editor-subtle: #7d8ea3;
+  --editor-link: #90c4ff;
+  --editor-code-bg: #1d2b3d;
+  --editor-blockquote: #a9b9cc;
+  --editor-border: #2a3a4f;
+  --editor-accent: #5b96dc;
+  --editor-accent-hover: #4c84c7;
+  --editor-on-accent: #f6f8ff;
+  --color-text: var(--editor-text);
+  --color-heading: var(--editor-heading);
+  --color-text-muted: var(--editor-muted);
+  --color-text-subtle: var(--editor-subtle);
+  --color-link: var(--editor-link);
+  --color-code-bg: var(--editor-code-bg);
+  --color-blockquote: var(--editor-blockquote);
+  --color-border: var(--editor-border);
+  --color-accent: var(--editor-accent);
+  --color-accent-hover: var(--editor-accent-hover);
+  --color-on-accent: var(--editor-on-accent);
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--editor-shell-bg);
+  border: 1px solid var(--editor-border);
 }
 
 .editor-toolbar {
@@ -16,8 +47,8 @@
   align-items: center;
   justify-content: space-between;
   padding: var(--spacing-sm) var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
-  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--editor-border);
+  background-color: var(--editor-shell-bg);
 }
 
 .editor-toolbar__info {
@@ -57,18 +88,45 @@
 .editor-container {
   flex: 1;
   overflow-y: auto;
-  padding: var(--spacing-xl);
+  padding: clamp(0.35rem, 0.95vw, 0.75rem);
+  background: var(--editor-margin-bg);
+  container-type: inline-size;
+  container-name: editor-surface;
 }
 
 /* ProseMirror base styles */
 .ProseMirror {
+  --editor-inline-pad: clamp(0.75rem, 1.2vw, 1.2rem);
+  --editor-block-pad: clamp(0.75rem, 1.2vw, 1.2rem);
+  --editor-measure: 62ch;
   outline: none;
   font-family: var(--font-serif);
   font-size: var(--font-size-base);
   line-height: var(--line-height);
   color: var(--color-text);
-  max-width: 72ch;
+  max-width: calc(var(--editor-measure) + (var(--editor-inline-pad) * 2));
   margin: 0 auto;
+  background: var(--editor-paper-bg);
+  border: 1px solid var(--editor-paper-border);
+  border-radius: 10px;
+  padding: var(--editor-block-pad) var(--editor-inline-pad);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.2);
+}
+
+.content-area--measure-45 .ProseMirror {
+  --editor-measure: 45ch;
+}
+
+.content-area--measure-54 .ProseMirror {
+  --editor-measure: 54ch;
+}
+
+.content-area--measure-62 .ProseMirror {
+  --editor-measure: 62ch;
+}
+
+.content-area--measure-70 .ProseMirror {
+  --editor-measure: 70ch;
 }
 
 .ProseMirror p {
@@ -179,7 +237,7 @@
 
 .wikilink:hover {
   background-color: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border-bottom-style: solid;
 }
 
@@ -256,7 +314,7 @@
 /* Selection */
 .ProseMirror ::selection {
   background-color: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 /* Gap cursor */
@@ -292,17 +350,54 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #666;
+  color: var(--color-text-muted);
   text-align: center;
+  background: var(--editor-margin-bg);
 }
 
 .editor-placeholder__content h3 {
   margin-bottom: 0.5rem;
-  color: #333;
+  color: var(--color-heading);
 }
 
 .editor-placeholder__hint {
   font-size: 0.875rem;
-  color: #999;
+  color: var(--color-text-subtle);
   margin-top: 1rem;
+}
+
+.content-area--editor-sepia .editor-wrapper {
+  --editor-shell-bg: #dac8af;
+  --editor-margin-bg: #d4c0a6;
+  --editor-paper-bg: #ebddc8;
+  --editor-paper-border: #cfbca3;
+  --editor-text: #2f271d;
+  --editor-heading: #18130d;
+  --editor-muted: #675847;
+  --editor-subtle: #82705e;
+  --editor-link: #285a7f;
+  --editor-code-bg: #e6d8c1;
+  --editor-blockquote: #665948;
+  --editor-border: #c6b397;
+  --editor-accent: #3b6c95;
+  --editor-accent-hover: #2c587d;
+  --editor-on-accent: #f8f2e8;
+}
+
+.content-area--editor-dark .editor-wrapper {
+  --editor-shell-bg: #20262f;
+  --editor-margin-bg: #1d242d;
+  --editor-paper-bg: #252e39;
+  --editor-paper-border: #445261;
+  --editor-text: #d4dbe6;
+  --editor-heading: #eef2f8;
+  --editor-muted: #a5b1c1;
+  --editor-subtle: #7f8ea1;
+  --editor-link: #9dc2ef;
+  --editor-code-bg: #323d4a;
+  --editor-blockquote: #b5bfcc;
+  --editor-border: #3d4a58;
+  --editor-accent: #7ea5d6;
+  --editor-accent-hover: #6e94c5;
+  --editor-on-accent: #f6f8ff;
 }

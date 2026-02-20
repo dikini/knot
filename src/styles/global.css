@@ -14,23 +14,24 @@
 }
 
 :root {
-  /* Quiet editorial palette */
-  --color-bg: #f4efe6;
-  --color-bg-secondary: #ebe4d8;
-  --color-bg-tertiary: #e2d8c7;
-  --color-text: #2f2b27;
-  --color-text-muted: #62584d;
-  --color-text-subtle: #847869;
-  --color-accent: #3f5e5a;
-  --color-accent-hover: #2f4b47;
-  --color-border: #d4c7b5;
+  /* Warm dark chrome palette */
+  --color-bg: #121518;
+  --color-bg-secondary: #1b1f24;
+  --color-bg-tertiary: #272d34;
+  --color-text: #ddd7cf;
+  --color-text-muted: #aca395;
+  --color-text-subtle: #8a8074;
+  --color-accent: #7398c8;
+  --color-accent-hover: #6387b7;
+  --color-border: #3a352f;
+  --color-on-accent: #f5f8ff;
   
   /* Semantic colors */
-  --color-heading: #1f1b18;
-  --color-link: #2f5d72;
-  --color-code-bg: #e9dfd1;
-  --color-code-text: #2f2b27;
-  --color-blockquote: #7a6d5d;
+  --color-heading: #eee8df;
+  --color-link: #9cbfe9;
+  --color-code-bg: #2d2823;
+  --color-code-text: #ddd7cf;
+  --color-blockquote: #b1a89d;
   
   /* Typography */
   --font-sans: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
@@ -68,7 +69,7 @@ body {
 /* Selection */
 ::selection {
   background-color: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 /* Scrollbar */

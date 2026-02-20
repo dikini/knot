@@ -25,6 +25,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-COMPLIANCE-001   | compliance-fixes | designed  | component/compliance-fixes-001.md | [REL, COMP]      | implemented (verified 100%)            |
 | COMP-LINT-001         | lint-cleanup    | designed  | component/lint-cleanup-001.md | [COMP, REL]      | implemented (verified 100%)            |
 | COMP-TRACE-LITE-001   | traceability-lite | designed  | component/traceability-lite-001.md | [COMP, REL]      | implemented (lightweight guardrails)   |
+| COMP-EDITOR-READING-001 | editor-reading | designed  | component/editor-reading-001.md | [CONF, CAP, REL] | implemented (verified 100%)            |
 
 ## Interfaces
 
@@ -90,3 +91,4 @@ docs/specs/
 | 2026-02-20 | Add lint cleanup spec and plan | COMP-LINT-001 |
 | 2026-02-20 | Verify lint cleanup implementation | COMP-LINT-001 |
 | 2026-02-20 | Add lightweight traceability policy + hook | COMP-TRACE-LITE-001 |
+| 2026-02-20 | Document editor reading refresh and verification | COMP-EDITOR-READING-001 |

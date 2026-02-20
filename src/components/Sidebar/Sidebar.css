@@ -4,7 +4,7 @@
 
 .sidebar {
   width: var(--sidebar-width);
-  background-color: var(--color-bg-secondary);
+  background-color: transparent;
   border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
@@ -60,7 +60,7 @@
   line-height: 1.25;
   border-radius: 6px;
   background-color: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   border: none;
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -102,17 +102,17 @@
 }
 
 .note-list__item:hover {
-  background-color: var(--color-bg-tertiary);
+  background-color: rgba(128, 114, 94, 0.18);
 }
 
 .note-list__item--active {
   background-color: var(--color-accent);
-  color: var(--color-bg);
+  color: var(--color-on-accent);
 }
 
 .note-list__item--active .note-list__date,
 .note-list__item--active .note-list__words {
-  color: var(--color-bg);
+  color: var(--color-on-accent);
   opacity: 0.7;
 }
 
