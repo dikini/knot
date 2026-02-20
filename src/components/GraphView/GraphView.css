@@ -179,3 +179,57 @@
   font-size: 13px;
   opacity: 0.7;
 }
+
+.graph-context-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.graph-context-panel__controls,
+.graph-context-panel__details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.graph-context-panel__heading {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.graph-context-panel__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.graph-context-panel__split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.graph-context-panel__subheading {
+  margin: 0 0 6px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.graph-context-panel__empty,
+.graph-context-panel__node,
+.graph-context-panel__path {
+  margin: 0;
+}
+
+.graph-context-panel__path {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.graph-context-panel ul {
+  margin: 0;
+  padding-left: 18px;
+}

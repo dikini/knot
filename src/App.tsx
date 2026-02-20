@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Editor } from "@components/Editor";
+import { GraphContextPanel } from "@components/GraphView/GraphContextPanel";
 import { GraphView } from "@components/GraphView";
 import { ContextPanel } from "@components/Shell/ContextPanel";
 import { InspectorRail } from "@components/Shell/InspectorRail";
@@ -315,26 +316,17 @@ function App() {
   };
 
   const graphControlsContent = (
-    <div className="graph-shell-controls">
-      <p className="graph-shell-controls__label">Graph Controls</p>
-      <button type="button" className="btn-secondary" onClick={() => setViewMode("editor")}>
-        Open Editor
-      </button>
-      <button
-        type="button"
-        className="btn-secondary"
-        onClick={() => setInspectorRailOpen(!shell.isInspectorRailOpen)}
-      >
-        {shell.isInspectorRailOpen ? "Hide Inspector" : "Show Inspector"}
-      </button>
-    </div>
+    <GraphContextPanel
+      selectedTitle={currentNote?.title ?? null}
+      selectedPath={currentNote?.path ?? null}
+      neighbors={[]}
+      backlinks={[]}
+      onResetView={() => setGraphSize({ width: 900, height: 600 })}
+      onOpenEditor={() => setViewMode("editor")}
+    />
   );
 
-  const graphContextContent = (
-    <div className="graph-shell-context">
-      {currentNote ? <p>Selected: {currentNote.title || currentNote.path}</p> : <p>No note selected</p>}
-    </div>
-  );
+  const graphContextContent = null;
 
   return (
     <div className={`app ${shell.densityMode === "comfortable" ? "app--comfortable" : "app--adaptive"}`}>
