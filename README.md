@@ -83,6 +83,18 @@ Native support for images and videos embedded in notes.
 
 Built-in MCP (Model Context Protocol) server for AI agent integration.
 
+Run MCP server against a vault:
+
+```bash
+cargo run --manifest-path src-tauri/Cargo.toml --bin knot-mcp -- --vault /path/to/vault
+```
+
+Or with environment variable:
+
+```bash
+KNOT_VAULT_PATH=/path/to/vault cargo run --manifest-path src-tauri/Cargo.toml --bin knot-mcp
+```
+
 ### Cross-Platform
 
 Single codebase runs on desktop (Linux, macOS, Windows) and Android.

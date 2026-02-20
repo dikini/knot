@@ -1,0 +1,28 @@
+version: 1
+plan: mcp-server-001
+trace: DESIGN-mcp-server-core-tools-resources
+tasks:
+  - id: MCP-001
+    title: Add MCP protocol handler and JSON-RPC routing
+    status: done
+    refs: [FR-2, FR-10]
+  - id: MCP-002
+    title: Implement tools/list and tools/call for core tools
+    status: done
+    refs: [FR-3, FR-4, FR-5, FR-6, FR-7]
+  - id: MCP-003
+    title: Implement resources/list and resources/read for notes
+    status: done
+    refs: [FR-8, FR-9]
+  - id: MCP-004
+    title: Implement stdio framed server loop and knot-mcp binary
+    status: done
+    refs: [FR-1, FR-11]
+  - id: MCP-005
+    title: Add unit tests for handshake, tools, resources, and errors
+    status: done
+    refs: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]
+  - id: MCP-006
+    title: Run verification commands and record audit
+    status: done
+    refs: [AC-1, AC-2, AC-3, AC-4, AC-5, AC-6]

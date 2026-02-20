@@ -79,6 +79,10 @@ plugins = ["wasmtime"]
 name = "knot"
 path = "src/main.rs"
 
+[[bin]]
+name = "knot-mcp"
+path = "src/bin/knot-mcp.rs"
+
 [lib]
 name = "knot"
 path = "src/lib.rs"

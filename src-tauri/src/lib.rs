@@ -14,6 +14,7 @@ pub mod db;
 pub mod error;
 pub mod graph;
 pub mod markdown;
+pub mod mcp;
 pub mod note;
 pub mod recent_vaults;
 pub mod search;

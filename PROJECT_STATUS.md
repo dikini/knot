@@ -222,9 +222,9 @@ cargo build
    - Re-enable WASM runtime
    - Create plugin API
 
-4. **MCP Server**
-   - Expose vault to AI agents
-   - Implement RAG tools
+4. **MCP Server (implemented)**
+   - Exposes core vault operations to AI agents via MCP
+   - Includes tools + note resources over stdio transport
 
 ---
 
@@ -252,7 +252,7 @@ cargo build
 | Distraction-free editing | ⚠️ Needs markdown parser |
 | Desktop + Android | ✅ Tauri 2.0 ready |
 | Privacy-first | ✅ Local-only |
-| AI-native | ⚠️ MCP server pending |
+| AI-native | ✅ MCP server (core tools + resources) |
 | Bulgarian + English | ✅ Tantivy configured |
 | Small bundle size | ✅ ~10MB target |
 

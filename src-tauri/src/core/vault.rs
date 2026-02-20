@@ -416,6 +416,21 @@ impl VaultManager {
         self.search.search(query, limit)
     }
 
+    /// List all tags in the vault.
+    pub fn list_tags(&self) -> Result<Vec<String>> {
+        let mut stmt = self
+            .db
+            .conn()
+            .prepare("SELECT name FROM tags ORDER BY name")?;
+
+        let tags = stmt
+            .query_map([], |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(tags)
+    }
+
     //endregion
 
     //region Graph
