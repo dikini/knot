@@ -133,3 +133,55 @@
   font-size: 0.75rem;
   color: var(--color-text-subtle);
 }
+
+.explorer-tree,
+.explorer-tree__children {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.explorer-tree__folder-row,
+.explorer-tree__note-row {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.explorer-tree__folder-row:hover,
+.explorer-tree__note-row:hover {
+  background: rgba(128, 114, 94, 0.18);
+}
+
+.explorer-tree__chevron {
+  width: 14px;
+  color: var(--color-text-muted);
+}
+
+.explorer-tree__folder-name {
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.explorer-tree__note-row {
+  font-size: 0.84rem;
+}
+
+.explorer-tree__note-row--active {
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+}
+
+.explorer-tree__note-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

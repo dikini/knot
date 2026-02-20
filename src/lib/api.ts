@@ -7,7 +7,14 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import type { VaultInfo, NoteSummary, NoteData, SearchResult, GraphLayout } from "../types/vault";
+import type {
+  VaultInfo,
+  NoteSummary,
+  NoteData,
+  SearchResult,
+  GraphLayout,
+  ExplorerTree,
+} from "../types/vault";
 
 /**
  * Recent vault entry for quick access.
@@ -224,6 +231,28 @@ export async function renameNote(oldPath: string, newPath: string): Promise<void
 export async function createNote(path: string, content?: string): Promise<NoteData> {
   try {
     return await invoke<NoteData>("create_note", { path, content });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Get explorer tree (folders + notes).
+ */
+export async function getExplorerTree(): Promise<ExplorerTree> {
+  try {
+    return await invoke<ExplorerTree>("get_explorer_tree");
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Persist folder expanded/collapsed state.
+ */
+export async function setFolderExpanded(path: string, expanded: boolean): Promise<void> {
+  try {
+    return await invoke("set_folder_expanded", { path, expanded });
   } catch (error) {
     handleError(error);
   }

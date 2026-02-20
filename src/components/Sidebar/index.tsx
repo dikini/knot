@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import { VaultSwitcher } from "@components/VaultSwitcher";
 import { SearchBox } from "@components/SearchBox";
 import type { RecentVault } from "@lib/api";
 import * as api from "@lib/api";
+import type { ExplorerFolderNode } from "@/types/vault";
 import "./Sidebar.css";
 
 export interface SidebarProps {
@@ -15,6 +17,7 @@ export interface SidebarProps {
 
 // SPEC: COMP-UI-LAYOUT-002 FR-2, FR-6
 // SPEC: COMP-FRONTEND-001 FR-2
+// SPEC: COMP-EXPLORER-TREE-001 FR-1, FR-3, FR-4, FR-7
 export function Sidebar({
   recentVaults,
   onOpenVault,
@@ -25,6 +28,22 @@ export function Sidebar({
   const { vault, noteList, currentNote, loadNote, saveCurrentNote, isLoading, setCurrentNote } =
     useVaultStore();
   const { isDirty, content } = useEditorStore();
+  const [explorerRoot, setExplorerRoot] = useState<ExplorerFolderNode | null>(null);
+  const [isExplorerLoading, setIsExplorerLoading] = useState(false);
+
+  useEffect(() => {
+    if (!vault) {
+      setExplorerRoot(null);
+      return;
+    }
+
+    setIsExplorerLoading(true);
+    api
+      .getExplorerTree()
+      .then((tree) => setExplorerRoot(tree.root))
+      .catch(() => setExplorerRoot(null))
+      .finally(() => setIsExplorerLoading(false));
+  }, [vault, noteList]);
 
   const handleNoteClick = async (path: string) => {
     // Don't reload same note
@@ -98,6 +117,71 @@ export function Sidebar({
     }
   };
 
+  const updateFolderExpanded = (
+    node: ExplorerFolderNode,
+    targetPath: string,
+    expanded: boolean
+  ): ExplorerFolderNode => {
+    if (node.path === targetPath) {
+      return { ...node, expanded };
+    }
+    return {
+      ...node,
+      folders: node.folders.map((child) => updateFolderExpanded(child, targetPath, expanded)),
+    };
+  };
+
+  // SPEC: COMP-EXPLORER-TREE-001 FR-3, FR-5
+  const handleFolderToggle = async (path: string, nextExpanded: boolean) => {
+    if (!explorerRoot) return;
+
+    setExplorerRoot((prev) => (prev ? updateFolderExpanded(prev, path, nextExpanded) : prev));
+    try {
+      await api.setFolderExpanded(path, nextExpanded);
+    } catch {
+      const tree = await api.getExplorerTree();
+      setExplorerRoot(tree.root);
+    }
+  };
+
+  const renderFolder = (folder: ExplorerFolderNode, depth: number) => (
+    <li key={folder.path || "__root"} className="explorer-tree__folder">
+      {folder.path !== "" && (
+        <button
+          type="button"
+          className="explorer-tree__folder-row"
+          style={{ paddingLeft: `${depth * 12 + 8}px` }}
+          onClick={() => handleFolderToggle(folder.path, !folder.expanded)}
+          aria-expanded={folder.expanded}
+          aria-label={folder.name}
+        >
+          <span className="explorer-tree__chevron">{folder.expanded ? "▾" : "▸"}</span>
+          <span className="explorer-tree__folder-name">{folder.name}</span>
+        </button>
+      )}
+
+      {folder.expanded && (
+        <ul className="explorer-tree__children">
+          {folder.folders.map((child) => renderFolder(child, folder.path === "" ? depth : depth + 1))}
+          {folder.notes.map((note) => (
+            <li key={note.path}>
+              <button
+                type="button"
+                className={`explorer-tree__note-row ${
+                  currentNote?.path === note.path ? "explorer-tree__note-row--active" : ""
+                }`}
+                style={{ paddingLeft: `${(folder.path === "" ? depth : depth + 1) * 12 + 28}px` }}
+                onClick={() => handleNoteClick(note.path)}
+              >
+                <span className="explorer-tree__note-title">{note.display_title}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+
   return (
     <aside className="sidebar">
       <header className="sidebar__header">
@@ -124,27 +208,13 @@ export function Sidebar({
         {vault ? (
           isLoading && noteList.length === 0 ? (
             <p className="sidebar__loading">Loading notes...</p>
-          ) : noteList.length === 0 ? (
+          ) : isExplorerLoading ? (
+            <p className="sidebar__loading">Loading explorer...</p>
+          ) : !explorerRoot ? (
             <p className="sidebar__empty">No notes yet</p>
           ) : (
-            <ul className="note-list">
-              {noteList.map((note) => (
-                <li
-                  key={note.path}
-                  className={`note-list__item ${
-                    currentNote?.path === note.path ? "note-list__item--active" : ""
-                  }`}
-                  onClick={() => handleNoteClick(note.path)}
-                >
-                  <span className="note-list__title">{note.title || note.path}</span>
-                  <span className="note-list__date">
-                    {new Date(note.modified_at * 1000).toLocaleDateString()}
-                  </span>
-                  {note.word_count > 0 && (
-                    <span className="note-list__words">{note.word_count} words</span>
-                  )}
-                </li>
-              ))}
+            <ul className="explorer-tree" role="tree" aria-label="Notes explorer">
+              {renderFolder(explorerRoot, 0)}
             </ul>
           )
         ) : (

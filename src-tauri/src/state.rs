@@ -133,4 +133,31 @@ pub mod response {
         pub source: String,
         pub target: String,
     }
+
+    /// Explorer tree payload for notes pane navigation.
+    #[derive(Debug, Clone, Serialize)]
+    pub struct ExplorerTree {
+        pub root: ExplorerFolderNode,
+        pub hidden_policy: String,
+    }
+
+    /// Folder node in explorer tree.
+    #[derive(Debug, Clone, Serialize)]
+    pub struct ExplorerFolderNode {
+        pub path: String,
+        pub name: String,
+        pub expanded: bool,
+        pub folders: Vec<ExplorerFolderNode>,
+        pub notes: Vec<ExplorerNoteNode>,
+    }
+
+    /// Note leaf in explorer tree.
+    #[derive(Debug, Clone, Serialize)]
+    pub struct ExplorerNoteNode {
+        pub path: String,
+        pub title: String,
+        pub display_title: String,
+        pub modified_at: i64,
+        pub word_count: usize,
+    }
 }

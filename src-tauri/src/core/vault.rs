@@ -150,6 +150,28 @@ impl VaultManager {
         &self.config
     }
 
+    /// Persist expanded/collapsed state for an explorer folder path.
+    pub fn set_folder_expanded(&mut self, folder_path: &str, expanded: bool) -> Result<()> {
+        let normalized = folder_path.trim_matches('/').to_string();
+
+        if expanded {
+            if !self.config.explorer.expanded_folders.iter().any(|p| p == &normalized) {
+                self.config.explorer.expanded_folders.push(normalized);
+            }
+        } else {
+            self.config
+                .explorer
+                .expanded_folders
+                .retain(|p| p != &normalized);
+        }
+
+        self.config.explorer.expansion_state_initialized = true;
+        self.config.explorer.expanded_folders.sort();
+        self.config.explorer.expanded_folders.dedup();
+        self.config.save(&self.vault_dir().join(CONFIG_FILE))?;
+        Ok(())
+    }
+
     /// Get the vault directory path.
     pub fn vault_dir(&self) -> PathBuf {
         self.root.join(VAULT_DIR)

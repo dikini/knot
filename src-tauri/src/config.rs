@@ -16,6 +16,9 @@ pub struct VaultConfig {
 
     #[serde(default)]
     pub plugins_enabled: bool,
+
+    #[serde(default)]
+    pub explorer: ExplorerConfig,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -34,6 +37,15 @@ pub struct EditorConfig {
 
     #[serde(default = "default_tab_size")]
     pub tab_size: u32,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct ExplorerConfig {
+    #[serde(default)]
+    pub expanded_folders: Vec<String>,
+
+    #[serde(default)]
+    pub expansion_state_initialized: bool,
 }
 
 fn default_name() -> String {
@@ -55,6 +67,7 @@ impl Default for VaultConfig {
             sync: SyncConfig::default(),
             editor: EditorConfig::default(),
             plugins_enabled: false, // Disabled by default for security
+            explorer: ExplorerConfig::default(),
         }
     }
 }
@@ -96,6 +109,7 @@ mod tests {
             toml::from_str(&toml_str).expect("VaultConfig should deserialize from TOML");
         assert_eq!(parsed.name, config.name);
         assert_eq!(parsed.editor.font_size, config.editor.font_size);
+        assert_eq!(parsed.explorer.expanded_folders, config.explorer.expanded_folders);
     }
 
     #[test]
@@ -105,5 +119,7 @@ mod tests {
         assert_eq!(config.name, "Test Vault");
         assert!(!config.sync.enabled);
         assert_eq!(config.editor.font_size, 14);
+        assert!(config.explorer.expanded_folders.is_empty());
+        assert!(!config.explorer.expansion_state_initialized);
     }
 }

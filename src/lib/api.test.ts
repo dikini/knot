@@ -324,6 +324,35 @@ describe("API Client", () => {
     });
   });
 
+  describe("Explorer Operations", () => {
+    it("should get explorer tree", async () => {
+      const mockTree = {
+        root: {
+          path: "",
+          name: "test-vault",
+          expanded: true,
+          folders: [],
+          notes: [],
+        },
+        hidden_policy: "hide-dotfiles",
+      };
+
+      vi.mocked(invoke).mockResolvedValue(mockTree);
+      const result = await api.getExplorerTree();
+      expect(invoke).toHaveBeenCalledWith("get_explorer_tree");
+      expect(result).toEqual(mockTree);
+    });
+
+    it("should persist folder expansion", async () => {
+      vi.mocked(invoke).mockResolvedValue(undefined);
+      await api.setFolderExpanded("Programming", true);
+      expect(invoke).toHaveBeenCalledWith("set_folder_expanded", {
+        path: "Programming",
+        expanded: true,
+      });
+    });
+  });
+
   describe("Error Handling", () => {
     it("should throw error when invoke throws Error", async () => {
       vi.mocked(invoke).mockRejectedValue(new Error("API Error"));

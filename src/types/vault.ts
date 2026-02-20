@@ -67,6 +67,27 @@ export interface GraphEdge {
   target: string;
 }
 
+export interface ExplorerNoteNode {
+  path: string;
+  title: string;
+  display_title: string;
+  modified_at: number;
+  word_count: number;
+}
+
+export interface ExplorerFolderNode {
+  path: string;
+  name: string;
+  expanded: boolean;
+  folders: ExplorerFolderNode[];
+  notes: ExplorerNoteNode[];
+}
+
+export interface ExplorerTree {
+  root: ExplorerFolderNode;
+  hidden_policy: string;
+}
+
 // Error types from Rust
 export type VaultError =
   | { type: "NoteNotFound"; message: string }

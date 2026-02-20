@@ -45,6 +45,8 @@ fn main() {
             knot::commands::notes::rename_note,
             knot::commands::notes::create_note,
             knot::commands::notes::get_graph_layout,
+            knot::commands::notes::get_explorer_tree,
+            knot::commands::notes::set_folder_expanded,
 
             // Search commands
             knot::commands::search::search_notes,
