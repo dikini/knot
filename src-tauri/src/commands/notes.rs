@@ -293,6 +293,57 @@ pub async fn set_folder_expanded(
     }
 }
 
+/// SPEC: COMP-EXPLORER-TREE-001 FR-8
+/// Create a directory in the current vault.
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn create_directory(path: String, state: State<'_, AppState>) -> Result<(), String> {
+    let mut vault_guard = state.vault().lock().await;
+
+    match vault_guard.as_mut() {
+        Some(vault) => vault.create_directory(&path).map_err(|e| e.to_response_string()),
+        None => Err("No vault is open".to_string()),
+    }
+}
+
+/// SPEC: COMP-EXPLORER-TREE-001 FR-8
+/// Delete a directory from the current vault.
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn delete_directory(
+    path: String,
+    recursive: bool,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut vault_guard = state.vault().lock().await;
+
+    match vault_guard.as_mut() {
+        Some(vault) => vault
+            .delete_directory(&path, recursive)
+            .map_err(|e| e.to_response_string()),
+        None => Err("No vault is open".to_string()),
+    }
+}
+
+/// SPEC: COMP-EXPLORER-TREE-001 FR-8
+/// Rename/move a directory in the current vault.
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn rename_directory(
+    old_path: String,
+    new_path: String,
+    state: State<'_, AppState>,
+) -> Result<(), String> {
+    let mut vault_guard = state.vault().lock().await;
+
+    match vault_guard.as_mut() {
+        Some(vault) => vault
+            .rename_directory(&old_path, &new_path)
+            .map_err(|e| e.to_response_string()),
+        None => Err("No vault is open".to_string()),
+    }
+}
+
 fn scan_visible_folders(root: &Path) -> Result<Vec<String>, String> {
     let mut paths = Vec::new();
     for entry in WalkDir::new(root)

@@ -172,6 +172,83 @@ impl VaultManager {
         Ok(())
     }
 
+    /// SPEC: COMP-EXPLORER-TREE-001 FR-8
+    /// Create a directory inside the vault.
+    pub fn create_directory(&self, rel_path: &str) -> Result<()> {
+        let normalized = normalize_rel_dir(rel_path)?;
+        std::fs::create_dir_all(self.root.join(normalized))?;
+        Ok(())
+    }
+
+    /// SPEC: COMP-EXPLORER-TREE-001 FR-8
+    /// Delete a directory from the vault.
+    pub fn delete_directory(&mut self, rel_path: &str, recursive: bool) -> Result<()> {
+        let normalized = normalize_rel_dir(rel_path)?;
+        let target = self.root.join(&normalized);
+        if !target.exists() {
+            return Ok(());
+        }
+
+        if recursive {
+            std::fs::remove_dir_all(&target)?;
+        } else {
+            std::fs::remove_dir(&target)?;
+        }
+
+        self.sync_files_to_db()?;
+        Ok(())
+    }
+
+    /// SPEC: COMP-EXPLORER-TREE-001 FR-8
+    /// Rename/move a directory in the vault.
+    pub fn rename_directory(&mut self, old_path: &str, new_path: &str) -> Result<()> {
+        let old_norm = normalize_rel_dir(old_path)?;
+        let new_norm = normalize_rel_dir(new_path)?;
+        if old_norm == new_norm {
+            return Ok(());
+        }
+
+        let old_prefix = format!("{old_norm}/");
+        let notes_to_move = self
+            .list_notes()?
+            .into_iter()
+            .map(|note| note.path)
+            .filter(|path| path == &old_norm || path.starts_with(&old_prefix))
+            .collect::<Vec<_>>();
+
+        if notes_to_move.is_empty() {
+            let old_full = self.root.join(&old_norm);
+            if !old_full.exists() {
+                return Err(KnotError::InvalidPath(old_norm));
+            }
+            let new_full = self.root.join(&new_norm);
+            if let Some(parent) = new_full.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            std::fs::rename(old_full, new_full)?;
+            return Ok(());
+        }
+
+        for old_note_path in notes_to_move {
+            let suffix = old_note_path
+                .strip_prefix(&old_prefix)
+                .unwrap_or_default();
+            let new_note_path = if suffix.is_empty() {
+                new_norm.clone()
+            } else {
+                format!("{new_norm}/{suffix}")
+            };
+            self.rename_note(&old_note_path, &new_note_path)?;
+        }
+
+        let old_full = self.root.join(&old_norm);
+        if old_full.exists() {
+            let _ = std::fs::remove_dir_all(old_full);
+        }
+
+        Ok(())
+    }
+
     /// Get the vault directory path.
     pub fn vault_dir(&self) -> PathBuf {
         self.root.join(VAULT_DIR)
@@ -539,6 +616,23 @@ impl VaultManager {
     //endregion
 }
 
+fn normalize_rel_dir(path: &str) -> Result<String> {
+    let normalized = path.trim().replace('\\', "/").trim_matches('/').to_string();
+    if normalized.is_empty() {
+        return Err(KnotError::InvalidPath(path.to_string()));
+    }
+    if normalized.starts_with('.') {
+        return Err(KnotError::InvalidPath(path.to_string()));
+    }
+    if normalized
+        .split('/')
+        .any(|segment| segment.is_empty() || segment == "." || segment == "..")
+    {
+        return Err(KnotError::InvalidPath(path.to_string()));
+    }
+    Ok(normalized)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -574,5 +668,41 @@ mod tests {
         // Get the note
         let note = vault.get_note("test.md").unwrap();
         assert_eq!(note.title(), "Test Note");
+    }
+
+    #[test]
+    fn explorer_directory_crud_roundtrip() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let mut vault = VaultManager::create(&vault_path).unwrap();
+
+        vault.create_directory("Projects/2026").unwrap();
+        assert!(vault.root_path().join("Projects/2026").exists());
+
+        vault.delete_directory("Projects", true).unwrap();
+        assert!(!vault.root_path().join("Projects").exists());
+    }
+
+    #[test]
+    fn explorer_directory_rename_moves_notes() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let mut vault = VaultManager::create(&vault_path).unwrap();
+
+        vault
+            .save_note("Programming/rust.md", "# Rust\n\nhello")
+            .unwrap();
+        vault
+            .save_note("Programming/python.md", "# Python\n\nhello")
+            .unwrap();
+
+        vault
+            .rename_directory("Programming", "Engineering")
+            .unwrap();
+
+        assert!(vault.root_path().join("Engineering/rust.md").exists());
+        assert!(vault.root_path().join("Engineering/python.md").exists());
+        assert!(vault.get_note("Engineering/rust.md").is_ok());
+        assert!(vault.get_note("Programming/rust.md").is_err());
     }
 }

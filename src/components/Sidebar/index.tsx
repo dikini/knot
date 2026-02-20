@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useVaultStore, useEditorStore } from "@lib/store";
+import { IconButton } from "@components/IconButton";
 import { VaultSwitcher } from "@components/VaultSwitcher";
 import { SearchBox } from "@components/SearchBox";
 import type { RecentVault } from "@lib/api";
 import * as api from "@lib/api";
 import type { ExplorerFolderNode } from "@/types/vault";
+import { FolderPlus, FilePlus, ChevronDown, ChevronUp, RefreshCcw } from "lucide-react";
 import "./Sidebar.css";
 
 export interface SidebarProps {
@@ -18,6 +20,7 @@ export interface SidebarProps {
 // SPEC: COMP-UI-LAYOUT-002 FR-2, FR-6
 // SPEC: COMP-FRONTEND-001 FR-2
 // SPEC: COMP-EXPLORER-TREE-001 FR-1, FR-3, FR-4, FR-7
+// SPEC: COMP-EXPLORER-TREE-001 FR-8, FR-9
 export function Sidebar({
   recentVaults,
   onOpenVault,
@@ -30,19 +33,31 @@ export function Sidebar({
   const { isDirty, content } = useEditorStore();
   const [explorerRoot, setExplorerRoot] = useState<ExplorerFolderNode | null>(null);
   const [isExplorerLoading, setIsExplorerLoading] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    targetType: "folder" | "note";
+    path: string;
+  } | null>(null);
+
+  const refreshExplorerTree = async () => {
+    setIsExplorerLoading(true);
+    try {
+      const tree = await api.getExplorerTree();
+      setExplorerRoot(tree.root);
+    } catch {
+      setExplorerRoot(null);
+    } finally {
+      setIsExplorerLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!vault) {
       setExplorerRoot(null);
       return;
     }
-
-    setIsExplorerLoading(true);
-    api
-      .getExplorerTree()
-      .then((tree) => setExplorerRoot(tree.root))
-      .catch(() => setExplorerRoot(null))
-      .finally(() => setIsExplorerLoading(false));
+    void refreshExplorerTree();
   }, [vault, noteList]);
 
   const handleNoteClick = async (path: string) => {
@@ -117,6 +132,131 @@ export function Sidebar({
     }
   };
 
+  const withOptimisticTree = async (
+    transform: (root: ExplorerFolderNode) => ExplorerFolderNode,
+    action: () => Promise<void>
+  ) => {
+    const previous = explorerRoot;
+    if (previous) {
+      setExplorerRoot(transform(previous));
+    }
+    try {
+      await action();
+      await useVaultStore.getState().loadNotes();
+      await refreshExplorerTree();
+    } catch (error) {
+      if (previous) {
+        setExplorerRoot(previous);
+      }
+      alert(`Operation failed: ${error}`);
+      await refreshExplorerTree();
+    }
+  };
+
+  const normalizeRelPath = (value: string) => value.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+
+  const applyCreateFolder = (
+    node: ExplorerFolderNode,
+    parentPath: string,
+    folderName: string
+  ): ExplorerFolderNode => {
+    const nextPath = parentPath ? `${parentPath}/${folderName}` : folderName;
+    if (node.path === parentPath) {
+      if (node.folders.some((folder) => folder.path === nextPath)) {
+        return node;
+      }
+      return {
+        ...node,
+        expanded: true,
+        folders: [
+          ...node.folders,
+          { path: nextPath, name: folderName, expanded: false, folders: [], notes: [] },
+        ].sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase())),
+      };
+    }
+    return {
+      ...node,
+      folders: node.folders.map((folder) => applyCreateFolder(folder, parentPath, folderName)),
+    };
+  };
+
+  const applyDeleteNode = (
+    node: ExplorerFolderNode,
+    targetPath: string,
+    targetType: "folder" | "note"
+  ): ExplorerFolderNode => {
+    if (targetType === "note") {
+      return {
+        ...node,
+        folders: node.folders.map((folder) => applyDeleteNode(folder, targetPath, targetType)),
+        notes: node.notes.filter((note) => note.path !== targetPath),
+      };
+    }
+
+    return {
+      ...node,
+      folders: node.folders
+        .filter((folder) => folder.path !== targetPath)
+        .map((folder) => applyDeleteNode(folder, targetPath, targetType)),
+    };
+  };
+
+  const applyRenameNode = (
+    node: ExplorerFolderNode,
+    targetPath: string,
+    nextPath: string,
+    targetType: "folder" | "note"
+  ): ExplorerFolderNode => {
+    if (targetType === "note") {
+      return {
+        ...node,
+        folders: node.folders.map((folder) => applyRenameNode(folder, targetPath, nextPath, targetType)),
+        notes: node.notes.map((note) =>
+          note.path === targetPath
+            ? { ...note, path: nextPath, display_title: nextPath.split("/").pop()?.replace(/\.md$/i, "") ?? note.display_title }
+            : note
+        ),
+      };
+    }
+
+    const renamedSelf = node.path === targetPath;
+    const mappedPath = renamedSelf
+      ? nextPath
+      : node.path.startsWith(`${targetPath}/`)
+        ? `${nextPath}${node.path.slice(targetPath.length)}`
+        : node.path;
+
+    const mappedFolders = node.folders.map((folder) =>
+      applyRenameNode(folder, targetPath, nextPath, targetType)
+    );
+
+    const mappedNotes = node.notes.map((note) => {
+      if (note.path.startsWith(`${targetPath}/`)) {
+        return { ...note, path: `${nextPath}${note.path.slice(targetPath.length)}` };
+      }
+      return note;
+    });
+
+    return {
+      ...node,
+      path: mappedPath,
+      name: mappedPath === "" ? node.name : mappedPath.split("/").pop() ?? node.name,
+      folders: mappedFolders,
+      notes: mappedNotes,
+    };
+  };
+
+  const setAllExpanded = (node: ExplorerFolderNode, expanded: boolean): ExplorerFolderNode => ({
+    ...node,
+    expanded: node.path === "" ? true : expanded,
+    folders: node.folders.map((folder) => setAllExpanded(folder, expanded)),
+  });
+
+  const collectFolderPaths = (node: ExplorerFolderNode): string[] => {
+    const children = node.folders.flatMap((folder) => collectFolderPaths(folder));
+    return node.path === "" ? children : [node.path, ...children];
+  };
+
   const updateFolderExpanded = (
     node: ExplorerFolderNode,
     targetPath: string,
@@ -144,6 +284,77 @@ export function Sidebar({
     }
   };
 
+  // SPEC: COMP-EXPLORER-TREE-001 FR-8, FR-9
+  const handleNewFolder = async (baseFolderPath: string) => {
+    const name = normalizeRelPath(prompt("Folder name:") ?? "");
+    if (!name) return;
+    await withOptimisticTree(
+      (root) => applyCreateFolder(root, baseFolderPath, name),
+      async () => {
+        const fullPath = baseFolderPath ? `${baseFolderPath}/${name}` : name;
+        await api.createDirectory(fullPath);
+      }
+    );
+  };
+
+  const handleNewNote = async (baseFolderPath: string) => {
+    const name = normalizeRelPath(prompt("Note name:") ?? "");
+    if (!name) return;
+    const fileName = name.endsWith(".md") ? name : `${name}.md`;
+    const fullPath = baseFolderPath ? `${baseFolderPath}/${fileName}` : fileName;
+    await withOptimisticTree(
+      (root) => root,
+      async () => {
+        const note = await api.createNote(fullPath, "# New Note\n\nStart writing...");
+        setCurrentNote(note);
+      }
+    );
+  };
+
+  const handleDeleteTarget = async (targetType: "folder" | "note", targetPath: string) => {
+    const confirmed = confirm(
+      targetType === "folder"
+        ? `Delete folder "${targetPath}" recursively?`
+        : `Delete note "${targetPath}"?`
+    );
+    if (!confirmed) return;
+
+    await withOptimisticTree(
+      (root) => applyDeleteNode(root, targetPath, targetType),
+      async () => {
+        if (targetType === "folder") {
+          await api.deleteDirectory(targetPath, true);
+        } else {
+          await api.deleteNote(targetPath);
+        }
+      }
+    );
+  };
+
+  const handleRenameTarget = async (targetType: "folder" | "note", targetPath: string) => {
+    const next = normalizeRelPath(prompt("New path:", targetPath) ?? "");
+    if (!next || next === targetPath) return;
+
+    await withOptimisticTree(
+      (root) => applyRenameNode(root, targetPath, next, targetType),
+      async () => {
+        if (targetType === "folder") {
+          await api.renameDirectory(targetPath, next);
+        } else {
+          await api.renameNote(targetPath, next.endsWith(".md") ? next : `${next}.md`);
+        }
+      }
+    );
+  };
+
+  const handleExpandCollapseAll = async (expanded: boolean) => {
+    if (!explorerRoot) return;
+    const folderPaths = collectFolderPaths(explorerRoot);
+    setExplorerRoot((prev) => (prev ? setAllExpanded(prev, expanded) : prev));
+    await Promise.all(folderPaths.map((path) => api.setFolderExpanded(path, expanded).catch(() => undefined)));
+    await refreshExplorerTree();
+  };
+
   const renderFolder = (folder: ExplorerFolderNode, depth: number) => (
     <li key={folder.path || "__root"} className="explorer-tree__folder">
       {folder.path !== "" && (
@@ -152,6 +363,15 @@ export function Sidebar({
           className="explorer-tree__folder-row"
           style={{ paddingLeft: `${depth * 12 + 8}px` }}
           onClick={() => handleFolderToggle(folder.path, !folder.expanded)}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            setContextMenu({
+              x: event.clientX,
+              y: event.clientY,
+              targetType: "folder",
+              path: folder.path,
+            });
+          }}
           aria-expanded={folder.expanded}
           aria-label={folder.name}
         >
@@ -172,6 +392,15 @@ export function Sidebar({
                 }`}
                 style={{ paddingLeft: `${(folder.path === "" ? depth : depth + 1) * 12 + 28}px` }}
                 onClick={() => handleNoteClick(note.path)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  setContextMenu({
+                    x: event.clientX,
+                    y: event.clientY,
+                    targetType: "note",
+                    path: note.path,
+                  });
+                }}
               >
                 <span className="explorer-tree__note-title">{note.display_title}</span>
               </button>
@@ -197,6 +426,38 @@ export function Sidebar({
           <>
             {/* SPEC: COMP-SEARCH-UI-001 FR-1 */}
             <SearchBox onResultSelect={handleSearchResultSelect} />
+            <div className="sidebar__actions">
+              <IconButton
+                icon={FilePlus}
+                label="New Note"
+                onClick={() => handleNewNote("")}
+                className="sidebar__action-btn"
+              />
+              <IconButton
+                icon={FolderPlus}
+                label="New Folder"
+                onClick={() => handleNewFolder("")}
+                className="sidebar__action-btn"
+              />
+              <IconButton
+                icon={ChevronUp}
+                label="Collapse"
+                onClick={() => handleExpandCollapseAll(false)}
+                className="sidebar__action-btn"
+              />
+              <IconButton
+                icon={ChevronDown}
+                label="Expand"
+                onClick={() => handleExpandCollapseAll(true)}
+                className="sidebar__action-btn"
+              />
+              <IconButton
+                icon={RefreshCcw}
+                label="Refresh"
+                onClick={refreshExplorerTree}
+                className="sidebar__action-btn"
+              />
+            </div>
             <button className="sidebar__new-btn" onClick={handleCreateNote}>
               + New Note
             </button>
@@ -213,7 +474,21 @@ export function Sidebar({
           ) : !explorerRoot ? (
             <p className="sidebar__empty">No notes yet</p>
           ) : (
-            <ul className="explorer-tree" role="tree" aria-label="Notes explorer">
+            <ul
+              className="explorer-tree"
+              role="tree"
+              aria-label="Notes explorer"
+              onContextMenu={(event) => {
+                if (event.target !== event.currentTarget) return;
+                event.preventDefault();
+                setContextMenu({
+                  x: event.clientX,
+                  y: event.clientY,
+                  targetType: "folder",
+                  path: "",
+                });
+              }}
+            >
               {renderFolder(explorerRoot, 0)}
             </ul>
           )
@@ -221,6 +496,51 @@ export function Sidebar({
           <p className="sidebar__empty">No vault open</p>
         )}
       </nav>
+      {contextMenu && (
+        <div
+          className="sidebar-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          role="menu"
+          onMouseLeave={() => setContextMenu(null)}
+        >
+          {contextMenu.targetType === "folder" && (
+            <>
+              <button type="button" onClick={() => void handleNewNote(contextMenu.path)}>
+                New note here
+              </button>
+              <button type="button" onClick={() => void handleNewFolder(contextMenu.path)}>
+                New folder
+              </button>
+              {contextMenu.path !== "" && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => void handleRenameTarget("folder", contextMenu.path)}
+                  >
+                    Rename folder
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleDeleteTarget("folder", contextMenu.path)}
+                  >
+                    Delete folder
+                  </button>
+                </>
+              )}
+            </>
+          )}
+          {contextMenu.targetType === "note" && (
+            <>
+              <button type="button" onClick={() => void handleRenameTarget("note", contextMenu.path)}>
+                Rename note
+              </button>
+              <button type="button" onClick={() => void handleDeleteTarget("note", contextMenu.path)}>
+                Delete note
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </aside>
   );
 }

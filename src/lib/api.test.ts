@@ -351,6 +351,32 @@ describe("API Client", () => {
         expanded: true,
       });
     });
+
+    it("should create directory", async () => {
+      vi.mocked(invoke).mockResolvedValue(undefined);
+      await api.createDirectory("Programming/Algorithms");
+      expect(invoke).toHaveBeenCalledWith("create_directory", {
+        path: "Programming/Algorithms",
+      });
+    });
+
+    it("should rename directory", async () => {
+      vi.mocked(invoke).mockResolvedValue(undefined);
+      await api.renameDirectory("Programming", "Engineering");
+      expect(invoke).toHaveBeenCalledWith("rename_directory", {
+        oldPath: "Programming",
+        newPath: "Engineering",
+      });
+    });
+
+    it("should delete directory", async () => {
+      vi.mocked(invoke).mockResolvedValue(undefined);
+      await api.deleteDirectory("Archive", true);
+      expect(invoke).toHaveBeenCalledWith("delete_directory", {
+        path: "Archive",
+        recursive: true,
+      });
+    });
   });
 
   describe("Error Handling", () => {

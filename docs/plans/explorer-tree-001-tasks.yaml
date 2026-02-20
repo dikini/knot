@@ -24,15 +24,15 @@ tasks:
     refs: [FR-6]
   - id: ET-006
     title: Expose directory CRUD operations
-    status: pending
+    status: done
     refs: [FR-8]
   - id: ET-007
     title: Context menu and top icon actions
-    status: pending
+    status: done
     refs: [FR-8]
   - id: ET-008
     title: Optimistic updates and rollback
-    status: pending
+    status: done
     refs: [FR-9]
   - id: ET-009
     title: Backend watcher event emission

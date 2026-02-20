@@ -258,6 +258,39 @@ export async function setFolderExpanded(path: string, expanded: boolean): Promis
   }
 }
 
+/**
+ * Create a directory.
+ */
+export async function createDirectory(path: string): Promise<void> {
+  try {
+    return await invoke("create_directory", { path });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Rename/move a directory.
+ */
+export async function renameDirectory(oldPath: string, newPath: string): Promise<void> {
+  try {
+    return await invoke("rename_directory", { oldPath, newPath });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Delete a directory.
+ */
+export async function deleteDirectory(path: string, recursive: boolean): Promise<void> {
+  try {
+    return await invoke("delete_directory", { path, recursive });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
 //endregion
 
 //region Search Operations
