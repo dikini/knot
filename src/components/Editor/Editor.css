@@ -21,6 +21,10 @@
   --editor-accent: #5b96dc;
   --editor-accent-hover: #4c84c7;
   --editor-on-accent: #f6f8ff;
+  --editor-float-bg: #2a3038;
+  --editor-float-border: #414b59;
+  --editor-float-icon: #e7edf8;
+  --editor-float-hover: #384453;
   --color-text: var(--editor-text);
   --color-heading: var(--editor-heading);
   --color-text-muted: var(--editor-muted);
@@ -87,7 +91,7 @@
   padding: 2px;
   border: 1px solid var(--editor-border);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--editor-shell-bg) 88%, #000 12%);
+  background: var(--editor-shell-bg);
 }
 
 .editor-toolbar__mode-btn {
@@ -102,12 +106,12 @@
 
 .editor-toolbar__mode-btn:hover {
   color: var(--color-text);
-  background: color-mix(in srgb, var(--editor-shell-bg) 72%, #fff 28%);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .editor-toolbar__mode-btn.is-active {
   color: var(--color-heading);
-  background: color-mix(in srgb, var(--editor-shell-bg) 62%, #fff 38%);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .editor-toolbar__save {
@@ -122,6 +126,11 @@
   background: var(--editor-margin-bg);
   container-type: inline-size;
   container-name: editor-surface;
+  position: relative;
+}
+
+.editor-edit-host {
+  min-height: 100%;
 }
 
 .editor-container--source,
@@ -162,6 +171,96 @@
 
 .editor-view-markdown > :first-child {
   margin-top: 0;
+}
+
+.editor-selection-toolbar {
+  position: absolute;
+  transform: translate(-50%, 0);
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--editor-float-border);
+  background: var(--editor-float-bg);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+  z-index: 12;
+}
+
+.editor-selection-toolbar button {
+  border: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--editor-float-icon);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.editor-selection-toolbar button:hover {
+  background: var(--editor-float-hover);
+}
+
+.editor-selection-toolbar button svg,
+.editor-block-tool__toggle svg,
+.editor-block-tool__menu button svg {
+  display: block;
+  color: inherit;
+  stroke: currentColor;
+  stroke-width: 2;
+  opacity: 1;
+}
+
+.editor-block-tool {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 11;
+}
+
+.editor-block-tool__toggle {
+  border: 1px solid var(--editor-float-border);
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: var(--editor-float-icon);
+  background: var(--editor-float-bg);
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.editor-block-tool__toggle:hover {
+  background: var(--editor-float-hover);
+}
+
+.editor-block-tool__menu {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--editor-float-border);
+  background: var(--editor-float-bg);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.editor-block-tool__menu button {
+  border: 1px solid var(--editor-float-border);
+  border-radius: 6px;
+  color: var(--editor-float-icon);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 0.22rem 0.5rem;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.editor-block-tool__menu button:hover {
+  background: var(--editor-float-hover);
 }
 
 /* ProseMirror base styles */
@@ -452,6 +551,10 @@
   --editor-accent: #3b6c95;
   --editor-accent-hover: #2c587d;
   --editor-on-accent: #f8f2e8;
+  --editor-float-bg: #3c3934;
+  --editor-float-border: #5a5248;
+  --editor-float-icon: #f4ece0;
+  --editor-float-hover: #4a463f;
 }
 
 .content-area--editor-dark .editor-wrapper {

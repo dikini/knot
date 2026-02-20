@@ -3,10 +3,16 @@ import { EditorView } from "prosemirror-view";
 import { schema } from "./schema";
 import { plugins } from "./plugins";
 import { parseMarkdown, serializeMarkdown } from "./markdown";
-import type { EditorConfig, ProseMirrorEditor, EditorChangeHandler } from "../types/editor";
+import type {
+  EditorConfig,
+  ProseMirrorEditor,
+  EditorChangeHandler,
+  EditorSelectionHandler,
+} from "../types/editor";
 
 interface InitOptions {
   onChange?: EditorChangeHandler;
+  onSelectionChange?: EditorSelectionHandler;
   initialContent?: string;
   config?: Partial<EditorConfig>;
 }
@@ -27,7 +33,7 @@ export function initProseMirrorEditor(
   element: HTMLElement,
   options: InitOptions = {}
 ): ProseMirrorEditor {
-  const { onChange, initialContent = "", config = {} } = options;
+  const { onChange, onSelectionChange, initialContent = "", config = {} } = options;
   const finalConfig = { ...defaultConfig, ...config };
 
   // Parse initial markdown content
@@ -47,11 +53,24 @@ export function initProseMirrorEditor(
       const newState = view.state.apply(transaction);
       view.updateState(newState);
 
+      if (onSelectionChange) {
+        const selection = newState.selection;
+        onSelectionChange({
+          from: selection.from,
+          to: selection.to,
+          empty: selection.empty,
+        });
+      }
+
       if (transaction.docChanged && onChange) {
         const markdown = serializeMarkdown(newState.doc);
         onChange({
           markdown,
           cursorPosition: newState.selection.head,
+          selection: {
+            from: newState.selection.from,
+            to: newState.selection.to,
+          },
         });
       }
     },

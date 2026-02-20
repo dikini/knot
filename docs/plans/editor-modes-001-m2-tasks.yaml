@@ -1,0 +1,20 @@
+version: 1
+plan: editor-modes-001-m2
+trace: DESIGN-editor-medium-like-interactions
+tasks:
+  - id: EM2-001
+    title: Keep selection toolbar character-level only
+    status: done
+    refs: [FR-5]
+  - id: EM2-002
+    title: Add contextual block plus tool on collapsed selection
+    status: done
+    refs: [FR-6]
+  - id: EM2-003
+    title: Add code block and blockquote insertion actions
+    status: done
+    refs: [FR-7]
+  - id: EM2-004
+    title: Verify editor tests and typecheck
+    status: done
+    refs: [AC-4, AC-6]

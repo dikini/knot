@@ -1,0 +1,20 @@
+version: 1
+plan: editor-modes-001-m1
+trace: DESIGN-editor-medium-like-interactions
+tasks:
+  - id: EM1-001
+    title: Add selection change callback plumbing
+    status: done
+    refs: [FR-5]
+  - id: EM1-002
+    title: Implement floating selection toolbar in edit mode
+    status: done
+    refs: [FR-5]
+  - id: EM1-003
+    title: Wire initial formatting actions
+    status: done
+    refs: [FR-5]
+  - id: EM1-004
+    title: Add tests and verify
+    status: done
+    refs: [AC-4]

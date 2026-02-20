@@ -4,21 +4,46 @@ import { renderMarkdownToHtml } from "@editor/render";
 import { IconButton } from "@components/IconButton";
 import { useEditorStore, useVaultStore } from "@lib/store";
 import * as api from "@lib/api";
-import { Save } from "lucide-react";
+import { Save, Bold, Italic, Link2, Code, Plus, X } from "lucide-react";
+import { toggleMark } from "prosemirror-commands";
+import { TextSelection, type Command } from "prosemirror-state";
+import { schema } from "@editor/schema";
 import type { ProseMirrorEditor } from "../../types/editor";
 import "./Editor.css";
 
 // SPEC: COMP-UI-LAYOUT-002 FR-4
 // SPEC: COMP-FRONTEND-001 FR-3, FR-6
 // SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
-// SPEC: COMP-EDITOR-MODES-001 FR-1, FR-2, FR-3, FR-4, FR-9
+// SPEC: COMP-EDITOR-MODES-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-9
+// TRACE: DESIGN-editor-medium-like-interactions
 export function Editor() {
   const editorRef = useRef<HTMLDivElement>(null);
+  const editContainerRef = useRef<HTMLDivElement>(null);
   const pmRef = useRef<ProseMirrorEditor | null>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
   const { currentNote, setCurrentNote, shell } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
   const [editorMode, setEditorMode] = useState<"source" | "edit" | "view">("edit");
+  const [selectionToolbar, setSelectionToolbar] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+  });
+  const [blockTool, setBlockTool] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+  });
+  const [blockMenuOpen, setBlockMenuOpen] = useState(false);
 
   const noteScopedModeKey = currentNote ? `knot:editor-mode:${currentNote.path}` : null;
 
@@ -66,6 +91,43 @@ export function Editor() {
         setContent(state.markdown);
         markDirty(true);
       },
+      onSelectionChange: (selection) => {
+        if (!editContainerRef.current || !pmRef.current) {
+          setSelectionToolbar((prev) => ({ ...prev, visible: false }));
+          setBlockTool((prev) => ({ ...prev, visible: false }));
+          setBlockMenuOpen(false);
+          return;
+        }
+        const view = pmRef.current.view;
+        const fromCoords = view.coordsAtPos(selection.from);
+        const toCoords = view.coordsAtPos(selection.to);
+        const containerRect = editContainerRef.current.getBoundingClientRect();
+        const scrollParent = editContainerRef.current;
+        const scrollTop = scrollParent instanceof HTMLElement ? scrollParent.scrollTop : 0;
+
+        if (selection.empty) {
+          const proseRect = view.dom.getBoundingClientRect();
+          const gutterLeft = proseRect.left - containerRect.left;
+          const lineBottom = fromCoords.bottom - containerRect.top + scrollTop;
+          setSelectionToolbar((prev) => ({ ...prev, visible: false }));
+          setBlockTool({
+            visible: true,
+            x: Math.max(8, gutterLeft - 36),
+            y: Math.max(8, lineBottom - 14),
+          });
+          return;
+        }
+
+        const centerX = (fromCoords.left + toCoords.right) / 2;
+        const topY = Math.min(fromCoords.top, toCoords.top);
+        setBlockTool((prev) => ({ ...prev, visible: false }));
+        setBlockMenuOpen(false);
+        setSelectionToolbar({
+          visible: true,
+          x: centerX - containerRect.left,
+          y: Math.max(8, topY - containerRect.top + scrollTop - 44),
+        });
+      },
       initialContent: content || currentNote.content || initialContentRef.current,
     });
 
@@ -76,6 +138,50 @@ export function Editor() {
       pmRef.current = null;
     };
   }, [editorMode, content, currentNote, setContent, markDirty]);
+
+  const runCommand = useCallback((command: Command) => {
+    if (!pmRef.current) return;
+    const { state, dispatch } = pmRef.current.view;
+    command(state, dispatch, pmRef.current.view);
+    pmRef.current.view.focus();
+  }, []);
+
+  const handleToggleLink = useCallback(() => {
+    if (!pmRef.current) return;
+    const href = prompt("Link URL:");
+    if (!href) return;
+    const linkMark = schema.marks.link;
+    if (!linkMark) return;
+    runCommand(toggleMark(linkMark, { href, title: null }));
+  }, [runCommand]);
+
+  const insertBlockAfterSelection = useCallback(
+    (kind: "code_block" | "blockquote") => {
+      if (!pmRef.current) return;
+      const { view } = pmRef.current;
+      const { state, dispatch } = view;
+      const { $from } = state.selection;
+      const depth = Math.min(1, $from.depth);
+      const insertPos = depth > 0 ? $from.after(depth) : state.selection.to;
+
+      let node;
+      let cursorPos = insertPos + 1;
+
+      if (kind === "code_block") {
+        node = schema.nodes.code_block.create({ language: null });
+      } else {
+        node = schema.nodes.blockquote.create(null, schema.nodes.paragraph.create());
+        cursorPos = insertPos + 2;
+      }
+
+      const tr = state.tr.insert(insertPos, node);
+      tr.setSelection(TextSelection.create(tr.doc, cursorPos));
+      dispatch(tr.scrollIntoView());
+      view.focus();
+      setBlockMenuOpen(false);
+    },
+    []
+  );
 
   // Load note content when currentNote changes
   useEffect(() => {
@@ -213,7 +319,98 @@ export function Editor() {
           />
         </div>
       </div>
-      {editorMode === "edit" && <div ref={editorRef} className="editor-container" />}
+      {editorMode === "edit" && (
+        <div ref={editContainerRef} className="editor-container editor-container--edit">
+          <div ref={editorRef} className="editor-edit-host" />
+          {selectionToolbar.visible && (
+            <div
+              ref={toolbarRef}
+              className="editor-selection-toolbar"
+              style={{ left: `${selectionToolbar.x}px`, top: `${selectionToolbar.y}px` }}
+              role="toolbar"
+              aria-label="Selection formatting"
+            >
+              <button
+                type="button"
+                aria-label="Bold"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  const strongMark = schema.marks.strong;
+                  if (!strongMark) return;
+                  runCommand(toggleMark(strongMark));
+                }}
+              >
+                <Bold size={14} />
+              </button>
+              <button
+                type="button"
+                aria-label="Italic"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  const emMark = schema.marks.em;
+                  if (!emMark) return;
+                  runCommand(toggleMark(emMark));
+                }}
+              >
+                <Italic size={14} />
+              </button>
+              <button
+                type="button"
+                aria-label="Code"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  const codeMark = schema.marks.code;
+                  if (!codeMark) return;
+                  runCommand(toggleMark(codeMark));
+                }}
+              >
+                <Code size={14} />
+              </button>
+              <button
+                type="button"
+                aria-label="Link"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleToggleLink}
+              >
+                <Link2 size={14} />
+              </button>
+            </div>
+          )}
+          {blockTool.visible && (
+            <div
+              className="editor-block-tool"
+              style={{ left: `${blockTool.x}px`, top: `${blockTool.y}px` }}
+            >
+              <button
+                type="button"
+                className="editor-block-tool__toggle"
+                aria-label={blockMenuOpen ? "Close block menu" : "Open block menu"}
+                onClick={() => setBlockMenuOpen((open) => !open)}
+              >
+                {blockMenuOpen ? <X size={13} /> : <Plus size={13} />}
+              </button>
+              {blockMenuOpen && (
+                <div className="editor-block-tool__menu" role="menu" aria-label="Insert block">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => insertBlockAfterSelection("code_block")}
+                  >
+                    Code block
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => insertBlockAfterSelection("blockquote")}
+                  >
+                    Blockquote
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
       {editorMode === "source" && (
         <div className="editor-container editor-container--source">
           <textarea

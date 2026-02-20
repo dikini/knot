@@ -4,18 +4,47 @@ import { Editor } from "./index";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import * as api from "@lib/api";
 
+const mockInitProseMirrorEditor = vi.fn();
+
 vi.mock("@lib/api");
 vi.mock("@editor/index", () => ({
-  initProseMirrorEditor: vi.fn(() => ({
-    destroy: vi.fn(),
-    getMarkdown: vi.fn(() => "# Initial\n\nContent"),
-    setMarkdown: vi.fn(),
-  })),
+  initProseMirrorEditor: (...args: unknown[]) => mockInitProseMirrorEditor(...args),
 }));
 
 describe("Editor Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
+    mockInitProseMirrorEditor.mockImplementation(() => ({
+      destroy: vi.fn(),
+      getMarkdown: vi.fn(() => "# Initial\n\nContent"),
+      setMarkdown: vi.fn(),
+      view: {
+        dom: {
+          getBoundingClientRect: vi.fn(() => ({
+            left: 120,
+            right: 720,
+            top: 80,
+            bottom: 520,
+            width: 600,
+            height: 440,
+            x: 120,
+            y: 80,
+            toJSON: () => ({}),
+          })),
+        },
+        state: {
+          selection: {
+            from: 1,
+            to: 1,
+            empty: true,
+          },
+        },
+        dispatch: vi.fn(),
+        focus: vi.fn(),
+        coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+      },
+    }));
     useVaultStore.setState({
       vault: null,
       currentNote: null,
@@ -115,6 +144,41 @@ describe("Editor Component", () => {
 
       expect(screen.getByRole("heading", { name: "Rendered" })).toBeInTheDocument();
       expect(screen.getByText("Bold")).toBeInTheDocument();
+    });
+
+    it("shows selection toolbar when edit selection is non-empty", async () => {
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+
+      const initCall = mockInitProseMirrorEditor.mock.calls[0];
+      const options = initCall?.[1] as {
+        onSelectionChange?: (selection: { from: number; to: number; empty: boolean }) => void;
+      };
+      options.onSelectionChange?.({ from: 1, to: 4, empty: false });
+
+      await waitFor(() => {
+        expect(screen.getByRole("toolbar", { name: "Selection formatting" })).toBeInTheDocument();
+      });
+      expect(screen.getByRole("button", { name: "Bold" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Italic" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Code" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Quote" })).not.toBeInTheDocument();
+    });
+
+    it("shows block plus tool on collapsed cursor selection", async () => {
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+
+      const initCall = mockInitProseMirrorEditor.mock.calls[0];
+      const options = initCall?.[1] as {
+        onSelectionChange?: (selection: { from: number; to: number; empty: boolean }) => void;
+      };
+      options.onSelectionChange?.({ from: 2, to: 2, empty: true });
+
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: "Open block menu" })).toBeInTheDocument();
+      });
     });
 
     it("should show dirty indicator when content is dirty", () => {

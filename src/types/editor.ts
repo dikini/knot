@@ -26,7 +26,14 @@ export interface EditorStateSnapshot {
   selection?: { from: number; to: number };
 }
 
+export interface EditorSelectionSnapshot {
+  from: number;
+  to: number;
+  empty: boolean;
+}
+
 export type EditorChangeHandler = (state: EditorStateSnapshot) => void;
+export type EditorSelectionHandler = (selection: EditorSelectionSnapshot) => void;
 
 export interface ProseMirrorEditor {
   view: EditorView;
