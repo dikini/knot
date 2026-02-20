@@ -133,6 +133,31 @@ describe("Editor Component", () => {
       expect(useEditorStore.getState().setContent).toHaveBeenCalledWith("# Updated\n\nText");
     });
 
+    it("preserves source edits when moving source -> view -> source", () => {
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        setContent: (next) =>
+          useEditorStore.setState((prev) => ({
+            ...prev,
+            content: next,
+            isDirty: true,
+          })),
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      const sourceEditor = screen.getByLabelText("Source markdown editor");
+      fireEvent.change(sourceEditor, { target: { value: "# Preserved\n\nRound trip text" } });
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+      expect(screen.getByRole("heading", { name: "Preserved" })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      expect(screen.getByLabelText("Source markdown editor")).toHaveValue(
+        "# Preserved\n\nRound trip text"
+      );
+    });
+
     it("switches to view mode and renders markdown output", () => {
       useEditorStore.setState({
         ...useEditorStore.getState(),

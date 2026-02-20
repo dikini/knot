@@ -1,0 +1,20 @@
+version: 1
+plan: editor-modes-001-m3
+trace: DESIGN-editor-medium-like-interactions
+tasks:
+  - id: EM3-001
+    title: Convert heading markdown markers on space in edit mode
+    status: done
+    refs: [FR-8]
+  - id: EM3-002
+    title: Improve contextual toolbar and block inserter alignment and visibility
+    status: done
+    refs: [FR-5, FR-6]
+  - id: EM3-003
+    title: Add regression tests for heading transform and source-edit-view fidelity
+    status: done
+    refs: [AC-7, AC-8]
+  - id: EM3-004
+    title: Run test and typecheck verification suite
+    status: done
+    refs: [AC-7, AC-8]

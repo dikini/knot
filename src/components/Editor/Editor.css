@@ -186,6 +186,10 @@
   z-index: 12;
 }
 
+.editor-selection-toolbar.is-below {
+  box-shadow: 0 10px 18px rgba(0, 0, 0, 0.2);
+}
+
 .editor-selection-toolbar button {
   border: 0;
   width: 28px;
@@ -241,6 +245,7 @@
 
 .editor-block-tool__menu {
   display: inline-flex;
+  align-items: center;
   gap: 6px;
   padding: 6px;
   border-radius: 8px;

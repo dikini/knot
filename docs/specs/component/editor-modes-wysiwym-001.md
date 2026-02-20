@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-EDITOR-MODES-001`
 - Scope: `component`
-- Status: `implemented (M0-M2)`
+- Status: `implemented (M0-M3)`
 - Parent: `COMP-FRONTEND-001`, `COMP-EDITOR-READING-001`
 - Concerns: `[CONF, REL]`
 - Trace: `DESIGN-editor-medium-like-interactions`
@@ -57,4 +57,4 @@ Introduce a mode-based editor UX (`source/edit/view`) with contextual interactio
 - M0 complete: mode framework (`source/edit/view`) with live source updates and frontend view renderer.
 - M1 complete: selection floating toolbar with contextual placement above selected text.
 - M2 complete: block-level contextual `+` inserter with starter actions (`Code block`, `Blockquote`) and separation from text toolbar actions.
-- M3 pending: edit-mode syntax leak hardening.
+- M3 complete: edit-mode syntax leak hardening for heading markdown (`## ` shortcut conversion), selection/block control placement hardening, and mode-fidelity regression checks.

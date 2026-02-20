@@ -14,7 +14,7 @@ import "./Editor.css";
 // SPEC: COMP-UI-LAYOUT-002 FR-4
 // SPEC: COMP-FRONTEND-001 FR-3, FR-6
 // SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
-// SPEC: COMP-EDITOR-MODES-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-9
+// SPEC: COMP-EDITOR-MODES-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-9
 // TRACE: DESIGN-editor-medium-like-interactions
 export function Editor() {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -29,10 +29,12 @@ export function Editor() {
     visible: boolean;
     x: number;
     y: number;
+    placeBelow?: boolean;
   }>({
     visible: false,
     x: 0,
     y: 0,
+    placeBelow: false,
   });
   const [blockTool, setBlockTool] = useState<{
     visible: boolean;
@@ -102,6 +104,7 @@ export function Editor() {
         const fromCoords = view.coordsAtPos(selection.from);
         const toCoords = view.coordsAtPos(selection.to);
         const containerRect = editContainerRef.current.getBoundingClientRect();
+        const containerWidth = containerRect.width;
         const scrollParent = editContainerRef.current;
         const scrollTop = scrollParent instanceof HTMLElement ? scrollParent.scrollTop : 0;
 
@@ -112,20 +115,25 @@ export function Editor() {
           setSelectionToolbar((prev) => ({ ...prev, visible: false }));
           setBlockTool({
             visible: true,
-            x: Math.max(8, gutterLeft - 36),
+            x: Math.max(8, Math.min(gutterLeft - 36, containerWidth - 36)),
             y: Math.max(8, lineBottom - 14),
           });
           return;
         }
 
-        const centerX = (fromCoords.left + toCoords.right) / 2;
+        const centerX = (fromCoords.left + toCoords.right) / 2 - containerRect.left;
         const topY = Math.min(fromCoords.top, toCoords.top);
+        const belowY = Math.max(8, fromCoords.bottom - containerRect.top + scrollTop + 8);
+        const preferredAboveY = topY - containerRect.top + scrollTop - 44;
+        const placeBelow = preferredAboveY < 10;
+        const clampedX = Math.max(84, Math.min(centerX, containerWidth - 84));
         setBlockTool((prev) => ({ ...prev, visible: false }));
         setBlockMenuOpen(false);
         setSelectionToolbar({
           visible: true,
-          x: centerX - containerRect.left,
-          y: Math.max(8, topY - containerRect.top + scrollTop - 44),
+          x: clampedX,
+          y: placeBelow ? belowY : Math.max(8, preferredAboveY),
+          placeBelow,
         });
       },
       initialContent: content || currentNote.content || initialContentRef.current,
@@ -325,7 +333,7 @@ export function Editor() {
           {selectionToolbar.visible && (
             <div
               ref={toolbarRef}
-              className="editor-selection-toolbar"
+              className={`editor-selection-toolbar ${selectionToolbar.placeBelow ? "is-below" : ""}`}
               style={{ left: `${selectionToolbar.x}px`, top: `${selectionToolbar.y}px` }}
               role="toolbar"
               aria-label="Selection formatting"

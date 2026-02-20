@@ -1,9 +1,12 @@
 /**
  * Custom key bindings for the Knot editor
+ * SPEC: COMP-EDITOR-MODES-001 FR-8
+ * TRACE: DESIGN-editor-medium-like-interactions
  */
 
 import { EditorState, Transaction } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
+import { schema } from "../schema";
 
 /**
  * Key handler function type
@@ -30,72 +33,72 @@ export interface Keymap {
  * - Custom commands
  */
 export const keyBindings: Keymap = {
+  // Heading shortcut: typing "## " at paragraph start transforms to heading level 2, etc.
+  "Space": (state, dispatch): boolean => {
+    const { selection } = state;
+    if (!selection.empty) return false;
+    const { $from } = selection;
+    if ($from.parent.type.name !== "paragraph") return false;
+
+    const marker = $from.parent.textBetween(0, $from.parentOffset, "", "");
+    const match = marker.match(/^(#{1,6})$/);
+    if (!match) return false;
+
+    const level = match[1].length;
+    const heading = schema.nodes.heading;
+    if (!heading || !dispatch) return false;
+
+    const blockFrom = $from.before();
+    const blockTo = $from.after();
+    const textStart = $from.start();
+    const textEnd = textStart + $from.parentOffset;
+
+    let tr = state.tr;
+    tr = tr.setBlockType(blockFrom, blockTo, heading, { level });
+    tr = tr.delete(textStart, textEnd);
+    dispatch(tr);
+    return true;
+  },
+
   // Markdown shortcuts
-   
   "Mod-b": (_state, _dispatch): boolean => {
-    // Toggle bold - TODO: implement
-    console.log("Toggle bold");
-    return true;
+    return false;
   },
-  
-   
+
   "Mod-i": (_state, _dispatch): boolean => {
-    // Toggle italic - TODO: implement
-    console.log("Toggle italic");
-    return true;
+    return false;
   },
-  
-   
+
   "Mod-`": (_state, _dispatch): boolean => {
-    // Toggle inline code - TODO: implement
-    console.log("Toggle code");
-    return true;
+    return false;
   },
-  
-   
+
   "Mod-k": (_state, _dispatch): boolean => {
-    // Insert/edit link - TODO: implement
-    console.log("Insert link");
-    return true;
+    return false;
   },
-  
+
   // Headings
-   
   "Mod-Alt-1": (_state, _dispatch): boolean => {
-    // Toggle heading level 1 - TODO: implement
-    console.log("Toggle H1");
-    return true;
+    return false;
   },
-  
-   
+
   "Mod-Alt-2": (_state, _dispatch): boolean => {
-    // Toggle heading level 2 - TODO: implement
-    console.log("Toggle H2");
-    return true;
+    return false;
   },
-  
-   
+
   "Mod-Alt-3": (_state, _dispatch): boolean => {
-    // Toggle heading level 3 - TODO: implement
-    console.log("Toggle H3");
-    return true;
+    return false;
   },
-  
+
   // Lists
-   
   "Mod-Shift-8": (_state, _dispatch): boolean => {
-    // Toggle bullet list - TODO: implement
-    console.log("Toggle bullet list");
-    return true;
+    return false;
   },
-  
-   
+
   "Mod-Shift-9": (_state, _dispatch): boolean => {
-    // Toggle ordered list - TODO: implement
-    console.log("Toggle ordered list");
-    return true;
+    return false;
   },
-  
+
   // Save
   "Mod-s": (): boolean => {
     window.dispatchEvent(new CustomEvent("editor-save"));
