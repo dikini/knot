@@ -1,6 +1,6 @@
-use libvault::app_command::{AppCommand, ResourceCommand};
-use libvault::event_log::EventLog;
-use libvault::{IpcClient, IpcServer};
+use knot::app_command::{AppCommand, ResourceCommand};
+use knot::event_log::EventLog;
+use knot::{IpcClient, IpcServer};
 use std::collections::HashSet;
 use std::path::Path;
 use std::sync::mpsc::{self, Receiver};

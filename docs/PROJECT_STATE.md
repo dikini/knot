@@ -2,9 +2,14 @@
 
 ## Metadata
 
-- Last Updated: 2026-02-19
+- Last Updated: 2026-02-21
 - Purpose: Canonical state of project features, traceability, and completion status
 - Workflow: bk-\*
+- Latest verification set:
+  - `docs/audit/tool-rail-context-verification-2026-02-21.md`
+  - `docs/audit/graph-modes-002-verification-2026-02-21.md`
+  - `docs/audit/window-startup-controls-003-verification-2026-02-21.md`
+  - `docs/audit/finalization-verification-2026-02-21.md`
 
 ## Component Status Overview
 

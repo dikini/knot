@@ -12,7 +12,10 @@ pub mod config;
 pub mod core;
 pub mod db;
 pub mod error;
+pub mod event_log;
 pub mod graph;
+pub mod ipc;
+pub mod app_command;
 pub mod markdown;
 pub mod mcp;
 pub mod note;
@@ -28,6 +31,7 @@ pub mod plugin;
 // Re-exports for convenience
 pub use core::VaultManager;
 pub use error::{KnotError, Result};
+pub use ipc::{IpcClient, IpcServer};
 
 /// Library version string.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

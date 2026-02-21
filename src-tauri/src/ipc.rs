@@ -80,7 +80,7 @@ impl IpcServer {
     pub fn start(self) -> Result<()> {
         // Remove old socket if it exists
         if self.socket_path.exists() {
-            std::fs::remove_file(&self.socket_path).map_err(VaultError::Io)?;
+            std::fs::remove_file(&self.socket_path).map_err(|e| VaultError::Io(e.to_string()))?;
         }
 
         let listener = UnixListener::bind(&self.socket_path)
@@ -118,14 +118,14 @@ impl IpcServer {
         event_log: &Option<EventLog>,
     ) -> Result<()> {
         let mut buffer = [0u8; 4096];
-        let bytes_read = stream.read(&mut buffer).map_err(VaultError::Io)?;
+        let bytes_read = stream.read(&mut buffer).map_err(|e| VaultError::Io(e.to_string()))?;
 
         if bytes_read == 0 {
             return Ok(());
         }
 
-        let message: IpcMessage =
-            serde_json::from_slice(&buffer[..bytes_read]).map_err(VaultError::Json)?;
+        let message: IpcMessage = serde_json::from_slice(&buffer[..bytes_read])
+            .map_err(|e| VaultError::Json(e.to_string()))?;
 
         let response = match message {
             IpcMessage::Command(envelope) => {
@@ -163,9 +163,12 @@ impl IpcServer {
             }),
         };
 
-        let response_bytes = serde_json::to_vec(&response).map_err(VaultError::Json)?;
+        let response_bytes =
+            serde_json::to_vec(&response).map_err(|e| VaultError::Json(e.to_string()))?;
 
-        stream.write_all(&response_bytes).map_err(VaultError::Io)?;
+        stream
+            .write_all(&response_bytes)
+            .map_err(|e| VaultError::Io(e.to_string()))?;
 
         Ok(())
     }
@@ -323,20 +326,23 @@ impl IpcClient {
             ))
         })?;
 
-        let message_bytes = serde_json::to_vec(&message).map_err(VaultError::Json)?;
+        let message_bytes =
+            serde_json::to_vec(&message).map_err(|e| VaultError::Json(e.to_string()))?;
 
-        stream.write_all(&message_bytes).map_err(VaultError::Io)?;
+        stream
+            .write_all(&message_bytes)
+            .map_err(|e| VaultError::Io(e.to_string()))?;
 
         // Set read timeout
         stream
             .set_read_timeout(Some(std::time::Duration::from_secs(5)))
-            .map_err(VaultError::Io)?;
+            .map_err(|e| VaultError::Io(e.to_string()))?;
 
         let mut buffer = [0u8; 4096];
-        let bytes_read = stream.read(&mut buffer).map_err(VaultError::Io)?;
+        let bytes_read = stream.read(&mut buffer).map_err(|e| VaultError::Io(e.to_string()))?;
 
-        let response: IpcMessage =
-            serde_json::from_slice(&buffer[..bytes_read]).map_err(VaultError::Json)?;
+        let response: IpcMessage = serde_json::from_slice(&buffer[..bytes_read])
+            .map_err(|e| VaultError::Json(e.to_string()))?;
 
         Ok(response)
     }

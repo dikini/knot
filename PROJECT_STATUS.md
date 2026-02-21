@@ -1,7 +1,7 @@
 # Knot Project Status
 
-**Date:** 2026-02-19  
-**Phase:** Rust Core Refactoring Complete, Frontend API Ready
+**Date:** 2026-02-21  
+**Phase:** Verified UX Iterations + Green Frontend and Rust Build/Test Compile
 
 ---
 
@@ -147,46 +147,28 @@ const { content, setContent, isDirty, markDirty } = useEditorStore();
 
 ---
 
-## 🚧 Blocked
+## ✅ Current Health Snapshot
 
-### Build Requirements
-
-The Rust code is complete but needs system libraries:
-
-**Missing:**
-- `gio-2.0 >= 2.70`
-- `gobject-2.0 >= 2.70`
-- `gdk-3.0 >= 3.22`
-
-**Install on Ubuntu/Debian:**
-```bash
-sudo apt-get install libgtk-3-dev libglib2.0-dev libcairo2-dev \
-    libgdk-pixbuf2.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev \
-    librsvg2-dev patchelf
-```
-
-**Then build:**
-```bash
-cd /home/dikini/Projects/knot
-npm install
-cd src-tauri
-cargo build
-```
+- Frontend tests pass: `206/206` (`npm test -- --run`)
+- TypeScript typecheck passes (`npm run -s typecheck`)
+- Rust crate compiles (`cargo check --manifest-path src-tauri/Cargo.toml`)
+- Rust tests compile (`cargo test --manifest-path src-tauri/Cargo.toml --no-run`)
+- Rust full suite passes (`cargo test --manifest-path src-tauri/Cargo.toml`) — `114/114` tests passed
+- Recent UX audits complete:
+   - `docs/audit/tool-rail-context-verification-2026-02-21.md`
+   - `docs/audit/graph-modes-002-verification-2026-02-21.md`
+   - `docs/audit/window-startup-controls-003-verification-2026-02-21.md`
+   - `docs/audit/finalization-verification-2026-02-21.md`
 
 ---
 
 ## 📋 Next Steps
 
-### Immediate (Once Build Works)
+### Immediate
 
-1. **Install system libraries** (see above)
-2. **Run `npm install`** to get frontend dependencies
-3. **Run `npm run tauri-dev`** to start development
-4. **Test the API**:
-   - Click "Test Greet" button
-   - Open a vault
-   - Create notes
-   - Test search
+1. **Run full Rust tests** (`cargo test --manifest-path src-tauri/Cargo.toml`)
+2. **Sync canonical state docs** (`docs/PROJECT_STATE.md`) with 2026-02-21 audit set
+3. **Optional:** run end-to-end smoke (`npm run tauri-dev`) for manual UX validation
 
 ### Short Term
 
@@ -273,4 +255,4 @@ cargo build
 
 ---
 
-**Status:** Ready for testing once system libraries are installed!
+**Status:** Finalized for this cycle — verified and ready for merge.

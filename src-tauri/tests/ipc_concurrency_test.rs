@@ -1,5 +1,5 @@
-use libvault::app_command::{AppCommand, ResourceCommand, SettingsCommand};
-use libvault::{IpcClient, IpcServer};
+use knot::app_command::{AppCommand, ResourceCommand, SettingsCommand};
+use knot::{IpcClient, IpcServer};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::Path;
