@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 /// Error types for Knot operations.
-/// 
+///
 /// These errors are serializable for Tauri command responses.
 #[derive(Debug, thiserror::Error, Serialize)]
 #[serde(tag = "type", content = "message", rename_all = "snake_case")]

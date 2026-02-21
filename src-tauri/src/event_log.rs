@@ -187,8 +187,14 @@ mod tests {
 
         let events = EventLog::read_events(&path).expect("read events");
         assert_eq!(events.len(), 3, "expected three persisted events");
-        assert!(events[0].seq < events[1].seq, "first seq should be monotonic");
-        assert!(events[1].seq < events[2].seq, "second seq should be monotonic");
+        assert!(
+            events[0].seq < events[1].seq,
+            "first seq should be monotonic"
+        );
+        assert!(
+            events[1].seq < events[2].seq,
+            "second seq should be monotonic"
+        );
         assert_eq!(log.last_seq(), 3, "last_seq should track latest append");
     }
 
@@ -215,7 +221,11 @@ mod tests {
             .append(&command_event(3))
             .expect("append seq 3 after restart");
         let events = EventLog::read_events(&path).expect("read events");
-        assert_eq!(events.len(), 3, "expected three persisted events after restart");
+        assert_eq!(
+            events.len(),
+            3,
+            "expected three persisted events after restart"
+        );
         assert_eq!(
             events.last().map(|event| event.seq),
             Some(3),

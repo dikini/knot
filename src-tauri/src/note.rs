@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::markdown::Heading;
+use serde::{Deserialize, Serialize};
 
 /// SPEC: COMP-NOTE-001 FR-7, FR-8, FR-9
 /// Metadata about a note stored in the database.

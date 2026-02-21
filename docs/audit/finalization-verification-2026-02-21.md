@@ -10,6 +10,8 @@
 cargo check --manifest-path src-tauri/Cargo.toml
 cargo test --manifest-path src-tauri/Cargo.toml --no-run
 cargo test --manifest-path src-tauri/Cargo.toml
+cargo fmt --manifest-path src-tauri/Cargo.toml --check
+cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings
 npm test -- --run
 npm run -s typecheck
 ```
@@ -21,15 +23,14 @@ npm run -s typecheck
 - Rust full tests: pass (`114/114`)
 - Frontend tests: pass (`206/206`)
 - TypeScript typecheck: pass
-- Rust format check (`cargo fmt --check`): **fails** (pre-existing formatting drift in multiple files)
-- Rust clippy strict (`cargo clippy --all-targets -- -D warnings`): **fails** (10 pre-existing lint findings)
+- Rust format check: pass
+- Rust clippy strict: pass
 
 ## bk-flow Finalization Status
 
 - Traceability: `BUG-ipc-integration-test-compat`
-- `bk-verify-completion`: **partial**
-	- Passed: compile + tests + TypeScript gates
-	- Failed: strict formatting/lint gates due existing repo debt outside this fix scope
+- `bk-verify-completion`: **pass**
+	- Passed: compile + tests + TypeScript + strict formatting + strict clippy gates
 - `bk-verify`: **pass for scoped change**
 	- IPC integration tests now compile/run against `knot`
 	- Verification evidence captured in this report and prior UX audits
@@ -45,5 +46,4 @@ npm run -s typecheck
 
 ## Final State
 
-- Project is finalized for this cycle with explicit known gate exceptions (fmt/clippy debt).
-- Recommended follow-up: dedicated housekeeping task to make `cargo fmt --check` and strict clippy fully green repository-wide.
+- Project is finalized for this cycle with bk-flow gates fully green.

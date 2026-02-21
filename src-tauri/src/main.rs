@@ -1,16 +1,16 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tracing::info;
-use tauri::{Listener, Manager};
 use std::time::Duration;
+use tauri::{Listener, Manager};
+use tracing::info;
 
 fn main() {
     // Initialize tracing for logging
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
-                .add_directive(tracing::Level::INFO.into())
+                .add_directive(tracing::Level::INFO.into()),
         )
         .init();
 
@@ -60,7 +60,6 @@ fn main() {
             knot::commands::vault::get_recent_vaults,
             knot::commands::vault::add_recent_vault,
             knot::commands::vault::sync_external_changes,
-
             // Note commands
             knot::commands::notes::list_notes,
             knot::commands::notes::get_note,
@@ -74,7 +73,6 @@ fn main() {
             knot::commands::notes::create_directory,
             knot::commands::notes::delete_directory,
             knot::commands::notes::rename_directory,
-
             // Search commands
             knot::commands::search::search_notes,
             knot::commands::search::search_suggestions,

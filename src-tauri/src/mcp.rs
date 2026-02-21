@@ -211,7 +211,10 @@ impl McpServer {
             .and_then(Value::as_str)
             .ok_or((-32602, "Missing tool name".to_string()))?;
 
-        let arguments = params.get("arguments").cloned().unwrap_or_else(|| json!({}));
+        let arguments = params
+            .get("arguments")
+            .cloned()
+            .unwrap_or_else(|| json!({}));
 
         match name {
             "search_notes" => {
@@ -219,10 +222,7 @@ impl McpServer {
                     .get("query")
                     .and_then(Value::as_str)
                     .ok_or((-32602, "Missing argument: query".to_string()))?;
-                let limit = arguments
-                    .get("limit")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(20) as usize;
+                let limit = arguments.get("limit").and_then(Value::as_u64).unwrap_or(20) as usize;
 
                 let guard = self
                     .vault
@@ -312,10 +312,7 @@ impl McpServer {
                     .get("path")
                     .and_then(Value::as_str)
                     .ok_or((-32602, "Missing argument: path".to_string()))?;
-                let depth = arguments
-                    .get("depth")
-                    .and_then(Value::as_u64)
-                    .unwrap_or(1) as usize;
+                let depth = arguments.get("depth").and_then(Value::as_u64).unwrap_or(1) as usize;
 
                 let guard = self
                     .vault
@@ -666,7 +663,10 @@ fn resolve_directory_path(
     }
 
     if value.starts_with('/') {
-        return Err((-32602, "Directory path must be relative to vault root".to_string()));
+        return Err((
+            -32602,
+            "Directory path must be relative to vault root".to_string(),
+        ));
     }
 
     let normalized = value.replace('\\', "/").trim_matches('/').to_string();
@@ -697,7 +697,11 @@ fn normalize_rel_dir_for_mcp(path: &str) -> Result<String, String> {
     Ok(normalized)
 }
 
-pub fn run_stdio_server<R: Read, W: Write>(server: &McpServer, input: R, mut output: W) -> io::Result<()> {
+pub fn run_stdio_server<R: Read, W: Write>(
+    server: &McpServer,
+    input: R,
+    mut output: W,
+) -> io::Result<()> {
     let mut reader = BufReader::new(input);
     loop {
         let message = match read_framed_message(&mut reader)? {
@@ -762,8 +766,8 @@ fn read_framed_message<R: BufRead>(reader: &mut R) -> io::Result<Option<String>>
 }
 
 fn write_framed_message<W: Write>(output: &mut W, value: &Value) -> io::Result<()> {
-    let payload = serde_json::to_vec(value)
-        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let payload =
+        serde_json::to_vec(value).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
     write!(output, "Content-Length: {}\r\n\r\n", payload.len())?;
     output.write_all(&payload)?;
@@ -789,7 +793,10 @@ mod tests {
             )
             .expect("save rust");
         vault
-            .save_note("programming/python.md", "# Python\n\nPython note with #python.")
+            .save_note(
+                "programming/python.md",
+                "# Python\n\nPython note with #python.",
+            )
             .expect("save python");
 
         McpServer::new(vault)
@@ -807,7 +814,10 @@ mod tests {
             }))
             .expect("initialize response");
 
-        assert_eq!(response["result"]["protocolVersion"], json!(PROTOCOL_VERSION));
+        assert_eq!(
+            response["result"]["protocolVersion"],
+            json!(PROTOCOL_VERSION)
+        );
         assert!(response["result"]["capabilities"]["tools"].is_object());
         assert!(response["result"]["capabilities"]["resources"].is_object());
     }
@@ -880,7 +890,9 @@ mod tests {
                 }
             }))
             .expect("search response");
-        let search_text = search["result"]["content"][0]["text"].as_str().expect("search text");
+        let search_text = search["result"]["content"][0]["text"]
+            .as_str()
+            .expect("search text");
         let parsed: Value = serde_json::from_str(search_text).expect("search json");
         assert!(parsed.is_array());
 
@@ -895,7 +907,9 @@ mod tests {
                 }
             }))
             .expect("tags response");
-        let tags_text = tags["result"]["content"][0]["text"].as_str().expect("tags text");
+        let tags_text = tags["result"]["content"][0]["text"]
+            .as_str()
+            .expect("tags text");
         assert!(tags_text.contains("rust"));
         assert!(tags_text.contains("python"));
 
@@ -910,7 +924,9 @@ mod tests {
                 }
             }))
             .expect("graph response");
-        let graph_text = graph["result"]["content"][0]["text"].as_str().expect("graph text");
+        let graph_text = graph["result"]["content"][0]["text"]
+            .as_str()
+            .expect("graph text");
         let parsed_graph: Value = serde_json::from_str(graph_text).expect("graph json");
         assert!(parsed_graph.get("nodes").is_some());
         assert!(parsed_graph.get("edges").is_some());
@@ -1018,7 +1034,9 @@ mod tests {
                 "params": { "name": "list_directory", "arguments": { "path": "scratch" } }
             }))
             .expect("list directory response");
-        let list_text = list_dir["result"]["content"][0]["text"].as_str().expect("list text");
+        let list_text = list_dir["result"]["content"][0]["text"]
+            .as_str()
+            .expect("list text");
         assert!(list_text.contains("scratch/new.md"));
 
         let rename_dir = server
@@ -1029,7 +1047,10 @@ mod tests {
                 "params": { "name": "delete_note", "arguments": { "path": "scratch/new.md" } }
             }))
             .expect("delete note response");
-        assert!(rename_dir["result"]["isError"] == json!(false), "{rename_dir:?}");
+        assert!(
+            rename_dir["result"]["isError"] == json!(false),
+            "{rename_dir:?}"
+        );
 
         let delete_note = server
             .handle_request(&json!({
@@ -1039,7 +1060,10 @@ mod tests {
                 "params": { "name": "rename_directory", "arguments": { "old_path": "scratch", "new_path": "scratch-renamed" } }
             }))
             .expect("rename directory response");
-        assert!(delete_note["result"]["isError"] == json!(false), "{delete_note:?}");
+        assert!(
+            delete_note["result"]["isError"] == json!(false),
+            "{delete_note:?}"
+        );
 
         let remove_dir = server
             .handle_request(&json!({
@@ -1049,7 +1073,10 @@ mod tests {
                 "params": { "name": "create_directory", "arguments": { "path": "temp-empty" } }
             }))
             .expect("create temp-empty directory response");
-        assert!(remove_dir["result"]["isError"] == json!(false), "{remove_dir:?}");
+        assert!(
+            remove_dir["result"]["isError"] == json!(false),
+            "{remove_dir:?}"
+        );
 
         let remove_empty_dir = server
             .handle_request(&json!({
@@ -1059,7 +1086,10 @@ mod tests {
                 "params": { "name": "remove_directory", "arguments": { "path": "temp-empty", "recursive": true } }
             }))
             .expect("remove directory response");
-        assert!(remove_empty_dir["result"]["isError"] == json!(false), "{remove_empty_dir:?}");
+        assert!(
+            remove_empty_dir["result"]["isError"] == json!(false),
+            "{remove_empty_dir:?}"
+        );
     }
 
     #[test]

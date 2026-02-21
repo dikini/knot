@@ -180,7 +180,7 @@ pub fn extract_headings(content: &str) -> Vec<Heading> {
 
     let parser = Parser::new_ext(content, options);
     let events: Vec<Event> = parser.collect();
-    
+
     let mut headings = Vec::new();
     extract_headings_from_events(&events, &mut headings);
     headings
@@ -401,7 +401,10 @@ fn extract_tag_from_word(word: &str) -> Option<String> {
     }
 
     // Rest must be alphanumeric, hyphen, or underscore
-    if !after_hash.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_') {
+    if !after_hash
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
+    {
         return None;
     }
 

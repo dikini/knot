@@ -149,11 +149,14 @@ const { content, setContent, isDirty, markDirty } = useEditorStore();
 
 ## ✅ Current Health Snapshot
 
+- Trace ID: BUG-ipc-integration-test-compat
 - Frontend tests pass: `206/206` (`npm test -- --run`)
 - TypeScript typecheck passes (`npm run -s typecheck`)
 - Rust crate compiles (`cargo check --manifest-path src-tauri/Cargo.toml`)
 - Rust tests compile (`cargo test --manifest-path src-tauri/Cargo.toml --no-run`)
 - Rust full suite passes (`cargo test --manifest-path src-tauri/Cargo.toml`) — `114/114` tests passed
+- Rust format check passes (`cargo fmt --manifest-path src-tauri/Cargo.toml --check`)
+- Rust strict clippy passes (`cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`)
 - Recent UX audits complete:
    - `docs/audit/tool-rail-context-verification-2026-02-21.md`
    - `docs/audit/graph-modes-002-verification-2026-02-21.md`
@@ -166,9 +169,8 @@ const { content, setContent, isDirty, markDirty } = useEditorStore();
 
 ### Immediate
 
-1. **Run full Rust tests** (`cargo test --manifest-path src-tauri/Cargo.toml`)
-2. **Sync canonical state docs** (`docs/PROJECT_STATE.md`) with 2026-02-21 audit set
-3. **Optional:** run end-to-end smoke (`npm run tauri-dev`) for manual UX validation
+1. **Optional:** run end-to-end smoke (`npm run tauri-dev`) for manual UX validation
+2. **Continue feature work from clean gates** (all strict verification checks are currently green)
 
 ### Short Term
 

@@ -3,8 +3,8 @@
 //! This allows the MCP server to send commands to the running BotPane Qt app.
 
 use crate::app_command::{AppCommand, UiCommand};
-use crate::event_log::{CommandEvent, EventLog};
 use crate::error::{Result, VaultError};
+use crate::event_log::{CommandEvent, EventLog};
 use serde::{Deserialize, Serialize};
 use std::io::{Read, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
@@ -118,7 +118,9 @@ impl IpcServer {
         event_log: &Option<EventLog>,
     ) -> Result<()> {
         let mut buffer = [0u8; 4096];
-        let bytes_read = stream.read(&mut buffer).map_err(|e| VaultError::Io(e.to_string()))?;
+        let bytes_read = stream
+            .read(&mut buffer)
+            .map_err(|e| VaultError::Io(e.to_string()))?;
 
         if bytes_read == 0 {
             return Ok(());
@@ -176,16 +178,14 @@ impl IpcServer {
     fn build_event_log(socket_path: &Path) -> Option<EventLog> {
         let socket_parent = socket_path.parent();
         let vault_root = socket_parent
-            .and_then(|parent| EventLog::discover_vault_root(parent))
+            .and_then(EventLog::discover_vault_root)
             .or_else(|| {
                 std::env::current_dir()
                     .ok()
-                    .and_then(|cwd| EventLog::discover_vault_root(cwd))
+                    .and_then(EventLog::discover_vault_root)
             });
 
-        let Some(vault_root) = vault_root else {
-            return None;
-        };
+        let vault_root = vault_root?;
 
         match EventLog::from_vault_root(vault_root) {
             Ok(log) => Some(log),
@@ -339,7 +339,9 @@ impl IpcClient {
             .map_err(|e| VaultError::Io(e.to_string()))?;
 
         let mut buffer = [0u8; 4096];
-        let bytes_read = stream.read(&mut buffer).map_err(|e| VaultError::Io(e.to_string()))?;
+        let bytes_read = stream
+            .read(&mut buffer)
+            .map_err(|e| VaultError::Io(e.to_string()))?;
 
         let response: IpcMessage = serde_json::from_slice(&buffer[..bytes_read])
             .map_err(|e| VaultError::Json(e.to_string()))?;
@@ -384,10 +386,7 @@ mod tests {
         let socket_path = format!("/tmp/botpane_test_{}.sock", std::process::id());
 
         // Create server
-        let (tx, rx): (
-            Sender<AppCommand>,
-            std::sync::mpsc::Receiver<AppCommand>,
-        ) = channel();
+        let (tx, rx): (Sender<AppCommand>, std::sync::mpsc::Receiver<AppCommand>) = channel();
         let server = IpcServer::new(&socket_path, tx);
         server.start().unwrap();
 
@@ -421,10 +420,7 @@ mod tests {
     fn test_ipc_response_contains_seq_for_command() {
         let socket_path = format!("/tmp/botpane_test_seq_{}.sock", std::process::id());
 
-        let (tx, _rx): (
-            Sender<AppCommand>,
-            std::sync::mpsc::Receiver<AppCommand>,
-        ) = channel();
+        let (tx, _rx): (Sender<AppCommand>, std::sync::mpsc::Receiver<AppCommand>) = channel();
         let server = IpcServer::new(&socket_path, tx);
         server.start().unwrap();
         thread::sleep(Duration::from_millis(100));
@@ -447,10 +443,7 @@ mod tests {
     fn test_ipc_response_seq_is_monotonic_for_multiple_commands() {
         let socket_path = format!("/tmp/botpane_test_seq_multi_{}.sock", std::process::id());
 
-        let (tx, _rx): (
-            Sender<AppCommand>,
-            std::sync::mpsc::Receiver<AppCommand>,
-        ) = channel();
+        let (tx, _rx): (Sender<AppCommand>, std::sync::mpsc::Receiver<AppCommand>) = channel();
         let server = IpcServer::new(&socket_path, tx);
         server.start().unwrap();
         thread::sleep(Duration::from_millis(100));

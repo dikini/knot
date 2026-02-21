@@ -109,7 +109,10 @@ mod tests {
             toml::from_str(&toml_str).expect("VaultConfig should deserialize from TOML");
         assert_eq!(parsed.name, config.name);
         assert_eq!(parsed.editor.font_size, config.editor.font_size);
-        assert_eq!(parsed.explorer.expanded_folders, config.explorer.expanded_folders);
+        assert_eq!(
+            parsed.explorer.expanded_folders,
+            config.explorer.expanded_folders
+        );
     }
 
     #[test]

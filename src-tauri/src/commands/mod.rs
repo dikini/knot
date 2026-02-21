@@ -4,9 +4,9 @@
 //! exposed to the frontend. Each command is a thin wrapper around
 //! the core business logic.
 
-pub mod vault;
 pub mod notes;
 pub mod search;
+pub mod vault;
 
 use tauri::{Emitter, Manager};
 use tracing::info;

@@ -43,12 +43,14 @@ impl AppState {
     /// Get the path of the currently open vault, if any.
     pub async fn current_vault_path(&self) -> Option<String> {
         let vault = self.vault.lock().await;
-        vault.as_ref().map(|v| v.root_path().to_string_lossy().to_string())
+        vault
+            .as_ref()
+            .map(|v| v.root_path().to_string_lossy().to_string())
     }
 }
 
 /// Response types for Tauri commands.
-/// 
+///
 /// These are serializable structs that are returned from commands
 /// to the frontend.
 pub mod response {

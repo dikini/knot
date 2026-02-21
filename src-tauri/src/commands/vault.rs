@@ -7,11 +7,11 @@ use tauri::{State, Window};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tracing::{info, instrument};
 
-use crate::core::VaultManager;
 use crate::commands::emit_event;
+use crate::core::VaultManager;
 use crate::error::KnotError;
 use crate::recent_vaults::{RecentVault, RecentVaults};
-use crate::state::response::{VaultInfo, NoteSummary};
+use crate::state::response::{NoteSummary, VaultInfo};
 use crate::state::AppState;
 use std::path::PathBuf;
 
@@ -31,10 +31,7 @@ pub fn greet(name: &str) -> String {
 /// Create a new vault at the specified path.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn create_vault(
-    path: String,
-    state: State<'_, AppState>,
-) -> Result<VaultInfo, String> {
+pub async fn create_vault(path: String, state: State<'_, AppState>) -> Result<VaultInfo, String> {
     info!(path, "creating vault");
 
     let mut vault_guard = state.vault().lock().await;
@@ -47,8 +44,7 @@ pub async fn create_vault(
     let path_buf = std::path::PathBuf::from(&path);
 
     // Create the vault
-    let vault = VaultManager::create(&path_buf)
-        .map_err(|e| e.to_response_string())?;
+    let vault = VaultManager::create(&path_buf).map_err(|e| e.to_response_string())?;
 
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
@@ -61,10 +57,7 @@ pub async fn create_vault(
 /// Open an existing vault at the specified path.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn open_vault(
-    path: String,
-    state: State<'_, AppState>,
-) -> Result<VaultInfo, String> {
+pub async fn open_vault(path: String, state: State<'_, AppState>) -> Result<VaultInfo, String> {
     info!(path, "opening vault");
 
     let mut vault_guard = state.vault().lock().await;
@@ -78,8 +71,7 @@ pub async fn open_vault(
     let path_buf = std::path::PathBuf::from(&path);
 
     // Open the vault
-    let vault = VaultManager::open(&path_buf)
-        .map_err(|e| e.to_response_string())?;
+    let vault = VaultManager::open(&path_buf).map_err(|e| e.to_response_string())?;
 
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
@@ -176,7 +168,8 @@ pub async fn open_vault_dialog(
     };
 
     // Convert FilePath to PathBuf
-    let path_buf = path.into_path()
+    let path_buf = path
+        .into_path()
         .map_err(|_| "Invalid path selected".to_string())?;
     let path_str = path_buf.to_string_lossy().to_string();
     info!(path = path_str, "directory selected");
@@ -198,8 +191,7 @@ pub async fn open_vault_dialog(
     }
 
     // Open the vault
-    let vault = VaultManager::open(&path_buf)
-        .map_err(|e| e.to_response_string())?;
+    let vault = VaultManager::open(&path_buf).map_err(|e| e.to_response_string())?;
 
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
@@ -229,14 +221,11 @@ pub async fn close_vault(state: State<'_, AppState>) -> Result<(), String> {
 /// Get information about the currently open vault.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn get_vault_info(
-    state: State<'_, AppState>,
-) -> Result<VaultInfo, String> {
+pub async fn get_vault_info(state: State<'_, AppState>) -> Result<VaultInfo, String> {
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
-        Some(vault) => vault_info_from_manager(vault)
-            .map_err(|e| e.to_response_string()),
+        Some(vault) => vault_info_from_manager(vault).map_err(|e| e.to_response_string()),
         None => Err("No vault is open".to_string()),
     }
 }
@@ -251,7 +240,8 @@ pub async fn is_vault_open(state: State<'_, AppState>) -> Result<bool, String> {
 /// Helper function to build VaultInfo from VaultManager.
 fn vault_info_from_manager(vault: &VaultManager) -> Result<VaultInfo, KnotError> {
     let path = vault.root_path().to_string_lossy().to_string();
-    let name = vault.root_path()
+    let name = vault
+        .root_path()
         .file_name()
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| "Vault".to_string());
@@ -286,13 +276,10 @@ pub async fn get_recent_notes(
 
     match vault_guard.as_ref() {
         Some(vault) => {
-            let notes = vault.list_notes()
-                .map_err(|e| e.to_response_string())?;
+            let notes = vault.list_notes().map_err(|e| e.to_response_string())?;
 
             // Sort by modified date, take limit
-            let mut notes: Vec<_> = notes.into_iter()
-                .map(|n| note_meta_to_summary(n))
-                .collect();
+            let mut notes: Vec<_> = notes.into_iter().map(note_meta_to_summary).collect();
             notes.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
             notes.truncate(limit);
 
@@ -321,10 +308,10 @@ pub async fn get_recent_vaults() -> Result<Vec<RecentVault>, String> {
     let config_dir = dirs::config_dir()
         .ok_or_else(|| "Could not determine config directory".to_string())?
         .join("knot");
-    
+
     let recent = RecentVaults::load(&config_dir)
         .map_err(|e| format!("Failed to load recent vaults: {}", e))?;
-    
+
     Ok(recent.list())
 }
 
@@ -364,20 +351,16 @@ pub async fn sync_external_changes(
 /// Gets the vault name from the currently open vault in state.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn add_recent_vault(
-    path: String,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn add_recent_vault(path: String, state: State<'_, AppState>) -> Result<(), String> {
     let vault_guard = state.vault().lock().await;
-    
+
     // Get vault name from the open vault, or extract from path
     let name = match vault_guard.as_ref() {
-        Some(vault) => {
-            vault.root_path()
-                .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| "Vault".to_string())
-        }
+        Some(vault) => vault
+            .root_path()
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "Vault".to_string()),
         None => {
             // If no vault is open, extract name from the provided path
             PathBuf::from(&path)
@@ -386,20 +369,21 @@ pub async fn add_recent_vault(
                 .unwrap_or_else(|| "Vault".to_string())
         }
     };
-    
+
     drop(vault_guard);
-    
+
     let config_dir = dirs::config_dir()
         .ok_or_else(|| "Could not determine config directory".to_string())?
         .join("knot");
-    
+
     let mut recent = RecentVaults::load(&config_dir)
         .map_err(|e| format!("Failed to load recent vaults: {}", e))?;
-    
+
     recent.add(path, name);
-    
-    recent.save()
+
+    recent
+        .save()
         .map_err(|e| format!("Failed to save recent vaults: {}", e))?;
-    
+
     Ok(())
 }

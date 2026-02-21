@@ -22,10 +22,12 @@ pub async fn search_notes(
     match vault_guard.as_ref() {
         Some(vault) => {
             let limit = limit.unwrap_or(20);
-            let results = vault.search(&query, limit)
+            let results = vault
+                .search(&query, limit)
                 .map_err(|e| e.to_response_string())?;
 
-            let response: Vec<_> = results.into_iter()
+            let response: Vec<_> = results
+                .into_iter()
                 .map(|r| SearchResult {
                     path: r.path,
                     title: r.title,
@@ -56,12 +58,11 @@ pub async fn search_suggestions(
             let limit = limit.unwrap_or(10);
 
             // Search and extract unique titles
-            let results = vault.search(&query, limit)
+            let results = vault
+                .search(&query, limit)
                 .map_err(|e| e.to_response_string())?;
 
-            let suggestions: Vec<_> = results.into_iter()
-                .map(|r| r.title)
-                .collect();
+            let suggestions: Vec<_> = results.into_iter().map(|r| r.title).collect();
 
             Ok(suggestions)
         }

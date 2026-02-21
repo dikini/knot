@@ -99,7 +99,10 @@ impl LinkGraph {
 
         aliases.insert(Self::normalize_alias(Self::strip_md(&normalized_path)));
 
-        let filename = normalized_path.rsplit('/').next().unwrap_or(&normalized_path);
+        let filename = normalized_path
+            .rsplit('/')
+            .next()
+            .unwrap_or(&normalized_path);
         aliases.insert(Self::normalize_alias(Self::strip_md(filename)));
 
         if let Some(title) = title {
@@ -565,7 +568,8 @@ impl LinkGraph {
     /// Get backlinks with context snippets.
     pub fn backlinks(&self, path: &str) -> Vec<(String, String)> {
         let sources = self.get_backlinks(path);
-        sources.into_iter()
+        sources
+            .into_iter()
             .map(|source| (source.clone(), format!("Linked from {}", source)))
             .collect()
     }
@@ -573,7 +577,8 @@ impl LinkGraph {
     /// Get forward links with context.
     pub fn forward_links(&self, path: &str) -> Vec<(String, String)> {
         let targets = self.get_forward_links(path);
-        targets.into_iter()
+        targets
+            .into_iter()
             .map(|target| (target.clone(), format!("Links to {}", target)))
             .collect()
     }

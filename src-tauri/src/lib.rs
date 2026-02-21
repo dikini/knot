@@ -7,6 +7,7 @@
 //! - Link graph
 //! - P2P sync (future)
 
+pub mod app_command;
 pub mod commands;
 pub mod config;
 pub mod core;
@@ -15,7 +16,6 @@ pub mod error;
 pub mod event_log;
 pub mod graph;
 pub mod ipc;
-pub mod app_command;
 pub mod markdown;
 pub mod mcp;
 pub mod note;

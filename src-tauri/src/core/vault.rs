@@ -155,7 +155,13 @@ impl VaultManager {
         let normalized = folder_path.trim_matches('/').to_string();
 
         if expanded {
-            if !self.config.explorer.expanded_folders.iter().any(|p| p == &normalized) {
+            if !self
+                .config
+                .explorer
+                .expanded_folders
+                .iter()
+                .any(|p| p == &normalized)
+            {
                 self.config.explorer.expanded_folders.push(normalized);
             }
         } else {
@@ -230,9 +236,7 @@ impl VaultManager {
         }
 
         for old_note_path in notes_to_move {
-            let suffix = old_note_path
-                .strip_prefix(&old_prefix)
-                .unwrap_or_default();
+            let suffix = old_note_path.strip_prefix(&old_prefix).unwrap_or_default();
             let new_note_path = if suffix.is_empty() {
                 new_norm.clone()
             } else {
@@ -459,8 +463,8 @@ impl VaultManager {
 
     fn update_graph_for_note(&mut self, note: &Note) -> Result<()> {
         // Parse note for links
-        let parsed = crate::markdown::parse(&note.content());
-        self.graph.update_note(&note.path(), &parsed.links);
+        let parsed = crate::markdown::parse(note.content());
+        self.graph.update_note(note.path(), &parsed.links);
         Ok(())
     }
 

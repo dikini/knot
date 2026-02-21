@@ -105,10 +105,21 @@ impl FileWatcher {
         let now = Instant::now();
         let debounce = Duration::from_millis(self.debounce_ms);
 
-        let ready: Vec<FileEvent> = self
+        let ready_keys: Vec<String> = self
             .pending_events
-            .extract_if(|_, (_, time)| now.duration_since(*time) >= debounce)
-            .map(|(_, (event, _))| event)
+            .iter()
+            .filter_map(|(path, (_, time))| {
+                if now.duration_since(*time) >= debounce {
+                    Some(path.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        let ready: Vec<FileEvent> = ready_keys
+            .into_iter()
+            .filter_map(|path| self.pending_events.remove(&path).map(|(event, _)| event))
             .collect();
 
         ready

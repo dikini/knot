@@ -117,10 +117,9 @@ mod tests {
             })
         );
 
-        let update_vault_settings =
-            AppCommand::Settings(SettingsCommand::UpdateVaultSettings {
-                patch: json!({"theme": "solarized"}),
-            });
+        let update_vault_settings = AppCommand::Settings(SettingsCommand::UpdateVaultSettings {
+            patch: json!({"theme": "solarized"}),
+        });
         assert_eq!(
             serde_json::to_value(&update_vault_settings).unwrap(),
             json!({

@@ -3,14 +3,14 @@
 //! SPEC: COMP-NOTE-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-10
 //! SPEC: COMP-GRAPH-001 FR-6
 
-use tauri::State;
-use tracing::{info, instrument};
+use crate::commands::emit_event;
+use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
-use serde::Serialize;
+use tauri::State;
 use tauri::Window;
-use crate::commands::emit_event;
+use tracing::{info, instrument};
+use walkdir::WalkDir;
 
 use crate::state::response::{
     Backlink, ExplorerFolderNode, ExplorerNoteNode, ExplorerTree, Heading, NoteData, NoteSummary,
@@ -32,12 +32,9 @@ pub async fn list_notes(state: State<'_, AppState>) -> Result<Vec<NoteSummary>, 
 
     match vault_guard.as_ref() {
         Some(vault) => {
-            let notes = vault.list_notes()
-                .map_err(|e| e.to_response_string())?;
+            let notes = vault.list_notes().map_err(|e| e.to_response_string())?;
 
-            let summaries: Vec<_> = notes.into_iter()
-                .map(|n| note_to_summary(n))
-                .collect();
+            let summaries: Vec<_> = notes.into_iter().map(note_to_summary).collect();
 
             Ok(summaries)
         }
@@ -49,19 +46,16 @@ pub async fn list_notes(state: State<'_, AppState>) -> Result<Vec<NoteSummary>, 
 /// Get a note by its path.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn get_note(
-    path: String,
-    state: State<'_, AppState>,
-) -> Result<NoteData, String> {
+pub async fn get_note(path: String, state: State<'_, AppState>) -> Result<NoteData, String> {
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
         Some(vault) => {
-            let note = vault.get_note(&path)
-                .map_err(|e| e.to_response_string())?;
+            let note = vault.get_note(&path).map_err(|e| e.to_response_string())?;
 
             // Get backlinks from graph
-            let backlinks = vault.graph()
+            let backlinks = vault
+                .graph()
                 .backlinks(&path)
                 .into_iter()
                 .map(|(source, context)| Backlink {
@@ -79,7 +73,9 @@ pub async fn get_note(
                 created_at: note.created_at(),
                 modified_at: note.modified_at(),
                 word_count: note.word_count(),
-                headings: note.headings().iter()
+                headings: note
+                    .headings()
+                    .iter()
                     .map(|h| Heading {
                         level: h.level as u8,
                         text: h.text.clone(),
@@ -109,7 +105,8 @@ pub async fn save_note(
 
     match vault_guard.as_mut() {
         Some(vault) => {
-            vault.save_note(&path, &content)
+            vault
+                .save_note(&path, &content)
                 .map_err(|e| e.to_response_string())?;
             emit_event(
                 &window,
@@ -140,7 +137,8 @@ pub async fn delete_note(
 
     match vault_guard.as_mut() {
         Some(vault) => {
-            vault.delete_note(&path)
+            vault
+                .delete_note(&path)
                 .map_err(|e| e.to_response_string())?;
             emit_event(
                 &window,
@@ -172,7 +170,8 @@ pub async fn rename_note(
 
     match vault_guard.as_mut() {
         Some(vault) => {
-            vault.rename_note(&old_path, &new_path)
+            vault
+                .rename_note(&old_path, &new_path)
                 .map_err(|e| e.to_response_string())?;
             emit_event(
                 &window,
@@ -210,12 +209,12 @@ pub async fn create_note(
             }
 
             let content = content.unwrap_or_default();
-            vault.save_note(&path, &content)
+            vault
+                .save_note(&path, &content)
                 .map_err(|e| e.to_response_string())?;
 
             // Return the newly created note
-            let note = vault.get_note(&path)
-                .map_err(|e| e.to_response_string())?;
+            let note = vault.get_note(&path).map_err(|e| e.to_response_string())?;
 
             let data = NoteData {
                 id: note.id().to_string(),
@@ -225,7 +224,9 @@ pub async fn create_note(
                 created_at: note.created_at(),
                 modified_at: note.modified_at(),
                 word_count: note.word_count(),
-                headings: note.headings().iter()
+                headings: note
+                    .headings()
+                    .iter()
                     .map(|h| Heading {
                         level: h.level as u8,
                         text: h.text.clone(),
@@ -265,7 +266,9 @@ pub async fn get_graph_layout(
         Some(vault) => {
             let layout = vault.graph_layout(width, height);
 
-            let nodes: Vec<_> = layout.nodes.into_iter()
+            let nodes: Vec<_> = layout
+                .nodes
+                .into_iter()
                 .map(|n| crate::state::response::GraphNode {
                     id: n.id,
                     label: n.label,
@@ -274,7 +277,9 @@ pub async fn get_graph_layout(
                 })
                 .collect();
 
-            let edges: Vec<_> = layout.edges.into_iter()
+            let edges: Vec<_> = layout
+                .edges
+                .into_iter()
                 .map(|e| crate::state::response::GraphEdge {
                     source: e.source,
                     target: e.target,
@@ -363,7 +368,9 @@ pub async fn create_directory(
 
     match vault_guard.as_mut() {
         Some(vault) => {
-            vault.create_directory(&path).map_err(|e| e.to_response_string())?;
+            vault
+                .create_directory(&path)
+                .map_err(|e| e.to_response_string())?;
             emit_event(
                 &window,
                 "vault://tree-changed",
@@ -524,9 +531,10 @@ fn build_explorer_tree(
         let parent = path.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
         ensure_folder(map, parent, root_name);
         if let Some(parent_entry) = map.get_mut(parent) {
-            parent_entry
-                .children
-                .insert(path.to_string(), path.rsplit('/').next().unwrap_or(path).to_string());
+            parent_entry.children.insert(
+                path.to_string(),
+                path.rsplit('/').next().unwrap_or(path).to_string(),
+            );
         }
     }
 
@@ -560,7 +568,11 @@ fn build_explorer_tree(
             .collect::<Vec<_>>();
 
         let mut notes = current.notes.clone();
-        notes.sort_by(|a, b| a.display_title.to_ascii_lowercase().cmp(&b.display_title.to_ascii_lowercase()));
+        notes.sort_by(|a, b| {
+            a.display_title
+                .to_ascii_lowercase()
+                .cmp(&b.display_title.to_ascii_lowercase())
+        });
 
         ExplorerFolderNode {
             path: current.path.clone(),
@@ -586,7 +598,7 @@ fn build_explorer_tree(
     for note in notes {
         let parent = Path::new(&note.path)
             .parent()
-            .map(|p| normalize_rel_path(p))
+            .map(normalize_rel_path)
             .unwrap_or_default();
         let title = note.title.clone();
         let display_title = if note.title.trim().is_empty() {
@@ -606,12 +618,7 @@ fn build_explorer_tree(
         }
     }
 
-    build_node(
-        &map,
-        "",
-        expansion_state_initialized,
-        expanded_folders,
-    )
+    build_node(&map, "", expansion_state_initialized, expanded_folders)
 }
 
 /// Helper to convert NoteMeta to NoteSummary.
@@ -653,16 +660,16 @@ mod tests {
             .iter()
             .find(|f| f.path == "Programming")
             .expect("Programming folder exists");
-        assert!(programming.folders.iter().any(|f| f.path == "Programming/empty"));
+        assert!(programming
+            .folders
+            .iter()
+            .any(|f| f.path == "Programming/empty"));
     }
 
     #[test]
     fn explorer_tree_falls_back_to_filename_stem_for_empty_title() {
         let root = Path::new("/tmp/vault");
-        let notes = vec![
-            note("b.md", "", 1),
-            note("a.md", "Alpha", 2),
-        ];
+        let notes = vec![note("b.md", "", 1), note("a.md", "Alpha", 2)];
 
         let tree = build_explorer_tree(root, notes, vec![], &[], false);
         assert_eq!(tree.notes.len(), 2);
@@ -676,8 +683,16 @@ mod tests {
         let folders = vec!["A".to_string(), "A/B".to_string()];
         let tree = build_explorer_tree(root, vec![], folders, &[], false);
 
-        let a = tree.folders.iter().find(|f| f.path == "A").expect("A exists");
-        let b = a.folders.iter().find(|f| f.path == "A/B").expect("B exists");
+        let a = tree
+            .folders
+            .iter()
+            .find(|f| f.path == "A")
+            .expect("A exists");
+        let b = a
+            .folders
+            .iter()
+            .find(|f| f.path == "A/B")
+            .expect("B exists");
         assert!(a.expanded);
         assert!(!b.expanded);
     }
