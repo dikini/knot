@@ -133,10 +133,39 @@ vi.mock("@components/Editor", () => ({
 }));
 
 vi.mock("@components/GraphView", () => ({
-  GraphView: ({ onNodeClick }: { onNodeClick: (path: string) => void }) => (
+  GraphView: ({
+    onNodeClick,
+    onSelectionChange,
+    scope,
+    nodeScopeDepth,
+  }: {
+    onNodeClick: (path: string) => void;
+    onSelectionChange?: (selection: {
+      path: string | null;
+      title: string | null;
+      neighbors: string[];
+      backlinks: string[];
+    }) => void;
+    scope?: "vault" | "node";
+    nodeScopeDepth?: number;
+  }) => (
     <div data-testid="graph-view">
       Graph
-      <button onClick={() => onNodeClick("note1.md")}>Open Note 1</button>
+      <div data-testid="graph-scope">{scope ?? "vault"}</div>
+      <div data-testid="graph-depth">{nodeScopeDepth ?? 1}</div>
+      <button onClick={() => onNodeClick("note1.md")}>Select Node 1</button>
+      <button
+        onClick={() =>
+          onSelectionChange?.({
+            path: "note1.md",
+            title: "Note 1",
+            neighbors: ["note2.md"],
+            backlinks: ["note3.md"],
+          })
+        }
+      >
+        Emit Selection
+      </button>
     </div>
   ),
 }));
@@ -169,7 +198,22 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     fireEvent.click(graphToggle);
 
     expect(screen.getByTestId("graph-view")).toBeInTheDocument();
+    expect(screen.getByTestId("graph-scope")).toHaveTextContent("node");
     expect(screen.queryByTestId("editor-view")).not.toBeInTheDocument();
+  });
+
+  it("toggles editor <-> node graph via mode toggle", async () => {
+    render(<App />);
+    const modeToggle = await screen.findByRole("button", { name: /mode/i });
+
+    fireEvent.click(modeToggle);
+    expect(screen.getByTestId("graph-view")).toBeInTheDocument();
+    expect(screen.getByTestId("graph-scope")).toHaveTextContent("node");
+    expect(screen.getByTestId("graph-depth")).toHaveTextContent("1");
+
+    fireEvent.click(modeToggle);
+    expect(screen.getByTestId("editor-view")).toBeInTheDocument();
+    expect(screen.queryByTestId("graph-view")).not.toBeInTheDocument();
   });
 
   it("hides graph toggle when no vault is open", () => {
@@ -179,16 +223,40 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     expect(screen.queryByRole("button", { name: /mode/i })).not.toBeInTheDocument();
   });
 
-  it("loads note from graph click and returns to editor view", async () => {
+  it("keeps graph open and globally selects note on graph click", async () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /mode/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /open note 1/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /select node 1/i }));
 
     await waitFor(() => {
       expect(mockLoadNote).toHaveBeenCalledWith("note1.md");
-      expect(screen.getByTestId("editor-view")).toBeInTheDocument();
     });
+    expect(screen.getByTestId("graph-view")).toBeInTheDocument();
+  });
+
+  it("can switch to editor from mode toggle while graph tool is active", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Graph" }));
+    fireEvent.click(screen.getByRole("button", { name: /mode/i }));
+
+    expect(screen.getByTestId("editor-view")).toBeInTheDocument();
+    expect(screen.queryByTestId("graph-view")).not.toBeInTheDocument();
+  });
+
+  it("shows neighbors and backlinks in graph context panel after selection update", async () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /mode/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Graph" }));
+    fireEvent.click(await screen.findByRole("button", { name: /emit selection/i }));
+
+    expect(screen.getByText("Selected Node")).toBeInTheDocument();
+    expect(screen.getByText("Note 1")).toBeInTheDocument();
+    expect(screen.getByText("note1.md")).toBeInTheDocument();
+    expect(screen.getByText("note2.md")).toBeInTheDocument();
+    expect(screen.getByText("note3.md")).toBeInTheDocument();
   });
 
   it("does not write stale view mode when switching to a different vault", async () => {
@@ -334,7 +402,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     mockStoreState.shell.isContextPanelCollapsed = false;
     const { rerender } = render(<App />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /graph/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Graph" }));
     expect(mockStoreState.toggleContextPanel).toHaveBeenCalledTimes(1);
 
     rerender(<App />);
@@ -342,7 +410,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     expect(mockStoreState.toggleContextPanel).toHaveBeenCalledTimes(2);
 
     rerender(<App />);
-    fireEvent.click(await screen.findByRole("button", { name: /graph/i }));
+    fireEvent.click(await screen.findByRole("button", { name: "Graph" }));
     expect(mockStoreState.toggleContextPanel).toHaveBeenCalledTimes(3);
   });
 

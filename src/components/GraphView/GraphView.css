@@ -201,9 +201,15 @@
   gap: 8px;
 }
 
-.graph-context-panel__split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+.graph-context-panel__depth-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.graph-context-panel__lists {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 

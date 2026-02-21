@@ -8,6 +8,7 @@
 // SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
 // SPEC: COMP-GRAPH-HOVER-001 FR-1, FR-2
 // SPEC: COMP-GRAPH-CONSISTENCY-001 FR-3, FR-4
+// SPEC: COMP-GRAPH-MODES-002 FR-3, FR-4, FR-5, FR-6
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { getGraphLayout } from "@lib/api";
@@ -20,20 +21,67 @@ export interface GraphViewProps {
   width: number;
   height: number;
   onNodeClick: (path: string) => void;
+  onSelectionChange?: (selection: {
+    path: string | null;
+    title: string | null;
+    neighbors: string[];
+    backlinks: string[];
+  }) => void;
   showLabels?: boolean;
   selectedNodeId?: string | null;
+  scope?: "vault" | "node";
+  centerNodeId?: string | null;
+  nodeScopeDepth?: number;
 }
 
 function stripMarkdownExtension(path: string): string {
   return path.replace(/\.md$/i, "");
 }
 
+function normalizeNodeId(value: string): string {
+  return value.replace(/\\/g, "/").replace(/\.md$/i, "").toLowerCase();
+}
+
+function basename(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const parts = normalized.split("/");
+  return parts[parts.length - 1] ?? normalized;
+}
+
+function resolveNodeIdFromNodes(
+  candidate: string | null,
+  nodes: GraphNode[]
+): string | null {
+  if (!candidate || nodes.length === 0) {
+    return null;
+  }
+
+  const direct = nodes.find((node) => node.id === candidate);
+  if (direct) {
+    return direct.id;
+  }
+
+  const normalizedCandidate = normalizeNodeId(candidate);
+  const byNormalizedPath = nodes.find((node) => normalizeNodeId(node.id) === normalizedCandidate);
+  if (byNormalizedPath) {
+    return byNormalizedPath.id;
+  }
+
+  const candidateBasename = basename(normalizedCandidate);
+  const byBasename = nodes.find((node) => basename(normalizeNodeId(node.id)) === candidateBasename);
+  return byBasename?.id ?? null;
+}
+
 export function GraphView({
   width,
   height,
   onNodeClick,
+  onSelectionChange,
   showLabels = false,
   selectedNodeId = null,
+  scope = "vault",
+  centerNodeId = null,
+  nodeScopeDepth = 1,
 }: GraphViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [layout, setLayout] = useState<GraphLayout | null>(null);
@@ -107,12 +155,77 @@ export function GraphView({
     return { nodes, edges, labelCounts };
   }, [layout]);
 
+  const visibleGraph = useMemo(() => {
+    const resolvedCenterNodeId = resolveNodeIdFromNodes(centerNodeId, normalizedLayout.nodes);
+
+    if (scope === "vault") {
+      return {
+        hasCenter: true,
+        nodes: normalizedLayout.nodes,
+        edges: normalizedLayout.edges,
+        labelCounts: normalizedLayout.labelCounts,
+      };
+    }
+
+    if (!resolvedCenterNodeId) {
+      return {
+        hasCenter: false,
+        nodes: [] as GraphNode[],
+        edges: [] as GraphLayout["edges"],
+        labelCounts: new Map<string, number>(),
+      };
+    }
+
+    const maxDepth = Math.max(1, Math.min(3, Math.floor(nodeScopeDepth)));
+    const adjacency = new Map<string, Set<string>>();
+    for (const node of normalizedLayout.nodes) {
+      adjacency.set(node.id, new Set());
+    }
+    for (const edge of normalizedLayout.edges) {
+      adjacency.get(edge.source)?.add(edge.target);
+      adjacency.get(edge.target)?.add(edge.source);
+    }
+
+    if (!adjacency.has(resolvedCenterNodeId)) {
+      return {
+        hasCenter: false,
+        nodes: [] as GraphNode[],
+        edges: [] as GraphLayout["edges"],
+        labelCounts: new Map<string, number>(),
+      };
+    }
+
+    const visibleIds = new Set<string>([resolvedCenterNodeId]);
+    const queue: Array<{ id: string; depth: number }> = [{ id: resolvedCenterNodeId, depth: 0 }];
+    while (queue.length > 0) {
+      const current = queue.shift();
+      if (!current) continue;
+      if (current.depth >= maxDepth) continue;
+      for (const neighbor of adjacency.get(current.id) ?? []) {
+        if (visibleIds.has(neighbor)) continue;
+        visibleIds.add(neighbor);
+        queue.push({ id: neighbor, depth: current.depth + 1 });
+      }
+    }
+
+    const nodes = normalizedLayout.nodes.filter((node) => visibleIds.has(node.id));
+    const edges = normalizedLayout.edges.filter(
+      (edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target)
+    );
+    const labelCounts = nodes.reduce((acc, node) => {
+      acc.set(node.label, (acc.get(node.label) ?? 0) + 1);
+      return acc;
+    }, new Map<string, number>());
+
+    return { hasCenter: true, nodes, edges, labelCounts };
+  }, [scope, centerNodeId, nodeScopeDepth, normalizedLayout]);
+
   // Create a map for quick node lookup
   const nodeMap = useMemo(() => {
     const map = new Map<string, GraphNode>();
-    normalizedLayout.nodes.forEach((node) => map.set(node.id, node));
+    visibleGraph.nodes.forEach((node) => map.set(node.id, node));
     return map;
-  }, [normalizedLayout.nodes]);
+  }, [visibleGraph.nodes]);
 
   const getNode = useCallback(
     (id: string): GraphNode | undefined => nodeMap.get(id),
@@ -159,17 +272,53 @@ export function GraphView({
     onNodeClick(nodeId);
   };
 
-  const effectiveSelectedNode = selectedNodeId ?? selectedNode;
+  const effectiveSelectedNode = useMemo(
+    () => resolveNodeIdFromNodes(selectedNodeId ?? selectedNode, visibleGraph.nodes),
+    [selectedNodeId, selectedNode, visibleGraph.nodes]
+  );
+
+  useEffect(() => {
+    if (!onSelectionChange) return;
+    if (!effectiveSelectedNode) {
+      onSelectionChange({ path: null, title: null, neighbors: [], backlinks: [] });
+      return;
+    }
+
+    const currentNode = nodeMap.get(effectiveSelectedNode);
+    let neighbors = visibleGraph.edges
+      .filter((edge) => edge.source === effectiveSelectedNode)
+      .map((edge) => edge.target);
+    let backlinks = visibleGraph.edges
+      .filter((edge) => edge.target === effectiveSelectedNode)
+      .map((edge) => edge.source);
+
+    if (neighbors.length === 0 && backlinks.length === 0) {
+      const connected = visibleGraph.edges.flatMap((edge) => {
+        if (edge.source === effectiveSelectedNode) return [edge.target];
+        if (edge.target === effectiveSelectedNode) return [edge.source];
+        return [];
+      });
+      neighbors = Array.from(new Set(connected));
+      backlinks = [];
+    }
+
+    onSelectionChange({
+      path: effectiveSelectedNode,
+      title: currentNode?.label ?? effectiveSelectedNode,
+      neighbors,
+      backlinks,
+    });
+  }, [effectiveSelectedNode, nodeMap, onSelectionChange, visibleGraph.edges]);
 
   const getNodeLabel = useCallback(
     (node: GraphNode): string => {
-      const duplicateLabel = (normalizedLayout.labelCounts.get(node.label) ?? 0) > 1;
+      const duplicateLabel = (visibleGraph.labelCounts.get(node.label) ?? 0) > 1;
       if (!duplicateLabel) {
         return node.label;
       }
       return `${node.label} (${stripMarkdownExtension(node.id)})`;
     },
-    [normalizedLayout.labelCounts]
+    [visibleGraph.labelCounts]
   );
 
   // Reset view
@@ -194,7 +343,18 @@ export function GraphView({
     );
   }
 
-  if (!layout || normalizedLayout.nodes.length === 0) {
+  if (scope === "node" && !visibleGraph.hasCenter) {
+    return (
+      <div className="graph-view" style={{ width, height }}>
+        <div className="graph-view__empty">
+          <p>No center note selected</p>
+          <p className="graph-view__empty-hint">Select a note to view local graph</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!layout || visibleGraph.nodes.length === 0) {
     return (
       <div className="graph-view" style={{ width, height }}>
         <div className="graph-view__empty">
@@ -224,7 +384,7 @@ export function GraphView({
       >
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
           {/* Edges first (rendered behind nodes) */}
-          {normalizedLayout.edges.map((edge) => {
+          {visibleGraph.edges.map((edge) => {
             const sourceNode = getNode(edge.source);
             const targetNode = getNode(edge.target);
             if (!sourceNode || !targetNode) return null;
@@ -251,7 +411,7 @@ export function GraphView({
           })}
 
           {/* Nodes */}
-          {normalizedLayout.nodes.map((node) => (
+          {visibleGraph.nodes.map((node) => (
             <g
               key={node.id}
               transform={`translate(${node.x}, ${node.y})`}
@@ -286,7 +446,7 @@ export function GraphView({
 
       {/* Stats overlay */}
       <div className="graph-view__stats">
-        {normalizedLayout.nodes.length} nodes · {normalizedLayout.edges.length} edges
+        {visibleGraph.nodes.length} nodes · {visibleGraph.edges.length} edges
       </div>
     </div>
   );

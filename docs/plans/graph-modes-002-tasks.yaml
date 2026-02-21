@@ -1,0 +1,59 @@
+plan: graph-modes-002
+trace: DESIGN-graph-modes-local-depth
+spec: docs/specs/component/graph-modes-002.md
+generated: 2026-02-21
+approach: sequential
+tasks:
+  - id: GM-001
+    title: Add failing GraphView tests for node scope depth filtering and no-center empty state
+    status: planned
+    size: M
+    spec_refs: [FR-3, FR-4, FR-5]
+    concerns: [REL, CAP]
+    dependencies: []
+    acceptance: Node scope renders by bounded hop depth and shows explicit empty state without center note.
+
+  - id: GM-002
+    title: Add failing App tests for content mode toggle graph-scope selection
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2]
+    concerns: [CONF]
+    dependencies: [GM-001]
+    acceptance: Mode toggle exercises editor/vault-graph/node-graph cycle behavior.
+
+  - id: GM-003
+    title: Implement GraphView scope and depth filtering logic
+    status: planned
+    size: M
+    spec_refs: [FR-3, FR-4, FR-6]
+    concerns: [REL, CAP]
+    dependencies: [GM-002]
+    acceptance: Visible graph reflects scope/depth while preserving consistency and selection behavior.
+
+  - id: GM-004
+    title: Wire App graph scope and depth state with updated mode toggle behavior
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2, FR-4]
+    concerns: [CONF]
+    dependencies: [GM-003]
+    acceptance: App manages graph scope/depth and passes to GraphView in graph mode.
+
+  - id: GM-005
+    title: Add graph context controls for scope and depth adjustments
+    status: planned
+    size: S
+    spec_refs: [FR-2, FR-4]
+    concerns: [CONF, CAP]
+    dependencies: [GM-004]
+    acceptance: Users can see/adjust scope and bounded depth from graph controls.
+
+  - id: GM-006
+    title: Verify tests, typecheck, lint and publish audit
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6]
+    concerns: [CONF, REL, CAP]
+    dependencies: [GM-005]
+    acceptance: Compliance report produced and quality gates pass.

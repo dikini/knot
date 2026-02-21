@@ -24,6 +24,7 @@ import "./styles/App.css";
 // SPEC: COMP-LAYOUT-RECOVERY-001 FR-1, FR-2
 // SPEC: COMP-ICON-CHROME-001 FR-3, FR-4
 // SPEC: COMP-TOOL-RAIL-CONTEXT-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8
+// SPEC: COMP-GRAPH-MODES-002 FR-1, FR-2, FR-4
 type ToolPanelPolicy = "panel-required" | "panel-optional" | "panel-independent";
 const TOOL_PANEL_POLICY: Record<ShellToolMode, ToolPanelPolicy> = {
   notes: "panel-required",
@@ -34,6 +35,19 @@ const TOOL_PANEL_POLICY: Record<ShellToolMode, ToolPanelPolicy> = {
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
+  const [graphScope, setGraphScope] = useState<"vault" | "node">("vault");
+  const [nodeGraphDepth, setNodeGraphDepth] = useState(1);
+  const [graphSelection, setGraphSelection] = useState<{
+    path: string | null;
+    title: string | null;
+    neighbors: string[];
+    backlinks: string[];
+  }>({
+    path: null,
+    title: null,
+    neighbors: [],
+    backlinks: [],
+  });
   const [editorSurfaceMode, setEditorSurfaceMode] = useState<"sepia" | "dark">("sepia");
   const [editorMeasureBand, setEditorMeasureBand] = useState<45 | 54 | 62 | 70>(54);
   // SPEC: COMP-COMPLIANCE-001 FR-1, FR-2
@@ -118,14 +132,6 @@ function App() {
     const key = `knot:view-mode:${vault.path}`;
     localStorage.setItem(key, viewMode);
   }, [vault, viewMode, hydratedViewModeVaultPath]);
-
-  useEffect(() => {
-    if (shell.toolMode === "graph") {
-      setViewMode("graph");
-      return;
-    }
-    setViewMode("editor");
-  }, [shell.toolMode]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -339,15 +345,21 @@ function App() {
   };
 
   const toggleViewMode = () => {
-    setViewMode((mode) => (mode === "editor" ? "graph" : "editor"));
+    if (viewMode === "editor") {
+      setGraphScope("node");
+      setViewMode("graph");
+      return;
+    }
+
+    setViewMode("editor");
   };
 
   const handleGraphNodeClick = async (path: string) => {
+    setGraphSelection((previous) => ({ ...previous, path }));
     try {
       await loadNote(path);
-      setViewMode("editor");
     } catch (err) {
-      error(err instanceof Error ? err.message : "Failed to open note from graph");
+      error(err instanceof Error ? err.message : "Failed to select note from graph");
     }
   };
 
@@ -374,6 +386,10 @@ function App() {
     }
 
     setShellToolMode(nextMode);
+    if (nextMode === "graph") {
+      setGraphScope("vault");
+      setViewMode("graph");
+    }
     const policy = TOOL_PANEL_POLICY[nextMode];
 
     if (policy === "panel-required") {
@@ -393,10 +409,14 @@ function App() {
 
   const graphControlsContent = (
     <GraphContextPanel
-      selectedTitle={currentNote?.title ?? null}
-      selectedPath={currentNote?.path ?? null}
-      neighbors={[]}
-      backlinks={[]}
+      selectedTitle={graphSelection.title}
+      selectedPath={graphSelection.path}
+      neighbors={graphSelection.neighbors}
+      backlinks={graphSelection.backlinks}
+      scope={graphScope}
+      nodeScopeDepth={nodeGraphDepth}
+      onScopeChange={setGraphScope}
+      onNodeScopeDepthChange={setNodeGraphDepth}
       onResetView={() => setGraphSize({ width: 900, height: 600 })}
       onOpenEditor={() => setViewMode("editor")}
       showLabels={shell.showTextLabels}
@@ -494,9 +514,13 @@ function App() {
                 width={graphSize.width}
                 height={Math.max(240, graphSize.height - 52)}
                 onNodeClick={handleGraphNodeClick}
+                onSelectionChange={setGraphSelection}
                 showLabels={shell.showTextLabels}
+                scope={graphScope}
+                centerNodeId={currentNote?.path ?? null}
+                nodeScopeDepth={nodeGraphDepth}
                 // SPEC: COMP-GRAPH-CONSISTENCY-001 FR-3
-                selectedNodeId={currentNote?.path ?? null}
+                selectedNodeId={graphSelection.path ?? currentNote?.path ?? null}
               />
             )}
           </div>

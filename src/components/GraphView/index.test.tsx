@@ -31,10 +31,12 @@ describe("GraphView Component", () => {
       { id: "note1.md", label: "Note 1", x: 100, y: 100 },
       { id: "note2.md", label: "Note 2", x: 200, y: 150 },
       { id: "note3.md", label: "Note 3", x: 150, y: 200 },
+      { id: "note4.md", label: "Note 4", x: 260, y: 240 },
     ],
     edges: [
       { source: "note1.md", target: "note2.md" },
       { source: "note1.md", target: "note3.md" },
+      { source: "note2.md", target: "note4.md" },
     ],
   };
 
@@ -64,8 +66,8 @@ describe("GraphView Component", () => {
       render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
 
       await waitFor(() => {
-        const nodes = screen.getAllByText(/Note [1-3]/);
-        expect(nodes.length).toBe(3);
+        const nodes = screen.getAllByText(/Note [1-4]/);
+        expect(nodes.length).toBe(4);
       });
     });
 
@@ -161,8 +163,8 @@ describe("GraphView Component", () => {
       render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
 
       await waitFor(() => {
-        const nodes = screen.getAllByText(/Note [1-3]/);
-        expect(nodes.length).toBe(3);
+        const nodes = screen.getAllByText(/Note [1-4]/);
+        expect(nodes.length).toBe(4);
       });
     });
 
@@ -210,8 +212,8 @@ describe("GraphView Component", () => {
       render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
 
       await waitFor(() => {
-        const nodes = screen.getAllByText(/Note [1-3]/);
-        expect(nodes.length).toBe(3);
+        const nodes = screen.getAllByText(/Note [1-4]/);
+        expect(nodes.length).toBe(4);
       });
     });
 
@@ -256,6 +258,62 @@ describe("GraphView Component", () => {
       expect(
         await screen.findByText("type-systems (programming/type-systems)")
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("Local graph scope", () => {
+    it("hides nodes beyond depth 1 in node scope", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(
+        <GraphView
+          width={800}
+          height={600}
+          onNodeClick={mockOnNodeClick}
+          scope="node"
+          centerNodeId="note1.md"
+          nodeScopeDepth={1}
+        />
+      );
+
+      expect(await screen.findByText("Note 1")).toBeInTheDocument();
+      expect(screen.getByText("Note 2")).toBeInTheDocument();
+      expect(screen.getByText("Note 3")).toBeInTheDocument();
+      expect(screen.queryByText("Note 4")).not.toBeInTheDocument();
+    });
+
+    it("includes farther neighbors when node depth increases", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(
+        <GraphView
+          width={800}
+          height={600}
+          onNodeClick={mockOnNodeClick}
+          scope="node"
+          centerNodeId="note1.md"
+          nodeScopeDepth={2}
+        />
+      );
+
+      expect(await screen.findByText("Note 4")).toBeInTheDocument();
+    });
+
+    it("shows a hint when node scope has no center note", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(
+        <GraphView
+          width={800}
+          height={600}
+          onNodeClick={mockOnNodeClick}
+          scope="node"
+          centerNodeId={null}
+          nodeScopeDepth={1}
+        />
+      );
+
+      expect(await screen.findByText(/select a note to view local graph/i)).toBeInTheDocument();
     });
   });
 });
