@@ -11,6 +11,7 @@ import { Sidebar } from "@components/Sidebar";
 import { ToastContainer } from "@components/Toast";
 import { useToast } from "@hooks/useToast";
 import { useVaultStore } from "@lib/store";
+import type { ShellToolMode } from "@lib/store";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
 import * as api from "@lib/api";
 import type { RecentVault } from "@lib/api";
@@ -22,6 +23,14 @@ import "./styles/App.css";
 // SPEC: COMP-GRAPH-UI-001 FR-4
 // SPEC: COMP-LAYOUT-RECOVERY-001 FR-1, FR-2
 // SPEC: COMP-ICON-CHROME-001 FR-3, FR-4
+// SPEC: COMP-TOOL-RAIL-CONTEXT-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8
+type ToolPanelPolicy = "panel-required" | "panel-optional" | "panel-independent";
+const TOOL_PANEL_POLICY: Record<ShellToolMode, ToolPanelPolicy> = {
+  notes: "panel-required",
+  search: "panel-required",
+  graph: "panel-optional",
+};
+
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
   const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
@@ -31,6 +40,11 @@ function App() {
   const [hydratedViewModeVaultPath, setHydratedViewModeVaultPath] = useState<string | null>(null);
   const [hydratedShellVaultPath, setHydratedShellVaultPath] = useState<string | null>(null);
   const [graphSize, setGraphSize] = useState({ width: 900, height: 600 });
+  const [optionalPanelVisibilityByTool, setOptionalPanelVisibilityByTool] = useState<
+    Partial<Record<ShellToolMode, boolean>>
+  >({
+    graph: true,
+  });
   const contentAreaRef = useRef<HTMLDivElement>(null);
   const {
     vault,
@@ -346,6 +360,37 @@ function App() {
     }
   };
 
+  const handleToolModeSelect = (nextMode: ShellToolMode) => {
+    const currentMode = shell.toolMode;
+    const isPanelVisible = !shell.isContextPanelCollapsed;
+
+    if (nextMode === currentMode) {
+      const nextVisibility = !isPanelVisible;
+      if (TOOL_PANEL_POLICY[nextMode] === "panel-optional") {
+        setOptionalPanelVisibilityByTool((state) => ({ ...state, [nextMode]: nextVisibility }));
+      }
+      toggleContextPanel();
+      return;
+    }
+
+    setShellToolMode(nextMode);
+    const policy = TOOL_PANEL_POLICY[nextMode];
+
+    if (policy === "panel-required") {
+      if (!isPanelVisible) {
+        toggleContextPanel();
+      }
+      return;
+    }
+
+    if (policy === "panel-optional") {
+      const shouldBeVisible = optionalPanelVisibilityByTool[nextMode] ?? true;
+      if (shouldBeVisible !== isPanelVisible) {
+        toggleContextPanel();
+      }
+    }
+  };
+
   const graphControlsContent = (
     <GraphContextPanel
       selectedTitle={currentNote?.title ?? null}
@@ -364,13 +409,12 @@ function App() {
       <ToolRail
         mode={shell.toolMode}
         showLabels={shell.showTextLabels}
-        onModeChange={setShellToolMode}
+        onModeChange={handleToolModeSelect}
       />
       <ContextPanel
         mode={shell.toolMode}
         collapsed={shell.isContextPanelCollapsed}
         width={shell.contextPanelWidth}
-        onToggleCollapse={toggleContextPanel}
         notesContent={
           <Sidebar
             recentVaults={recentVaults}

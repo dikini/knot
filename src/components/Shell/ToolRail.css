@@ -1,11 +1,14 @@
 .tool-rail {
-  width: 104px;
+  width: 80px;
+  min-width: 80px;
+  align-self: stretch;
+  min-height: 100vh;
   border-right: 1px solid var(--color-border);
   background: linear-gradient(180deg, #1e2329 0%, #1b2026 100%);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 12px 10px;
+  padding: 12px 8px;
   gap: 12px;
 }
 

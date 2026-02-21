@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SearchBox } from "./index";
 
@@ -91,8 +91,10 @@ describe("SearchBox Component", () => {
       expect(searchNotes).not.toHaveBeenCalled();
 
       // Advance debounce timer.
-      vi.advanceTimersByTime(300);
-      await vi.runAllTimersAsync();
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+        await vi.runAllTimersAsync();
+      });
       expect(searchNotes).toHaveBeenCalledOnce();
       expect(searchNotes).toHaveBeenCalledWith("test", 10);
     });
@@ -113,8 +115,10 @@ describe("SearchBox Component", () => {
       expect(screen.getByText("Searching...")).toBeInTheDocument();
 
       // After debounce, dropdown should appear
-      vi.advanceTimersByTime(300);
-      await vi.runAllTimersAsync();
+      await act(async () => {
+        vi.advanceTimersByTime(300);
+        await vi.runAllTimersAsync();
+      });
       expect(screen.getByRole("listbox")).toBeInTheDocument();
     });
   });

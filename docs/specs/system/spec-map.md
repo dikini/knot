@@ -37,6 +37,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-EDITOR-MODES-001 | editor-modes | designed | component/editor-modes-wysiwym-001.md | [CONF, REL] | implemented (M0-M4 verified) |
 | COMP-MCP-SERVER-001 | mcp-server | designed | component/mcp-server-001.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-MCP-SERVER-002 | mcp-server-mutations | designed | component/mcp-server-mutations-002.md | [REL, CONF] | implemented (verified 100%) |
+| COMP-TOOL-RAIL-CONTEXT-001 | tool-rail-context-policy | designed | component/tool-rail-context-policy-001.md | [CONF, REL, CAP] | implemented (verified 100%) |
 
 ## Interfaces
 
@@ -126,3 +127,5 @@ docs/specs/
 | 2026-02-20 | Implement editor modes M4 (floating-control keyboard access, focus states, and expanded markdown fidelity checks) and verify | COMP-EDITOR-MODES-001 |
 | 2026-02-20 | Design and implement MCP server with core tools and note resources | COMP-MCP-SERVER-001 |
 | 2026-02-20 | Extend MCP server with note mutation and directory management tools | COMP-MCP-SERVER-002 |
+| 2026-02-21 | Add tool rail and context panel interaction policy for deterministic toggling and future tool classification | COMP-TOOL-RAIL-CONTEXT-001 |
+| 2026-02-21 | Implement and verify hybrid tool/context policy with active-tool toggle and zero-trace folded panel | COMP-TOOL-RAIL-CONTEXT-001 |

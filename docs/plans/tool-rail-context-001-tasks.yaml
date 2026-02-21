@@ -1,0 +1,68 @@
+plan: tool-rail-context-001
+trace: DESIGN-tool-rail-context-policy
+spec: docs/specs/component/tool-rail-context-policy-001.md
+generated: 2026-02-21
+approach: sequential
+tasks:
+  - id: TRC-001
+    title: Add failing tests for tool-activation policy transitions
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5, FR-6, FR-7]
+    concerns: [CONF, REL]
+    dependencies: []
+    acceptance: Active re-click toggles panel; inactive click follows policy class behavior.
+
+  - id: TRC-002
+    title: Add failing tests for folded zero-trace panel and no in-panel collapse button
+    status: planned
+    size: S
+    spec_refs: [FR-2, FR-3]
+    concerns: [CONF]
+    dependencies: [TRC-001]
+    acceptance: Folded panel has no visible trace and context panel renders without fold button.
+
+  - id: TRC-003
+    title: Add failing style/layout checks for narrower rail and full-height border continuity
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-8]
+    concerns: [CONF, CAP]
+    dependencies: [TRC-002]
+    acceptance: Tests/assertions lock rail width reduction and full-height border behavior.
+
+  - id: TRC-004
+    title: Implement shell tool-activation policy model with graph optional visibility memory
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5, FR-6, FR-7]
+    concerns: [CONF, REL]
+    dependencies: [TRC-003]
+    acceptance: State/actions enforce class-driven activation rules and graph remembers last visibility.
+
+  - id: TRC-005
+    title: Refactor ToolRail and ContextPanel wiring for active-tool-only toggle and zero-width folded rendering
+    status: planned
+    size: S
+    spec_refs: [FR-2, FR-3, FR-4, FR-5]
+    concerns: [CONF]
+    dependencies: [TRC-004]
+    acceptance: Panel toggle occurs only through active tool click; no panel fold control; folded state occupies no width.
+
+  - id: TRC-006
+    title: Apply CSS updates for narrower rail and full-height border visuals
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-8]
+    concerns: [CONF, CAP]
+    dependencies: [TRC-005]
+    acceptance: Rail is narrower and border appears continuous to viewport bottom regardless of panel content.
+
+  - id: TRC-007
+    title: Verify tests, typecheck, lint, and publish audit
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8]
+    concerns: [CONF, REL, CAP]
+    dependencies: [TRC-006]
+    acceptance: Verification report documents compliance and any residual gaps.

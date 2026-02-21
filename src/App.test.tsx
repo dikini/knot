@@ -100,8 +100,10 @@ vi.mock("@hooks/useToast", () => ({
 }));
 
 vi.mock("@lib/api", () => ({
-  getRecentVaults: vi.fn().mockResolvedValue([]),
-  isVaultOpen: vi.fn().mockResolvedValue(false),
+  // Keep mount-time API effects pending by default so tests don't get
+  // post-assertion state updates that trigger act(...) warnings.
+  getRecentVaults: vi.fn(() => new Promise<never>(() => {})),
+  isVaultOpen: vi.fn(() => new Promise<never>(() => {})),
   getVaultInfo: vi.fn().mockResolvedValue(null),
   syncExternalChanges: vi.fn().mockResolvedValue(undefined),
   openVaultDialog: vi.fn(),
@@ -305,6 +307,43 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     render(<App />);
     fireEvent.click(await screen.findByRole("button", { name: /labels/i }));
     expect(mockStoreState.setShowTextLabels).toHaveBeenCalledWith(true);
+  });
+
+  it("toggles context panel when clicking the active tool", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /notes/i }));
+
+    expect(mockStoreState.toggleContextPanel).toHaveBeenCalledTimes(1);
+    expect(mockStoreState.setShellToolMode).not.toHaveBeenCalledWith("notes");
+  });
+
+  it("forces context panel open when activating required tools", async () => {
+    mockStoreState.shell.toolMode = "graph";
+    mockStoreState.shell.isContextPanelCollapsed = true;
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /search/i }));
+
+    expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");
+    expect(mockStoreState.toggleContextPanel).toHaveBeenCalledTimes(1);
+  });
+
+  it("restores graph panel visibility when graph is re-activated", async () => {
+    mockStoreState.shell.toolMode = "graph";
+    mockStoreState.shell.isContextPanelCollapsed = false;
+    const { rerender } = render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /graph/i }));
+    expect(mockStoreState.toggleContextPanel).toHaveBeenCalledTimes(1);
+
+    rerender(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /notes/i }));
+    expect(mockStoreState.toggleContextPanel).toHaveBeenCalledTimes(2);
+
+    rerender(<App />);
+    fireEvent.click(await screen.findByRole("button", { name: /graph/i }));
+    expect(mockStoreState.toggleContextPanel).toHaveBeenCalledTimes(3);
   });
 
   it("applies comfortable shell class by default", () => {

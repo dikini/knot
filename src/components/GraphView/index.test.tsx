@@ -148,6 +148,8 @@ describe("GraphView Component", () => {
 
   describe("FR-3: Layout from backend", () => {
     it("should fetch layout on mount", () => {
+      // Keep promise pending: this assertion only verifies effect invocation.
+      vi.mocked(getGraphLayout).mockImplementation(() => new Promise(() => {}));
       render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
 
       expect(getGraphLayout).toHaveBeenCalledWith(800, 600);
@@ -185,7 +187,8 @@ describe("GraphView Component", () => {
 
   describe("FR-4: Toggle between views", () => {
     it("should respect width and height props", () => {
-      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+      // Keep promise pending: this assertion only verifies prop-driven fetch calls.
+      vi.mocked(getGraphLayout).mockImplementation(() => new Promise(() => {}));
 
       const { rerender } = render(
         <GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />
