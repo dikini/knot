@@ -144,10 +144,11 @@ function parseCodeBlock(lines: string[], start: number): { node: ProseMirrorNode
     i++;
   }
   
+  const codeText = code.join("\n");
+  const contentNodes = codeText.length > 0 ? [schema.text(codeText)] : [];
+
   return {
-    node: schema.node("code_block", { language: lang || null }, [
-      schema.text(code.join("\n")),
-    ]),
+    node: schema.node("code_block", { language: lang || null }, contentNodes),
     nextIndex: i,
   };
 }
@@ -233,7 +234,9 @@ function parseInline(text: string): ProseMirrorNode[] {
       const endIdx = findClosing(text, i + 3, text.slice(i, i + 3));
       if (endIdx > 0) {
         const inner = text.slice(i + 3, endIdx);
-        nodes.push(schema.text(inner, [schema.mark("em"), schema.mark("strong")]));
+        if (inner.length > 0) {
+          nodes.push(schema.text(inner, [schema.mark("em"), schema.mark("strong")]));
+        }
         i = endIdx + 3;
       } else {
         currentText += text[i];
@@ -295,7 +298,9 @@ function parseInline(text: string): ProseMirrorNode[] {
       const endIdx = findClosing(text, i + 1, "`");
       if (endIdx > 0) {
         const code = text.slice(i + 1, endIdx);
-        nodes.push(schema.text(code, [schema.mark("code")]));
+        if (code.length > 0) {
+          nodes.push(schema.text(code, [schema.mark("code")]));
+        }
         i = endIdx + 1;
       } else {
         currentText += text[i];
@@ -333,7 +338,9 @@ function parseInline(text: string): ProseMirrorNode[] {
         if (closeParen > 0) {
           const display = text.slice(i + 1, closeBracket);
           const href = text.slice(closeBracket + 2, closeParen);
-          nodes.push(schema.text(display, [schema.mark("link", { href, title: null })]));
+          if (display.length > 0) {
+            nodes.push(schema.text(display, [schema.mark("link", { href, title: null })]));
+          }
           i = closeParen + 1;
         } else {
           currentText += text[i];
@@ -353,7 +360,9 @@ function parseInline(text: string): ProseMirrorNode[] {
       const endIdx = findClosing(text, i + 2, "~~");
       if (endIdx > 0) {
         const inner = text.slice(i + 2, endIdx);
-        nodes.push(schema.text(inner, [schema.mark("strike")]));
+        if (inner.length > 0) {
+          nodes.push(schema.text(inner, [schema.mark("strike")]));
+        }
         i = endIdx + 2;
       } else {
         currentText += text[i];

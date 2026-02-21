@@ -53,6 +53,15 @@ describe("Markdown Parser", () => {
       expect(doc.child(0).textContent).toBe("const x = 1;");
     });
 
+    it("should parse empty code block without creating empty text nodes", () => {
+      const markdown = "```\n\n```";
+
+      expect(() => parseMarkdown(markdown)).not.toThrow();
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+      expect(serialized).toContain("```");
+    });
+
     it("should parse code blocks without language", () => {
       const doc = parseMarkdown("```\ncode\n```");
 

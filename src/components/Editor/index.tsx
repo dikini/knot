@@ -4,9 +4,9 @@ import { renderMarkdownToHtml } from "@editor/render";
 import { IconButton } from "@components/IconButton";
 import { useEditorStore, useVaultStore } from "@lib/store";
 import * as api from "@lib/api";
-import { Save, Bold, Italic, Link2, Code, Plus, X } from "lucide-react";
+import { Save, Bold, Italic, Link2, Code, Plus, X, FileCode2, TextQuote } from "lucide-react";
 import { toggleMark } from "prosemirror-commands";
-import { TextSelection, type Command } from "prosemirror-state";
+import { Selection, TextSelection, type Command } from "prosemirror-state";
 import { schema } from "@editor/schema";
 import type { ProseMirrorEditor } from "../../types/editor";
 import "./Editor.css";
@@ -138,7 +138,8 @@ export function Editor() {
           placeBelow,
         });
       },
-      initialContent: content || currentNote.content || initialContentRef.current,
+      initialContent:
+        useEditorStore.getState().content || currentNote.content || initialContentRef.current,
     });
 
     pmRef.current = pm;
@@ -147,7 +148,7 @@ export function Editor() {
       pm.destroy();
       pmRef.current = null;
     };
-  }, [editorMode, content, currentNote, setContent, markDirty]);
+  }, [editorMode, currentNote, setContent, markDirty]);
 
   const runCommand = useCallback((command: Command) => {
     if (!pmRef.current) return;
@@ -170,22 +171,25 @@ export function Editor() {
       if (!pmRef.current) return;
       const { view } = pmRef.current;
       const { state, dispatch } = view;
-      const { $from } = state.selection;
-      const depth = Math.min(1, $from.depth);
-      const insertPos = depth > 0 ? $from.after(depth) : state.selection.to;
+      const insertPos = state.selection.to;
 
       let node;
-      let cursorPos = insertPos + 1;
 
       if (kind === "code_block") {
         node = schema.nodes.code_block.create({ language: null });
       } else {
         node = schema.nodes.blockquote.create(null, schema.nodes.paragraph.create());
-        cursorPos = insertPos + 2;
       }
 
-      const tr = state.tr.insert(insertPos, node);
-      tr.setSelection(TextSelection.create(tr.doc, cursorPos));
+      let tr = state.tr.insert(insertPos, node);
+      const nearPos = Math.min(insertPos + 1, tr.doc.content.size);
+      const resolved = tr.doc.resolve(nearPos);
+      tr = tr.setSelection(Selection.near(resolved, 1));
+
+      if (!(tr.selection instanceof TextSelection)) {
+        tr = tr.setSelection(TextSelection.create(tr.doc, tr.selection.from));
+      }
+
       dispatch(tr.scrollIntoView());
       view.focus();
       setBlockMenuOpen(false);
@@ -261,6 +265,7 @@ export function Editor() {
   // Load note content when currentNote changes
   useEffect(() => {
     if (!pmRef.current || !currentNote || editorMode !== "edit") return;
+    if (isDirty) return;
 
     // Only update if content is different (avoid loops)
     const currentMarkdown = pmRef.current.getMarkdown();
@@ -268,7 +273,7 @@ export function Editor() {
       pmRef.current.setMarkdown(currentNote.content);
       reset();
     }
-  }, [currentNote, editorMode, reset]);
+  }, [currentNote, editorMode, isDirty, reset]);
 
   const effectiveMarkdown = content || currentNote?.content || "";
   const renderedHtml = useMemo(
@@ -408,6 +413,7 @@ export function Editor() {
             >
               <button
                 type="button"
+                className="editor-selection-toolbar__action"
                 aria-label="Bold"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
@@ -417,9 +423,11 @@ export function Editor() {
                 }}
               >
                 <Bold size={14} />
+                <span className="editor-selection-toolbar__label">Bold</span>
               </button>
               <button
                 type="button"
+                className="editor-selection-toolbar__action"
                 aria-label="Italic"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
@@ -429,9 +437,11 @@ export function Editor() {
                 }}
               >
                 <Italic size={14} />
+                <span className="editor-selection-toolbar__label">Italic</span>
               </button>
               <button
                 type="button"
+                className="editor-selection-toolbar__action"
                 aria-label="Code"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
@@ -441,14 +451,17 @@ export function Editor() {
                 }}
               >
                 <Code size={14} />
+                <span className="editor-selection-toolbar__label">Code</span>
               </button>
               <button
                 type="button"
+                className="editor-selection-toolbar__action"
                 aria-label="Link"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={handleToggleLink}
               >
                 <Link2 size={14} />
+                <span className="editor-selection-toolbar__label">Link</span>
               </button>
             </div>
           )}
@@ -470,7 +483,7 @@ export function Editor() {
                   }
                 }}
               >
-                {blockMenuOpen ? <X size={13} /> : <Plus size={13} />}
+                {blockMenuOpen ? <X size={17} strokeWidth={2.8} /> : <Plus size={17} strokeWidth={2.8} />}
               </button>
               {blockMenuOpen && (
                 <div
@@ -483,16 +496,20 @@ export function Editor() {
                   <button
                     type="button"
                     role="menuitem"
+                    className="editor-block-tool__menu-item"
                     onClick={() => insertBlockAfterSelection("code_block")}
                   >
-                    Code block
+                    <FileCode2 size={14} data-testid="block-menu-icon-code" aria-hidden="true" />
+                    <span>Code block</span>
                   </button>
                   <button
                     type="button"
                     role="menuitem"
+                    className="editor-block-tool__menu-item"
                     onClick={() => insertBlockAfterSelection("blockquote")}
                   >
-                    Blockquote
+                    <TextQuote size={14} data-testid="block-menu-icon-quote" aria-hidden="true" />
+                    <span>Blockquote</span>
                   </button>
                 </div>
               )}

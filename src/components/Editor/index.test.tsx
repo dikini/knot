@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { Editor } from "./index";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import * as api from "@lib/api";
@@ -158,6 +158,32 @@ describe("Editor Component", () => {
       );
     });
 
+    it("preserves unsaved source edits when moving source -> view -> edit", () => {
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        setContent: (next) =>
+          useEditorStore.setState((prev) => ({
+            ...prev,
+            content: next,
+            isDirty: true,
+          })),
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      const sourceEditor = screen.getByLabelText("Source markdown editor");
+      fireEvent.change(sourceEditor, { target: { value: "# Unsaved\n\nStill here" } });
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+      expect(screen.getByRole("heading", { name: "Unsaved" })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+
+      const initCall = mockInitProseMirrorEditor.mock.calls.at(-1);
+      const options = initCall?.[1] as { initialContent?: string };
+      expect(options.initialContent).toBe("# Unsaved\n\nStill here");
+    });
+
     it("preserves links, blockquote, and code block across source -> view -> source", () => {
       useEditorStore.setState({
         ...useEditorStore.getState(),
@@ -274,6 +300,68 @@ describe("Editor Component", () => {
       fireEvent.keyDown(menu, { key: "Escape" });
       expect(screen.queryByRole("menu", { name: "Insert block" })).not.toBeInTheDocument();
       expect(document.activeElement).toBe(toggle);
+    });
+
+    it("renders icon+label block menu actions", async () => {
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+
+      const initCall = mockInitProseMirrorEditor.mock.calls[0];
+      const options = initCall?.[1] as {
+        onSelectionChange?: (selection: { from: number; to: number; empty: boolean }) => void;
+      };
+      act(() => {
+        options.onSelectionChange?.({ from: 2, to: 2, empty: true });
+      });
+
+      fireEvent.click(await screen.findByRole("button", { name: "Open block menu" }));
+      const menu = await screen.findByRole("menu", { name: "Insert block" });
+
+      expect(within(menu).getByRole("menuitem", { name: "Code block" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Blockquote" })).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-code")).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-quote")).toBeInTheDocument();
+    });
+
+    it("does not reinitialize ProseMirror on content sync changes", async () => {
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        setContent: (next) =>
+          useEditorStore.setState((prev) => ({
+            ...prev,
+            content: next,
+          })),
+        markDirty: (next) =>
+          useEditorStore.setState((prev) => ({
+            ...prev,
+            isDirty: next,
+          })),
+      });
+
+      render(<Editor />);
+
+      const initCall = mockInitProseMirrorEditor.mock.calls[0];
+      const options = initCall?.[1] as {
+        onChange?: (state: {
+          markdown: string;
+          cursorPosition: number;
+          selection: { from: number; to: number };
+        }) => void;
+      };
+
+      act(() => {
+        options.onChange?.({
+          markdown: "# Test\n\nPersist paragraph",
+          cursorPosition: 4,
+          selection: { from: 4, to: 4 },
+        });
+      });
+
+      await waitFor(() => {
+        expect(useEditorStore.getState().content).toBe("# Test\n\nPersist paragraph");
+      });
+
+      expect(mockInitProseMirrorEditor).toHaveBeenCalledTimes(1);
     });
 
     it("should show dirty indicator when content is dirty", () => {

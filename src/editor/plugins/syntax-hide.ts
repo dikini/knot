@@ -76,56 +76,6 @@ export function syntaxHidePlugin(): Plugin {
       decorations(state) {
         return this.getState(state);
       },
-      
-      // Optional: Handle custom node views for more control
-      nodeViews: {
-        heading(node, view, getPos) {
-          const dom = document.createElement("div");
-          const contentDOM = document.createElement("span");
-          
-          dom.className = `heading-view heading-view--h${node.attrs.level}`;
-          
-          // Create the visual representation
-          const updateView = () => {
-            const pos = getPos();
-            if (pos === undefined) return;
-            
-            const selection = view.state.selection;
-            const isActive = selection.head >= pos && selection.head <= pos + node.nodeSize;
-            
-            dom.innerHTML = "";
-            
-            if (isActive) {
-              // Active: show # prefix
-              const prefix = document.createElement("span");
-              prefix.className = "heading-prefix";
-              prefix.textContent = "#".repeat(node.attrs.level) + " ";
-              dom.appendChild(prefix);
-              dom.appendChild(contentDOM);
-              dom.classList.add("heading-view--active");
-              dom.classList.remove("heading-view--inactive");
-            } else {
-              // Inactive: hide #, just style
-              dom.appendChild(contentDOM);
-              dom.classList.add("heading-view--inactive");
-              dom.classList.remove("heading-view--active");
-            }
-          };
-          
-          // Initial update
-          updateView();
-          
-          return {
-            dom,
-            contentDOM,
-            update: (updatedNode) => {
-              if (updatedNode.type.name !== "heading") return false;
-              updateView();
-              return true;
-            },
-          };
-        },
-      },
     },
   });
 }

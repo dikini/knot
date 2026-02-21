@@ -1,0 +1,48 @@
+tasks:
+  - id: EWY-001
+    title: "Add failing test for heading marker leakage"
+    status: planned
+    size: S
+    spec_refs: [FR-1]
+    dependencies: []
+    acceptance: "Syntax plugin test fails while heading-prefix injection still exists"
+
+  - id: EWY-002
+    title: "Add failing test for icon+label block menu distinguishability"
+    status: planned
+    size: S
+    spec_refs: [FR-2, FR-3]
+    dependencies: [EWY-001]
+    acceptance: "Editor test fails until block menu renders clear icon+label actions"
+
+  - id: EWY-003
+    title: "Add failing lifecycle test for no reinit on content sync"
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5]
+    dependencies: [EWY-002]
+    acceptance: "Editor test fails until onChange content updates no longer reinitialize PM editor"
+
+  - id: EWY-004
+    title: "Remove heading prefix injection in edit mode"
+    status: planned
+    size: M
+    spec_refs: [FR-1]
+    dependencies: [EWY-003]
+    acceptance: "No heading marker node view injection in syntax plugin"
+
+  - id: EWY-005
+    title: "Implement icon-forward edit tool visuals"
+    status: planned
+    size: M
+    spec_refs: [FR-2, FR-3]
+    dependencies: [EWY-004]
+    acceptance: "Block and selection tools remain visually distinguishable"
+
+  - id: EWY-006
+    title: "Stabilize editor lifecycle and verify paragraph persistence"
+    status: planned
+    size: S
+    spec_refs: [FR-4, FR-5]
+    dependencies: [EWY-005]
+    acceptance: "No reinit churn on content updates and verification passes"

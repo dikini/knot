@@ -196,12 +196,15 @@
 }
 
 .editor-selection-toolbar button {
-  border: 0;
-  width: 28px;
+  border: 1px solid var(--editor-float-border);
+  width: auto;
+  min-width: 28px;
   height: 28px;
+  padding: 0 0.45rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 5px;
   border-radius: 6px;
   color: var(--editor-float-icon);
   background: rgba(255, 255, 255, 0.08);
@@ -210,6 +213,7 @@
 
 .editor-selection-toolbar button:hover {
   background: var(--editor-float-hover);
+  border-color: var(--editor-accent);
 }
 
 .editor-selection-toolbar button:focus-visible {
@@ -218,13 +222,19 @@
   background: var(--editor-float-hover);
 }
 
+.editor-selection-toolbar__label {
+  font-size: 0.72rem;
+  line-height: 1;
+  color: inherit;
+}
+
 .editor-selection-toolbar button svg,
 .editor-block-tool__toggle svg,
 .editor-block-tool__menu button svg {
   display: block;
   color: inherit;
   stroke: currentColor;
-  stroke-width: 2;
+  stroke-width: 2.2;
   opacity: 1;
 }
 
@@ -237,21 +247,37 @@
 }
 
 .editor-block-tool__toggle {
-  border: 1px solid var(--editor-float-border);
-  width: 28px;
-  height: 28px;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--editor-accent-hover);
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  line-height: 0;
+  font-size: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  color: var(--editor-float-icon);
-  background: var(--editor-float-bg);
+  color: var(--editor-on-accent);
+  background: var(--editor-accent);
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .editor-block-tool__toggle:hover {
-  background: var(--editor-float-hover);
+  background: var(--editor-accent-hover);
+}
+
+.editor-block-tool__toggle svg {
+  color: var(--editor-on-accent);
+  stroke: currentColor;
+  stroke-width: 2.9;
+  width: 18px;
+  height: 18px;
+  opacity: 1;
 }
 
 .editor-block-tool__toggle:focus-visible {
@@ -278,6 +304,12 @@
   padding: 0.22rem 0.5rem;
   font-size: 0.78rem;
   cursor: pointer;
+}
+
+.editor-block-tool__menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .editor-block-tool__menu button:hover {
