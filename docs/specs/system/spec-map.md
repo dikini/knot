@@ -39,6 +39,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-MCP-SERVER-002 | mcp-server-mutations | designed | component/mcp-server-mutations-002.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-TOOL-RAIL-CONTEXT-001 | tool-rail-context-policy | designed | component/tool-rail-context-policy-001.md | [CONF, REL, CAP] | implemented (verified 100%) |
 | COMP-GRAPH-MODES-002 | graph-modes | designed | component/graph-modes-002.md | [CONF, REL, CAP] | implemented (verified 100%) |
+| COMP-GRAPH-UI-CONTINUITY-003 | graph-ui-continuity | designed | component/graph-ui-continuity-003.md | [CONF, REL, CAP] | implemented (verified 100%) |
 | COMP-WINDOW-STARTUP-003 | window-startup-controls | designed | component/window-startup-controls-003.md | [CONF, REL] | implemented (verified 100%) |
 
 ## Interfaces
@@ -133,4 +134,6 @@ docs/specs/
 | 2026-02-21 | Implement and verify hybrid tool/context policy with active-tool toggle and zero-trace folded panel | COMP-TOOL-RAIL-CONTEXT-001 |
 | 2026-02-21 | Define vault/node graph scopes with bounded local depth controls | COMP-GRAPH-MODES-002 |
 | 2026-02-21 | Implement and verify vault/node graph scopes with bounded local depth controls | COMP-GRAPH-MODES-002 |
+| 2026-02-21 | Define graph UI continuity and toggle semantics refinement | COMP-GRAPH-UI-CONTINUITY-003 |
+| 2026-02-21 | Implement and verify graph UI continuity and toggle semantics refinement | COMP-GRAPH-UI-CONTINUITY-003 |
 | 2026-02-21 | Implement startup-ready window reveal and accessible in-app window controls | COMP-WINDOW-STARTUP-003 |

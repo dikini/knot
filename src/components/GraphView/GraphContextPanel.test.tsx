@@ -20,6 +20,7 @@ describe("GraphContextPanel", () => {
         backlinks={[]}
         onResetView={vi.fn()}
         onOpenEditor={vi.fn()}
+          onRelationSelect={vi.fn()}
       />
     );
 
@@ -37,6 +38,7 @@ describe("GraphContextPanel", () => {
         backlinks={["c.md"]}
         onResetView={vi.fn()}
         onOpenEditor={vi.fn()}
+          onRelationSelect={vi.fn()}
       />
     );
 
@@ -51,6 +53,7 @@ describe("GraphContextPanel", () => {
     const onOpenEditor = vi.fn();
     const onScopeChange = vi.fn();
     const onNodeScopeDepthChange = vi.fn();
+      const onRelationSelect = vi.fn();
 
     render(
       <GraphContextPanel
@@ -64,6 +67,7 @@ describe("GraphContextPanel", () => {
         backlinks={[]}
         onResetView={onResetView}
         onOpenEditor={onOpenEditor}
+          onRelationSelect={onRelationSelect}
       />
     );
 
@@ -76,5 +80,30 @@ describe("GraphContextPanel", () => {
     expect(onOpenEditor).toHaveBeenCalledTimes(1);
     expect(onScopeChange).toHaveBeenCalledWith("vault");
     expect(onNodeScopeDepthChange).toHaveBeenCalledWith(3);
+      expect(onRelationSelect).not.toHaveBeenCalled();
   });
+
+    it("selects neighbor and backlink items", () => {
+      const onRelationSelect = vi.fn();
+
+      render(
+        <GraphContextPanel
+          {...defaultScopeProps}
+          selectedTitle="My Note"
+          selectedPath="notes/my-note.md"
+          neighbors={["a.md"]}
+          backlinks={["c.md"]}
+          onResetView={vi.fn()}
+          onOpenEditor={vi.fn()}
+          onRelationSelect={onRelationSelect}
+        />
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "a.md" }));
+      fireEvent.click(screen.getByRole("button", { name: "c.md" }));
+
+      expect(onRelationSelect).toHaveBeenCalledTimes(2);
+      expect(onRelationSelect).toHaveBeenNthCalledWith(1, "a.md");
+      expect(onRelationSelect).toHaveBeenNthCalledWith(2, "c.md");
+    });
 });

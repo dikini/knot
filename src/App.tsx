@@ -363,6 +363,15 @@ function App() {
     }
   };
 
+  const handleGraphRelationSelect = async (path: string) => {
+    setGraphSelection((previous) => ({ ...previous, path }));
+    try {
+      await loadNote(path);
+    } catch (err) {
+      error(err instanceof Error ? err.message : "Failed to select note from graph context");
+    }
+  };
+
   const handleSearchResultSelect = async (path: string) => {
     try {
       await loadNote(path);
@@ -419,6 +428,7 @@ function App() {
       onNodeScopeDepthChange={setNodeGraphDepth}
       onResetView={() => setGraphSize({ width: 900, height: 600 })}
       onOpenEditor={() => setViewMode("editor")}
+      onRelationSelect={handleGraphRelationSelect}
       showLabels={shell.showTextLabels}
     />
   );
@@ -500,8 +510,8 @@ function App() {
                 onClick={() => setInspectorRailOpen(!shell.isInspectorRailOpen)}
               />
               <IconButton
-                icon={Network}
-                label="Mode"
+                icon={viewMode === "editor" ? Network : SquarePen}
+                label={viewMode === "editor" ? "Graph mode" : "Edit note"}
                 className="btn-secondary"
                 showLabel={shell.showTextLabels}
                 onClick={toggleViewMode}

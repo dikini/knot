@@ -1,0 +1,40 @@
+tasks:
+  - id: GUC-001
+    title: "Add failing tests for note-pane next-mode icon behavior"
+    status: planned
+    size: M
+    spec_refs: [FR-1]
+    dependencies: []
+    acceptance: "App tests fail until mode toggle icon reflects next mode"
+
+  - id: GUC-002
+    title: "Add failing tests for graph single scope toggle and selectable relationship rows"
+    status: planned
+    size: M
+    spec_refs: [FR-2, FR-3, FR-5]
+    dependencies: [GUC-001]
+    acceptance: "Graph context panel tests fail until scope toggle and row selection behaviors are implemented"
+
+  - id: GUC-003
+    title: "Implement next-mode icon behavior in App content mode toggle"
+    status: planned
+    size: S
+    spec_refs: [FR-1]
+    dependencies: [GUC-002]
+    acceptance: "Mode toggle icon shows graph in editor mode and edit icon in graph mode"
+
+  - id: GUC-004
+    title: "Implement single graph scope toggle and selectable neighbors/backlinks"
+    status: planned
+    size: S
+    spec_refs: [FR-2, FR-3, FR-5]
+    dependencies: [GUC-003]
+    acceptance: "Graph controls and lists satisfy interaction behavior without mode switch on relation click"
+
+  - id: GUC-005
+    title: "Apply continuity styling and verify plan acceptance"
+    status: planned
+    size: S
+    spec_refs: [FR-4]
+    dependencies: [GUC-004]
+    acceptance: "Relationship rows visually align with note list style and targeted verification passes"

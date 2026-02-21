@@ -226,11 +226,56 @@
 }
 
 .graph-context-panel__path {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
   color: var(--color-text-muted);
+  overflow-wrap: anywhere;
 }
 
 .graph-context-panel ul {
   margin: 0;
   padding-left: 18px;
+}
+
+.graph-context-panel__relation-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.graph-context-panel ul.graph-context-panel__relation-list {
+  padding-left: 0;
+}
+
+.graph-context-panel__relation-item {
+  width: 100%;
+  text-align: left;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text);
+  font-size: 0.875rem;
+  line-height: 1.25;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.graph-context-panel__relation-item:hover {
+  background-color: rgba(128, 114, 94, 0.18);
+  border-color: var(--color-accent);
+}
+
+.graph-context-panel__relation-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.graph-context-panel__relation-item--active {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
 }

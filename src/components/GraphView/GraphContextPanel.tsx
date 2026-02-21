@@ -15,6 +15,7 @@ interface GraphContextPanelProps {
   onNodeScopeDepthChange: (depth: number) => void;
   onResetView: () => void;
   onOpenEditor: () => void;
+  onRelationSelect: (path: string) => void;
   showLabels?: boolean;
 }
 
@@ -29,8 +30,13 @@ export function GraphContextPanel({
   onNodeScopeDepthChange,
   onResetView,
   onOpenEditor,
+  onRelationSelect,
   showLabels = false,
 }: GraphContextPanelProps) {
+  const nextScope = scope === "vault" ? "node" : "vault";
+  const nextScopeIcon = scope === "vault" ? FileText : FolderTree;
+  const nextScopeLabel = scope === "vault" ? "Node graph" : "Vault graph";
+
   return (
     <div className="graph-context-panel">
       <section className="graph-context-panel__controls">
@@ -50,23 +56,12 @@ export function GraphContextPanel({
             className="btn-secondary"
             onClick={onOpenEditor}
           />
-        </div>
-        <div className="graph-context-panel__actions">
           <IconButton
-            icon={FolderTree}
-            label="Vault graph"
+            icon={nextScopeIcon}
+            label={nextScopeLabel}
             showLabel={showLabels}
             className="btn-secondary"
-            active={scope === "vault"}
-            onClick={() => onScopeChange("vault")}
-          />
-          <IconButton
-            icon={FileText}
-            label="Node graph"
-            showLabel={showLabels}
-            className="btn-secondary"
-            active={scope === "node"}
-            onClick={() => onScopeChange("node")}
+            onClick={() => onScopeChange(nextScope)}
           />
         </div>
         {scope === "node" && (
@@ -103,17 +98,37 @@ export function GraphContextPanel({
             <div className="graph-context-panel__lists">
               <div>
                 <p className="graph-context-panel__subheading">Neighbors</p>
-                <ul>
+                <ul className="graph-context-panel__relation-list">
                   {neighbors.map((item) => (
-                    <li key={item}>{item}</li>
+                    <li key={item}>
+                      <button
+                        type="button"
+                        className={`graph-context-panel__relation-item ${
+                          item === selectedPath ? "graph-context-panel__relation-item--active" : ""
+                        }`.trim()}
+                        onClick={() => onRelationSelect(item)}
+                      >
+                        {item}
+                      </button>
+                    </li>
                   ))}
                 </ul>
               </div>
               <div>
                 <p className="graph-context-panel__subheading">Backlinks</p>
-                <ul>
+                <ul className="graph-context-panel__relation-list">
                   {backlinks.map((item) => (
-                    <li key={item}>{item}</li>
+                    <li key={item}>
+                      <button
+                        type="button"
+                        className={`graph-context-panel__relation-item ${
+                          item === selectedPath ? "graph-context-panel__relation-item--active" : ""
+                        }`.trim()}
+                        onClick={() => onRelationSelect(item)}
+                      >
+                        {item}
+                      </button>
+                    </li>
                   ))}
                 </ul>
               </div>
