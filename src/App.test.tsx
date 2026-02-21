@@ -476,6 +476,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       expect(mockStoreState.toggleToolRail).toHaveBeenCalledTimes(1);
     });
   });
+
 });
 
 describe("getEditorMeasureBand (COMP-EDITOR-READING-001 FR-4)", () => {

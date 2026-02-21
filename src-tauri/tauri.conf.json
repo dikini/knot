@@ -22,7 +22,8 @@
         "fullscreen": false,
         "decorations": true,
         "transparent": false,
-        "focus": true
+        "focus": true,
+        "visible": false
       }
     ],
     "security": {

@@ -1,0 +1,22 @@
+version: 1
+feature: window-startup-controls-003
+tasks:
+  - id: WSC-001
+    title: Add helper tests for startup ready signal and safe no-op behavior
+    status: completed
+    spec_refs: [FR-1, FR-4]
+  - id: WSC-002
+    title: Implement startup helper and wire frontend ready emit
+    status: completed
+    depends_on: [WSC-001]
+    spec_refs: [FR-1, FR-4]
+  - id: WSC-003
+    title: Ensure backend startup visibility uses ready event plus fallback timeout only
+    status: completed
+    depends_on: [WSC-002]
+    spec_refs: [FR-1, FR-2]
+  - id: WSC-004
+    title: Verify and produce compliance audit
+    status: completed
+    depends_on: [WSC-003]
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]

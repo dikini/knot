@@ -2,6 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tracing::info;
+use tauri::{Listener, Manager};
+use std::time::Duration;
 
 fn main() {
     // Initialize tracing for logging
@@ -20,6 +22,28 @@ fn main() {
         .setup(|app| {
             // Initialize application state
             knot::commands::init_app(app)?;
+
+            let app_handle = app.handle().clone();
+
+            // Preferred path: show window when frontend signals it finished initial render.
+            app.listen("frontend://ready", move |_event| {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    if let Err(err) = window.show() {
+                        tracing::warn!("Failed to show main window on frontend ready: {err}");
+                    }
+                }
+            });
+
+            // Safety fallback: never keep app invisible if frontend event fails.
+            let fallback_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(2500)).await;
+                if let Some(window) = fallback_handle.get_webview_window("main") {
+                    if let Err(err) = window.show() {
+                        tracing::warn!("Failed to show main window from startup fallback: {err}");
+                    }
+                }
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
