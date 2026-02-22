@@ -36,6 +36,10 @@ dist-ssr
 coverage
 *.lcov
 test-results/
+
+# Trace: DESIGN-test-vault-ignore-generated-metadata
+# Generated vault runtime metadata/index files for local fixtures
+test-vault/**/.vault/
 playwright-report/
 .mcp/storybook-mcp.json
 storybook-static/
