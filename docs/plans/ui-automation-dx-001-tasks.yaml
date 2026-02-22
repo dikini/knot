@@ -1,0 +1,72 @@
+tasks:
+  - id: UAD-001
+    title: "Register UI automation DX component in spec-map and roadmap"
+    status: completed
+    size: S
+    spec_refs: [FR-6]
+    concerns: [CONF]
+    dependencies: []
+    acceptance: "Spec and roadmap entries exist"
+
+  - id: UAD-002
+    title: "Add Playwright browser-lane config and command"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2, FR-6]
+    concerns: [CAP]
+    dependencies: [UAD-001]
+    acceptance: "Browser-lane command runs Playwright with Vite web server"
+
+  - id: UAD-003
+    title: "Add deterministic Tauri IPC bridge mock for browser lane"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2]
+    concerns: [REL]
+    dependencies: [UAD-002]
+    acceptance: "Mock bridge provides stable command responses for startup flows"
+
+  - id: UAD-004
+    title: "Add browser-lane baseline startup behavior test"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2]
+    concerns: [REL, CONF]
+    dependencies: [UAD-003]
+    acceptance: "Playwright test validates welcome + recent-vault UI via mock bridge"
+
+  - id: UAD-005
+    title: "Add tauri-native smoke command wrapper"
+    status: completed
+    size: M
+    spec_refs: [FR-3, FR-4, FR-6]
+    concerns: [COMP]
+    dependencies: [UAD-001]
+    acceptance: "Native-smoke command performs environment checks and guidance"
+
+  - id: UAD-006
+    title: "Add tauri-native smoke checklist documentation"
+    status: completed
+    size: S
+    spec_refs: [FR-3, FR-4, FR-6]
+    concerns: [CONF]
+    dependencies: [UAD-005]
+    acceptance: "Checklist exists for native-runtime smoke validation"
+
+  - id: UAD-007
+    title: "Document WebKit protocol-attach lane as future R&D"
+    status: completed
+    size: S
+    spec_refs: [FR-5]
+    concerns: [COMP]
+    dependencies: [UAD-001]
+    acceptance: "Approach 3 is clearly marked deferred to an unidentified future stage"
+
+  - id: UAD-008
+    title: "Run verification and publish audit"
+    status: completed
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6]
+    concerns: [REL, CAP, COMP, CONF]
+    dependencies: [UAD-004, UAD-006, UAD-007]
+    acceptance: "Audit report documents verification evidence and compliance"

@@ -35,6 +35,8 @@ dist-ssr
 # Testing
 coverage
 *.lcov
+test-results/
+playwright-report/
 
 # Environment
 .env

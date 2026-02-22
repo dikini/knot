@@ -10,3 +10,5 @@
 | vault-unsaved-changes-001 | component | implemented | - | [] | [COMP-VAULT-UNSAVED-001] |
 | vault-switch-ux-001 | component | implemented | - | [vault-unsaved-changes-001] | [COMP-VAULT-SWITCH-UX-001] |
 | mermaid-diagrams-001 | component | implemented | - | [markdown-engine-001, editor-modes-001] | [COMP-MERMAID-001] |
+| ui-automation-dx-001 | component | implemented | - | [frontend-toolchain-001] | [COMP-UI-AUTOMATION-DX-001] |
+| mermaid-inline-split-001 | component | designed (planning deferred) | - | [mermaid-diagrams-001, editor-modes-001] | [COMP-MERMAID-INLINE-SPLIT-001] |

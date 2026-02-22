@@ -47,6 +47,8 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-VAULT-UNSAVED-001 | vault-unsaved-changes | designed | component/vault-unsaved-changes-001.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-VAULT-SWITCH-UX-001 | vault-switch-unsaved-ux | designed | component/vault-switch-ux-001.md | [CONF, REL] | implemented (verified 100%) |
 | COMP-MERMAID-001 | mermaid-diagrams | designed | component/mermaid-diagrams-001.md | [REL, SEC, CAP, COMP, CONF] | implemented (verified 100%) |
+| COMP-UI-AUTOMATION-DX-001 | ui-automation-dx | designed | component/ui-automation-dx-001.md | [REL, CAP, COMP, CONF] | implemented (verified 100%) |
+| COMP-MERMAID-INLINE-SPLIT-001 | mermaid-inline-insert-splitting | designed | component/mermaid-inline-insert-splitting-001.md | [REL, CONF, COMP] | designed (planning deferred) |
 
 ## Interfaces
 
@@ -157,3 +159,6 @@ docs/specs/
 | 2026-02-22 | Draft Mermaid diagrams spec for markdown view rendering and editor insertion | COMP-MERMAID-001 |
 | 2026-02-22 | Draft Mermaid diagrams implementation plan and roadmap entry | COMP-MERMAID-001 |
 | 2026-02-22 | Implement and verify Mermaid diagram rendering and block insertion workflow | COMP-MERMAID-001 |
+| 2026-02-22 | Draft UI automation DX spec and implementation plan for browser lane + native smoke lane | COMP-UI-AUTOMATION-DX-001 |
+| 2026-02-22 | Implement and verify UI automation DX lanes (browser-first + tauri-native smoke) and defer protocol-attach as future R&D | COMP-UI-AUTOMATION-DX-001 |
+| 2026-02-22 | Document Mermaid inline mark splitting bug and draft fix design (planning deferred) | COMP-MERMAID-INLINE-SPLIT-001 |
