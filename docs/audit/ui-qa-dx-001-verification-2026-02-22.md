@@ -18,6 +18,8 @@ Scope: `COMP-UI-QA-DX-001`
   - `npm run -s test:e2e:tauri -- --check`
 - UI documentation/evidence sync verification:
   - `npm run -s qa:docsync:staged`
+- Storybook coverage matrix enforcement:
+  - `npm run -s qa:storybook-matrix`
 - Design-system documentation artifacts:
   - `docs/design-system/token-inventory-001.md`
   - `docs/design-system/primitive-inventory-001.md`
@@ -26,7 +28,7 @@ Scope: `COMP-UI-QA-DX-001`
 - AC1 browser journey coverage: ✅ (`e2e/browser/*.spec.ts`)
 - AC2 reviewable visual artifacts: ✅ (`docs/testing/ui-review-artifacts.md`, CI artifacts)
 - AC3 automated native smoke signal: ✅ (`scripts/tauri-native-smoke.mjs`, workflow cadence)
-- AC4 PR CI quality gates: ✅ (`.github/workflows/ui-quality.yml`, `qa:ci`)
+- AC4 PR CI quality gates: ✅ (`.github/workflows/ui-quality.yml`, `qa:ci`, `qa:storybook-matrix`)
 - AC5 state catalog currentness: ✅ (`docs/testing/ui-review-artifacts.md`)
 - AC6 token inventory documented: ✅ (`docs/design-system/token-inventory-001.md`)
 - AC7 primitive usage contracts documented: ✅ (`docs/design-system/primitive-inventory-001.md`)
@@ -34,4 +36,3 @@ Scope: `COMP-UI-QA-DX-001`
 
 ## Notes
 - Non-blocking unit-test warnings (React `act(...)` warnings in existing tests) persist but do not fail current CI gates.
-

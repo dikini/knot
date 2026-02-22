@@ -27,7 +27,8 @@
     "test:e2e:tauri:launch": "node scripts/tauri-native-smoke.mjs --launch-smoke --timeout=300",
     "qa:docsync": "node scripts/validate-ui-doc-sync.mjs",
     "qa:docsync:staged": "node scripts/validate-ui-doc-sync.mjs --staged",
-    "qa:ci": "npm run -s typecheck && npm run -s lint && npm run -s test:ci:unit && npm run -s test:e2e:browser",
+    "qa:storybook-matrix": "node scripts/validate-storybook-coverage-matrix.mjs",
+    "qa:ci": "npm run -s typecheck && npm run -s lint && npm run -s qa:storybook-matrix && npm run -s test:ci:unit && npm run -s test:e2e:browser",
     "traceability:check-staged": "node scripts/validate-staged-traceability.mjs",
     "hooks:install": "bash scripts/install-githooks.sh"
   },

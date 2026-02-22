@@ -85,7 +85,7 @@ Note: many stories now include `play` interactions. Remaining gap to full `cover
 | Spec ID | Status | Notes |
 | --- | --- | --- |
 | `COMP-STORYBOOK-DX-001` | covered | Storybook scaffold + CI + MCP path implemented |
-| `COMP-UI-QA-DX-001` | partial | Storybook exists, but spec->story coverage enforcement matrix not yet complete |
+| `COMP-UI-QA-DX-001` | covered | `scripts/validate-storybook-coverage-matrix.mjs`, `.github/workflows/ui-quality.yml`, `package.json` (`qa:storybook-matrix`) | None |
 | `COMP-UI-AUTOMATION-DX-001` | n/a | Browser/native test lanes, not a story surface |
 | `COMP-TOOLCHAIN-001` | n/a | Frontend toolchain modernization |
 | `COMP-COMPLIANCE-001` | n/a | Compliance fixes scope |
@@ -112,14 +112,13 @@ Trace: `DESIGN-storybook-audit-summary-adjustment-2026-02-22`
 
 Primary blockers to "comprehensive design docs in Storybook":
 1. UI-facing coverage is complete for currently implemented component specs.
-2. Remaining gaps are process-level (`COMP-UI-QA-DX-001`) for automated enforcement/reporting polish.
+2. Process-level Storybook enforcement is now CI-gated via `qa:storybook-matrix`.
 
 ## Prioritized Gap Queue
 Trace: `DESIGN-storybook-partial-closure-2026-02-22`
 
-1. Promote `COMP-UI-QA-DX-001` from partial to covered with automated spec-to-story enforcement in CI.
-2. Keep inventory synchronized as new specs are implemented.
+1. Keep inventory synchronized as new specs are implemented.
 
 ## Recommended Next Step
 
-Create a focused DX follow-up for `COMP-UI-QA-DX-001` to automate spec-to-story coverage checks in CI and prevent regressions.
+Maintain the `qa:storybook-matrix` check as a required CI gate and extend it when new inventory fields are introduced.

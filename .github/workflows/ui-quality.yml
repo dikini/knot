@@ -31,6 +31,9 @@ jobs:
           BASE_REF: origin/${{ github.base_ref }}
         run: npm run -s qa:docsync
 
+      - name: Validate Storybook coverage matrix
+        run: npm run -s qa:storybook-matrix
+
       - name: Run UI quality gate
         run: npm run -s qa:ci
 
