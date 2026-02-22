@@ -103,10 +103,11 @@ Note: many stories now include `play` interactions. Remaining gap to full `cover
 | `COMP-MCP-SERVER-002` | n/a | MCP mutation/directory tools |
 
 ## Gap Summary
+Trace: `DESIGN-storybook-audit-summary-adjustment-2026-02-22`
 
 - Implemented component specs assessed: `38`
-- UI-facing specs missing or partial story coverage: `22`
-- UI-facing specs fully covered: `0`
+- UI-facing specs missing or partial story coverage: `25`
+- UI-facing specs fully covered: `1`
 - Existing story files: `14`
 
 Primary blockers to "comprehensive design docs in Storybook":
