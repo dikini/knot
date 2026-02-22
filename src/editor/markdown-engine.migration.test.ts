@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import * as markdownModule from "./markdown";
-import { parseMarkdown, parseMarkdownWithEngine, serializeMarkdown } from "./markdown";
+import { parseMarkdown, parseMarkdownWithEngine, serializeMarkdown, serializeMarkdownWithEngine } from "./markdown";
+import { schema } from "./schema";
 
 function collectLinkMarks(markdownText: string): Array<{ text: string; href: string }> {
   const doc = parseMarkdown(markdownText);
@@ -102,6 +103,16 @@ describe("Markdown engine migration (TDD)", () => {
       });
 
       expect(wikilinks).toEqual([{ text: "Project", target: "Project Note" }]);
+    });
+
+    it("BUG-WIKILINK-ESCAPE-001: does not escape plain wikilink text when serializing with next engine", () => {
+      const doc = schema.node("doc", null, [
+        schema.node("paragraph", null, [schema.text("[[Neural Networks]]")]),
+      ]);
+
+      const markdown = serializeMarkdownWithEngine(doc, "next");
+      expect(markdown).toContain("[[Neural Networks]]");
+      expect(markdown).not.toContain("\\[\\[");
     });
   });
 });

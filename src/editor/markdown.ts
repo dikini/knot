@@ -252,7 +252,7 @@ export function serializeMarkdownLegacy(doc: ProseMirrorNode): string {
 }
 
 export function serializeMarkdownNext(doc: ProseMirrorNode): string {
-  const content = serializeMarkdownNextDocument(doc);
+  const content = normalizeEscapedWikilinks(serializeMarkdownNextDocument(doc));
   const definitions = serializeReferenceDefinitions(doc);
   if (definitions.length === 0) {
     return content;
@@ -884,4 +884,11 @@ function serializeReferenceDefinitions(doc: ProseMirrorNode): string[] {
       }
       return `[${definition.id}]: ${definition.href}`;
     });
+}
+
+function normalizeEscapedWikilinks(markdown: string): string {
+  return markdown.replace(/\\\[\\\[([^\n\]]+)\\\]\\\]/g, (_match, inner: string) => {
+    const value = inner.trim();
+    return value.length > 0 ? `[[${value}]]` : _match;
+  });
 }
