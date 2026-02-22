@@ -7,16 +7,32 @@ Scope: implemented component specs in `docs/specs/component/` vs current Storybo
 ## Current Storybook Inventory
 
 Story files present:
+- `src/App.stories.tsx`
+- `src/components/Editor/Editor.stories.tsx`
+- `src/components/GraphView/GraphContextPanel.stories.tsx`
+- `src/components/GraphView/GraphView.stories.tsx`
 - `src/components/IconButton/IconButton.stories.tsx`
+- `src/components/SearchBox/SearchBox.stories.tsx`
 - `src/components/Shell/ContextPanel.stories.tsx`
+- `src/components/Shell/InspectorRail.stories.tsx`
 - `src/components/Shell/ToolRail.stories.tsx`
+- `src/components/Sidebar/Sidebar.stories.tsx`
 - `src/components/VaultSwitcher/VaultSwitcher.stories.tsx`
+- `src/lib/vaultSwitchGuard.stories.tsx`
 
-Story exports present (10):
+Story exports present (33):
+- App/Shell: `NoVaultOpen`, `VaultOpenNoNoteSelected`, `EditorActive`, `GraphActive`
+- Editor: `NoNoteSelected`, `EditModeDefault`, `SourceModeRoundTrip`, `ViewModeWithMermaid`
+- Graph/GraphView: `VaultScopeDefault`, `NodeScopeWithoutCenter`, `NodeScopeDepthTwo`, `DuplicateLabelDisambiguation`, `EmptyGraph`, `ErrorState`
+- Graph/GraphContextPanel: `SelectedNodeDetails`, `NoNodeSelected`, `NodeScopeDepthControls`, `RelationSelection`
 - IconButton: `Default`, `IconOnly`, `Active`
+- SearchBox: `FocusedEmptyState`, `QueryWithResults`, `NoResults`
 - ContextPanel: `NotesMode`, `SearchMode`, `GraphMode`
+- InspectorRail: `OpenWithContent`, `Closed`, `CloseAction`
 - ToolRail: `Compact`, `WithLabels`
+- Sidebar: `NoVaultOpen`, `ExplorerTreeLoaded`, `KeyboardFolderToggle`
 - VaultSwitcher: `WithCurrentVault`, `NoVaultOpen`
+- VaultSwitchGuard: `SaveAndProceed`, `DiscardAndProceed`, `SaveFails`
 
 ## Coverage Rules
 
@@ -25,7 +41,7 @@ Story exports present (10):
 - `missing`: no direct story coverage for the implemented design.
 - `n/a`: non-UI/backend/process-only spec that does not require Storybook component stories.
 
-Note: current stories do not include `play` interactions or explicit spec-id documentation blocks, so no UI spec currently qualifies as fully `covered`.
+Note: many stories now include `play` interactions. Remaining gap to full `covered` is explicit spec-id documentation linkage and full edge-state breadth for some specs.
 
 ## Spec Coverage Matrix (Implemented Specs)
 
@@ -36,29 +52,29 @@ Note: current stories do not include `play` interactions or explicit spec-id doc
 | `COMP-ICON-CHROME-001` | partial | `IconButton.stories.tsx` | Add docs + interaction checks for icon-first chrome policies across shell surfaces |
 | `COMP-TOOL-RAIL-CONTEXT-001` | partial | `ToolRail.stories.tsx`, `ContextPanel.stories.tsx` | Add toggle semantics/play tests and persisted-state examples |
 | `COMP-VAULT-UI-001` | partial | `VaultSwitcher.stories.tsx` | Add dialog/open/create/recent interaction documentation and edge states |
-| `COMP-VAULT-SWITCH-UX-001` | missing | no dedicated story | Add unsaved-switch flow stories (save/discard/cancel) |
-| `COMP-VAULT-UNSAVED-001` | missing | no dedicated story | Add unsaved state prompt scenarios |
-| `COMP-UI-LAYOUT-002` | missing | no app-shell story | Add layout stories for no-vault / empty-state / note-open |
-| `COMP-NOTE-SEL-001` | missing | no sidebar selection stories | Add note selection and dirty-guard stories |
-| `COMP-SEARCH-UI-001` | missing | no `SearchBox` stories | Add query states, keyboard nav, result selection stories |
-| `COMP-GRAPH-UI-001` | missing | no `GraphView` stories | Add graph rendering, node select, focus states |
-| `COMP-GRAPH-MODES-002` | missing | no graph-mode stories | Add vault/node mode and depth-control stories |
-| `COMP-GRAPH-UI-CONTINUITY-003` | missing | no continuity stories | Add toggle continuity and state preservation stories |
-| `COMP-GRAPH-HOVER-001` | missing | no hover-specific stories | Add hover stability visual/interaction stories |
-| `COMP-GRAPH-CONSISTENCY-001` | missing | no consistency stories | Add disconnected nodes + duplicate-label cases |
-| `COMP-EXPLORER-TREE-001` | missing | no explorer tree stories | Add folder/note tree states + keyboard nav |
+| `COMP-VAULT-SWITCH-UX-001` | partial | `vaultSwitchGuard.stories.tsx`, `App.stories.tsx` | Add end-to-end in-app vault switch prompt story tied to actual actions |
+| `COMP-VAULT-UNSAVED-001` | partial | `vaultSwitchGuard.stories.tsx` | Add direct app-level unsaved warning story coverage |
+| `COMP-UI-LAYOUT-002` | partial | `App.stories.tsx` | Add fuller adaptive-density and collapsed-panel layout variants |
+| `COMP-NOTE-SEL-001` | partial | `Sidebar.stories.tsx` | Add explicit note-open and dirty-switch assertions |
+| `COMP-SEARCH-UI-001` | partial | `SearchBox.stories.tsx` | Add keyboard arrow navigation + enter-select story assertions |
+| `COMP-GRAPH-UI-001` | partial | `GraphView.stories.tsx` | Add pan/zoom reset interaction assertions |
+| `COMP-GRAPH-MODES-002` | partial | `GraphView.stories.tsx`, `GraphContextPanel.stories.tsx` | Add full mode transition continuity from App shell |
+| `COMP-GRAPH-UI-CONTINUITY-003` | partial | `App.stories.tsx`, `GraphView.stories.tsx` | Add explicit continuity/persisted toggle contract stories |
+| `COMP-GRAPH-HOVER-001` | missing | no hover-specific story assertions | Add hover highlight/dimmed edge behavior story |
+| `COMP-GRAPH-CONSISTENCY-001` | partial | `GraphView.stories.tsx` | Add disconnected-node discoverability assertions |
+| `COMP-EXPLORER-TREE-001` | partial | `Sidebar.stories.tsx` | Add context-menu actions and optimistic rollback scenarios |
 | `COMP-EXPLORER-ICON-ACTIONS-001` | missing | no explorer icon-action stories | Add icon-only action states and affordances |
 | `COMP-EXPLORER-PANEL-SEARCH-001` | missing | no explorer-panel stories | Add search-removed panel state docs |
-| `COMP-EDITOR-MODES-001` | missing | no editor mode stories | Add source/edit/view mode stories with controls |
-| `COMP-EDITOR-WYSIWYM-002` | missing | no wysiwym fix stories | Add toolbar distinction + paragraph behavior stories |
-| `COMP-EDITOR-READING-001` | missing | no reading-mode stories | Add reading surface and transition stories |
-| `COMP-EDITOR-EMPTY-DOC-001` | missing | no empty-doc story | Add empty note safety rendering story |
-| `COMP-MARKDOWN-ENGINE-001` | missing | no markdown-engine behavior stories | Add parsing/serialization examples in docs stories |
-| `COMP-MERMAID-001` | missing | no mermaid stories | Add diagram render/insert stories for multiple diagram types |
+| `COMP-EDITOR-MODES-001` | partial | `Editor.stories.tsx` | Add floating toolbar/block-menu interaction stories |
+| `COMP-EDITOR-WYSIWYM-002` | partial | `Editor.stories.tsx` | Add heading-marker suppression and Enter stability explicit stories |
+| `COMP-EDITOR-READING-001` | partial | `Editor.stories.tsx` | Add dedicated reading-focused story state documentation |
+| `COMP-EDITOR-EMPTY-DOC-001` | partial | `Editor.stories.tsx` | Add explicit empty-doc fixture story |
+| `COMP-MARKDOWN-ENGINE-001` | partial | `Editor.stories.tsx` | Add reference-link and round-trip fixture stories |
+| `COMP-MERMAID-001` | partial | `Editor.stories.tsx` | Add additional diagram-type rendering stories |
 | `COMP-MERMAID-INLINE-SPLIT-001` | missing | no regression story | Add inline-split regression story |
 | `COMP-NOTE-METADATA-001` | missing | no metadata stories | Add backlink title + heading-position display stories |
-| `COMP-LAYOUT-RECOVERY-001` | missing | no recovery stories | Add pane collapse recovery stories |
-| `COMP-WINDOW-STARTUP-003` | missing | no startup/window control stories | Add startup ready-state and window controls stories |
+| `COMP-LAYOUT-RECOVERY-001` | partial | `App.stories.tsx` | Add explicit recovery regression scenario stories |
+| `COMP-WINDOW-STARTUP-003` | missing | no startup/window control stories | Add startup ready-state and in-app window controls stories |
 
 ### Process/tooling specs (Storybook stories not primary artifact)
 
@@ -87,19 +103,19 @@ Note: current stories do not include `play` interactions or explicit spec-id doc
 - Implemented component specs assessed: `38`
 - UI-facing specs missing or partial story coverage: `26`
 - UI-facing specs fully covered: `0`
-- Existing baseline story files: `4`
+- Existing story files: `12`
 
 Primary blockers to "comprehensive design docs in Storybook":
-1. No stories for major surfaces (`Editor`, `Sidebar`, `SearchBox`, `GraphView`, `App shell`).
-2. No interaction `play` coverage in current stories.
-3. No explicit spec-id documentation in stories linking behavior contracts back to specs.
+1. Several specs are only partially covered and need deeper edge-state stories.
+2. Explicit spec-id documentation linkage inside story docs is still incomplete.
+3. Window-startup and some explorer/graph continuity behaviors still lack dedicated stories.
 
 ## Prioritized Gap Queue
 
-1. `Editor` package stories: `COMP-EDITOR-MODES-001`, `COMP-EDITOR-WYSIWYM-002`, `COMP-EDITOR-READING-001`, `COMP-EDITOR-EMPTY-DOC-001`, `COMP-MARKDOWN-ENGINE-001`, `COMP-MERMAID-001`, `COMP-MERMAID-INLINE-SPLIT-001`.
-2. `Sidebar`/explorer/search stories: `COMP-EXPLORER-TREE-001`, `COMP-EXPLORER-ICON-ACTIONS-001`, `COMP-EXPLORER-PANEL-SEARCH-001`, `COMP-SEARCH-UI-001`, `COMP-NOTE-SEL-001`.
-3. `Graph` stories: `COMP-GRAPH-UI-001`, `COMP-GRAPH-MODES-002`, `COMP-GRAPH-UI-CONTINUITY-003`, `COMP-GRAPH-HOVER-001`, `COMP-GRAPH-CONSISTENCY-001`, `COMP-NOTE-METADATA-001`.
-4. `Shell/App` stories: `COMP-UI-LAYOUT-002`, `COMP-LAYOUT-RECOVERY-001`, `COMP-WINDOW-STARTUP-003`, `COMP-VAULT-UNSAVED-001`, `COMP-VAULT-SWITCH-UX-001` (plus expand `COMP-VAULT-UI-001`).
+1. Deepen `Editor` story coverage for floating controls, empty-doc regression, markdown-engine/reference-link parity, and mermaid variants.
+2. Expand `Sidebar` stories for note-selection guard, explorer context actions, and icon-only action affordances.
+3. Expand `Graph` stories for hover stability, continuity persistence, disconnected-node discoverability, and metadata-fidelity details.
+4. Add startup/window-control shell stories and explicit spec-trace docs annotations.
 
 ## Recommended Next Step
 
