@@ -223,6 +223,18 @@ describe("Markdown Parser", () => {
       expect(serialized).toContain("```");
     });
 
+    // TRACE: DESIGN-mermaid-diagrams-001
+    it("should preserve mermaid fenced blocks on round-trip", () => {
+      const markdown = "```mermaid\ngraph TD\n  A-->B\n```";
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("```mermaid");
+      expect(serialized).toContain("graph TD");
+      expect(serialized).toContain("A-->B");
+      expect(serialized).toContain("```");
+    });
+
     it("should serialize blockquotes", () => {
       const doc = parseMarkdown("> Quote text");
       const serialized = serializeMarkdown(doc);

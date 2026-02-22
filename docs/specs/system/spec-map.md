@@ -46,7 +46,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-NOTE-METADATA-001 | note-metadata-fidelity | designed | component/note-metadata-fidelity-001.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-VAULT-UNSAVED-001 | vault-unsaved-changes | designed | component/vault-unsaved-changes-001.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-VAULT-SWITCH-UX-001 | vault-switch-unsaved-ux | designed | component/vault-switch-ux-001.md | [CONF, REL] | implemented (verified 100%) |
-| COMP-MERMAID-001 | mermaid-diagrams | designed | component/mermaid-diagrams-001.md | [REL, SEC, CAP, COMP, CONF] | draft |
+| COMP-MERMAID-001 | mermaid-diagrams | designed | component/mermaid-diagrams-001.md | [REL, SEC, CAP, COMP, CONF] | implemented (verified 100%) |
 
 ## Interfaces
 
@@ -156,3 +156,4 @@ docs/specs/
 | 2026-02-22 | Implement and verify vault switch unsaved UX guard flow in app handlers | COMP-VAULT-SWITCH-UX-001 |
 | 2026-02-22 | Draft Mermaid diagrams spec for markdown view rendering and editor insertion | COMP-MERMAID-001 |
 | 2026-02-22 | Draft Mermaid diagrams implementation plan and roadmap entry | COMP-MERMAID-001 |
+| 2026-02-22 | Implement and verify Mermaid diagram rendering and block insertion workflow | COMP-MERMAID-001 |

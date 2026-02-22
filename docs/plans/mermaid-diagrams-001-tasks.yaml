@@ -1,7 +1,7 @@
 tasks:
   - id: MRM-001
     title: "Add Mermaid dependency and render adapter boundary"
-    status: planned
+    status: completed
     size: M
     spec_refs: [FR-3, FR-7, FR-8]
     concerns: [SEC, CAP]
@@ -10,7 +10,7 @@ tasks:
 
   - id: MRM-002
     title: "Define safe Mermaid config and fallback rendering contract"
-    status: planned
+    status: completed
     size: S
     spec_refs: [FR-4, FR-7]
     concerns: [REL, SEC]
@@ -19,7 +19,7 @@ tasks:
 
   - id: MRM-003
     title: "Render Mermaid fences in view mode"
-    status: planned
+    status: completed
     size: M
     spec_refs: [FR-1, FR-3, FR-8]
     concerns: [REL, CAP]
@@ -28,7 +28,7 @@ tasks:
 
   - id: MRM-004
     title: "Implement non-crashing fallback for invalid Mermaid syntax"
-    status: planned
+    status: completed
     size: S
     spec_refs: [FR-4]
     concerns: [REL, CONF]
@@ -37,7 +37,7 @@ tasks:
 
   - id: MRM-005
     title: "Style Mermaid render containers for editor view surface"
-    status: planned
+    status: completed
     size: S
     spec_refs: [FR-3, FR-4, FR-8]
     concerns: [CAP, CONF]
@@ -46,7 +46,7 @@ tasks:
 
   - id: MRM-006
     title: "Add Mermaid diagram block insertion action"
-    status: planned
+    status: completed
     size: M
     spec_refs: [FR-5, FR-6]
     concerns: [COMP, CONF]
@@ -55,7 +55,7 @@ tasks:
 
   - id: MRM-007
     title: "Add markdown round-trip and compatibility regression tests"
-    status: planned
+    status: completed
     size: M
     spec_refs: [FR-1, FR-2, FR-9]
     concerns: [COMP, REL]
@@ -64,10 +64,9 @@ tasks:
 
   - id: MRM-008
     title: "Add editor integration tests and run verification commands"
-    status: planned
+    status: completed
     size: M
     spec_refs: [FR-2, FR-3, FR-4, FR-5, FR-6, FR-9]
     concerns: [REL, SEC, COMP, CONF]
     dependencies: [MRM-005, MRM-006, MRM-007]
     acceptance: "Focused tests and typecheck pass with Mermaid view render + insertion behavior verified"
-

@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-MERMAID-001`
 - Scope: `component`
-- Status: `draft`
+- Status: `implemented`
 - Parent: `COMP-MARKDOWN-ENGINE-001`, `COMP-EDITOR-MODES-001`, `COMP-EDITOR-WYSIWYM-002`
 - Concerns: `[REL, SEC, CAP, COMP, CONF]`
 - Created: `2026-02-22`
@@ -64,12 +64,12 @@ Add Mermaid diagram support for markdown notes while preserving markdown as the 
 | CONF | FR-4, FR-6 | Clear insertion affordance and readable error/fallback behavior |
 
 ## Acceptance Criteria
-- [ ] Mermaid-fenced markdown round-trips without loss through parse/serialize.
-- [ ] View mode renders valid Mermaid fences as diagrams.
-- [ ] Invalid Mermaid fences do not crash rendering and display fallback state.
-- [ ] Edit mode continues treating Mermaid as normal code block content.
-- [ ] Block menu exposes `Mermaid diagram` action and inserts Mermaid starter fence.
-- [ ] Existing non-Mermaid markdown behavior remains regression-safe.
+- [x] Mermaid-fenced markdown round-trips without loss through parse/serialize.
+- [x] View mode renders valid Mermaid fences as diagrams.
+- [x] Invalid Mermaid fences do not crash rendering and display fallback state.
+- [x] Edit mode continues treating Mermaid as normal code block content.
+- [x] Block menu exposes `Mermaid diagram` action and inserts Mermaid starter fence.
+- [x] Existing non-Mermaid markdown behavior remains regression-safe.
 
 ## Verification Strategy
 - Extend frontend markdown tests for Mermaid fence parse/serialize round-trip.

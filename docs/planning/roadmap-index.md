@@ -9,4 +9,4 @@
 | note-metadata-fidelity-001 | component | implemented | - | [] | [COMP-NOTE-METADATA-001] |
 | vault-unsaved-changes-001 | component | implemented | - | [] | [COMP-VAULT-UNSAVED-001] |
 | vault-switch-ux-001 | component | implemented | - | [vault-unsaved-changes-001] | [COMP-VAULT-SWITCH-UX-001] |
-| mermaid-diagrams-001 | component | planned | - | [markdown-engine-001, editor-modes-001] | [COMP-MERMAID-001] |
+| mermaid-diagrams-001 | component | implemented | - | [markdown-engine-001, editor-modes-001] | [COMP-MERMAID-001] |
