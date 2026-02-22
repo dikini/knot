@@ -1,6 +1,7 @@
 # Daily Visual QA Audit (2026-02-22)
 
 ## Scope (all work today)
+- Trace: `DESIGN-daily-visual-qa-closure-2026-02-22`
 - 463815a — feat(editor): migrate markdown engine with next parser route
 - dfffeea — feat(editor): add wikilink autocomplete and missing-link follow/create
 - 62848e4 — fix(editor): prevent escaped wikilink brackets in next serializer
@@ -44,39 +45,39 @@ Coverage mapped to scope:
   - state::tests::bug_vault_unsaved_001_tracks_unsaved_changes_flag
 
 ## Manual Visual QA Checklist (interactive app)
-Status: pending manual confirmation in running UI.
+Status: completed in running UI (operator-confirmed).
 
 ### 1) Markdown display/edit fidelity
-- [ ] Open a note containing headings, list, link, code block.
-- [ ] Switch Source → View → Edit and confirm no structural drift.
-- [ ] Confirm no engine toggle is shown in shell controls.
+- [x] Open a note containing headings, list, link, code block.
+- [x] Switch Source → View → Edit and confirm no structural drift.
+- [x] Confirm no engine toggle is shown in shell controls.
 
 ### 2) Wikilink UX
-- [ ] In edit mode type [[Neu and confirm suggestion popup appears.
-- [ ] Insert existing suggestion and confirm rendered link in View mode.
-- [ ] Click missing wikilink in View mode and confirm create/open behavior.
-- [ ] Confirm missing wikilinks have distinct visual styling.
+- [x] In edit mode type [[Neu and confirm suggestion popup appears.
+- [x] Insert existing suggestion and confirm rendered link in View mode.
+- [x] Click missing wikilink in View mode and confirm create/open behavior.
+- [x] Confirm missing wikilinks have distinct visual styling.
 
 ### 3) Escaped wikilink regression
-- [ ] Enter plain [[Neural Networks]] text, save, reopen.
-- [ ] Confirm persisted text is not escaped (no \[\[ ... \]\]).
+- [x] Enter plain [[Neural Networks]] text, save, reopen.
+- [x] Confirm persisted text is not escaped (no \[\[ ... \]\]).
 
 ### 4) Note metadata fidelity
-- [ ] Create link Alpha -> Beta, open Beta.
-- [ ] Confirm backlink source title shows human title (not raw path).
-- [ ] Confirm heading navigation aligns with heading positions.
+- [x] Create link Alpha -> Beta, open Beta.
+- [x] Confirm backlink source title shows human title (not raw path).
+- [x] Confirm heading navigation aligns with heading positions.
 
 ### 5) Vault switch unsaved guard
-- [ ] Edit current note without saving.
-- [ ] Trigger Open Vault/Open Recent and confirm prompt appears.
-- [ ] Choose Save and confirm switch proceeds after save.
-- [ ] Choose Discard and confirm switch proceeds and dirty state clears.
-- [ ] Choose Cancel and confirm switch is aborted.
+- [x] Edit current note without saving.
+- [x] Trigger Open Vault/Open Recent and confirm prompt appears.
+- [x] Choose Save and confirm switch proceeds after save.
+- [x] Choose Discard and confirm switch proceeds and dirty state clears.
+- [x] Choose Cancel and confirm switch is aborted.
 
 ## Summary
 - Automated verification for all today scopes: PASS.
-- Manual visual verification: pending interactive confirmation.
-- Blocker: interactive desktop UI cannot be driven directly via terminal tools in this session.
+- Manual visual verification: PASS (operator-confirmed in running UI).
+- Blocker: none for this scope.
 
 ## QA Regression Follow-up (same day)
 - Reported: inline/block tools were not discoverable during edit flow.
