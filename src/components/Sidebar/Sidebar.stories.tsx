@@ -298,3 +298,13 @@ export const IconOnlyActionAffordances: Story = {
     await expect(canvas.getByRole("button", { name: "Refresh" })).toBeInTheDocument();
   },
 };
+
+export const ExplorerPanelHasNoSearchBox: Story = {
+  play: async ({ canvas }) => {
+    await waitFor(() => {
+      expect(canvas.getByRole("tree", { name: "Notes explorer" })).toBeInTheDocument();
+    });
+    await expect(canvas.queryByRole("textbox", { name: "Search notes" })).not.toBeInTheDocument();
+    await expect(canvas.queryByPlaceholderText("Search notes...")).not.toBeInTheDocument();
+  },
+};

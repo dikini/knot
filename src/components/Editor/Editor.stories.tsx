@@ -111,6 +111,14 @@ const mermaidVariantsNote: NoteData = {
 };
 // Trace: DESIGN-storybook-coverage-closure-2026-02-22
 
+const inlineMarksNote: NoteData = {
+  ...defaultNote,
+  id: "n6",
+  path: "notes/inline-mermaid.md",
+  title: "Inline Mermaid Insert",
+  content: "Before **bold** and *emphasis* after.",
+};
+
 const meta = {
   title: "Editor/Editor",
   component: EditorStoryHarness,
@@ -227,5 +235,22 @@ export const ViewModeWithMermaidVariants: Story = {
     await expect(
       canvasElement.querySelectorAll("[data-mermaid-diagram='true']").length
     ).toBeGreaterThanOrEqual(2);
+  },
+};
+
+export const MermaidInsertInsideInlinePreservesMarks: Story = {
+  args: {
+    note: inlineMarksNote,
+    editorContent: inlineMarksNote.content,
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("tab", { name: "Edit" })).toHaveAttribute("aria-selected", "true");
+    await userEvent.click(canvas.getByText("bold"));
+    await userEvent.click(canvas.getByRole("button", { name: "Open block menu" }));
+    await userEvent.click(canvas.getByRole("menuitem", { name: "Mermaid diagram" }));
+    await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
+    const source = canvas.getByLabelText("Source markdown editor");
+    await expect(source).toHaveValue(expect.stringContaining("**bold**"));
+    await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
   },
 };

@@ -189,3 +189,19 @@ export const GraphActive: Story = {
     await expect(canvas.getByRole("button", { name: "Edit note" })).toBeInTheDocument();
   },
 };
+
+export const NoCustomWindowControlButtons: Story = {
+  args: {
+    vault: demoVault,
+    noteList: demoNotes,
+    currentNote: demoCurrentNote,
+    shell: { toolMode: "notes" },
+    editorContent: demoCurrentNote.content,
+    editorDirty: false,
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole("button", { name: /minimize/i })).not.toBeInTheDocument();
+    await expect(canvas.queryByRole("button", { name: /maximize/i })).not.toBeInTheDocument();
+    await expect(canvas.queryByRole("button", { name: /close window/i })).not.toBeInTheDocument();
+  },
+};

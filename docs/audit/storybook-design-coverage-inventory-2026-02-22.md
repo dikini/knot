@@ -18,11 +18,13 @@ Story files present:
 - `src/components/Shell/ToolRail.stories.tsx`
 - `src/components/Sidebar/Sidebar.stories.tsx`
 - `src/components/VaultSwitcher/VaultSwitcher.stories.tsx`
+- `src/lib/noteMetadataFidelity.stories.tsx`
 - `src/lib/vaultSwitchGuard.stories.tsx`
+- `src/lib/windowControls.stories.tsx`
 
-Story exports present (52):
-- App/Shell: `NoVaultOpen`, `VaultOpenNoNoteSelected`, `EditorActive`, `GraphActive`
-- Editor: `NoNoteSelected`, `EditModeDefault`, `SourceModeRoundTrip`, `EditModeBlockMenu`, `SourceModeEmptyDocument`, `ReferenceMarkdownRoundTrip`, `ViewModeWithMermaid`, `ViewModeWithMermaidVariants`
+Story exports present (58):
+- App/Shell: `NoVaultOpen`, `VaultOpenNoNoteSelected`, `EditorActive`, `GraphActive`, `NoCustomWindowControlButtons`
+- Editor: `NoNoteSelected`, `EditModeDefault`, `SourceModeRoundTrip`, `EditModeBlockMenu`, `SourceModeEmptyDocument`, `ReferenceMarkdownRoundTrip`, `ViewModeWithMermaid`, `ViewModeWithMermaidVariants`, `MermaidInsertInsideInlinePreservesMarks`
 - Graph/GraphView: `VaultScopeDefault`, `HoverHighlightsConnectedEdges`, `NodeScopeWithoutCenter`, `ResetAfterZoom`, `NodeScopeDepthTwo`, `DuplicateLabelDisambiguation`, `DisconnectedNodeDiscoverability`, `ControlledSelectionFromShellState`, `EmptyGraph`, `ErrorState`
 - Graph/GraphContextPanel: `SelectedNodeDetails`, `NoNodeSelected`, `NodeScopeDepthControls`, `RelationSelection`, `ActiveRelationHighlight`
 - IconButton: `Default`, `IconOnly`, `Active`
@@ -30,9 +32,11 @@ Story exports present (52):
 - ContextPanel: `NotesMode`, `SearchMode`, `GraphMode`
 - InspectorRail: `OpenWithContent`, `Closed`, `CloseAction`
 - ToolRail: `Compact`, `WithLabels`
-- Sidebar: `NoVaultOpen`, `ExplorerTreeLoaded`, `KeyboardFolderToggle`, `DirtySwitchSavesBeforeOpen`, `ExplorerContextMenuCreateNote`, `IconOnlyActionAffordances`
+- Sidebar: `NoVaultOpen`, `ExplorerTreeLoaded`, `KeyboardFolderToggle`, `DirtySwitchSavesBeforeOpen`, `ExplorerContextMenuCreateNote`, `IconOnlyActionAffordances`, `ExplorerPanelHasNoSearchBox`
 - VaultSwitcher: `WithCurrentVault`, `NoVaultOpen`
 - VaultSwitchGuard: `SaveAndProceed`, `DiscardAndProceed`, `SaveFails`
+- Data/NoteMetadataFidelity: `BacklinkTitlesAndHeadingOffsets`
+- Infra/WindowStartupControls: `BrowserNoop`, `TauriEventEmit`
 
 ## Coverage Rules
 
@@ -64,17 +68,17 @@ Note: many stories now include `play` interactions. Remaining gap to full `cover
 | `COMP-GRAPH-CONSISTENCY-001` | partial | `GraphView.stories.tsx` | Add disconnected-node discoverability assertions |
 | `COMP-EXPLORER-TREE-001` | partial | `Sidebar.stories.tsx` | Add context-menu actions and optimistic rollback scenarios |
 | `COMP-EXPLORER-ICON-ACTIONS-001` | partial | `Sidebar.stories.tsx` | Add click-action assertions for icon-only actions |
-| `COMP-EXPLORER-PANEL-SEARCH-001` | missing | no explorer-panel stories | Add search-removed panel state docs |
+| `COMP-EXPLORER-PANEL-SEARCH-001` | covered | `Sidebar.stories.tsx` | None |
 | `COMP-EDITOR-MODES-001` | partial | `Editor.stories.tsx` | Add floating toolbar/block-menu interaction stories |
 | `COMP-EDITOR-WYSIWYM-002` | partial | `Editor.stories.tsx` | Add heading-marker suppression and Enter stability explicit stories |
 | `COMP-EDITOR-READING-001` | partial | `Editor.stories.tsx` | Add dedicated reading-focused story state documentation |
 | `COMP-EDITOR-EMPTY-DOC-001` | partial | `Editor.stories.tsx` | Add explicit empty-doc fixture story |
 | `COMP-MARKDOWN-ENGINE-001` | partial | `Editor.stories.tsx` | Add reference-link and round-trip fixture stories |
 | `COMP-MERMAID-001` | partial | `Editor.stories.tsx` | Add additional diagram-type rendering stories |
-| `COMP-MERMAID-INLINE-SPLIT-001` | missing | no regression story | Add inline-split regression story |
-| `COMP-NOTE-METADATA-001` | missing | no metadata stories | Add backlink title + heading-position display stories |
+| `COMP-MERMAID-INLINE-SPLIT-001` | partial | `Editor.stories.tsx` | Add emphasis/code/link-specific inline insertion variants |
+| `COMP-NOTE-METADATA-001` | partial | `noteMetadataFidelity.stories.tsx` | Add app-surface presentation story once metadata UI is introduced |
 | `COMP-LAYOUT-RECOVERY-001` | partial | `App.stories.tsx` | Add explicit recovery regression scenario stories |
-| `COMP-WINDOW-STARTUP-003` | missing | no startup/window control stories | Add startup ready-state and in-app window controls stories |
+| `COMP-WINDOW-STARTUP-003` | partial | `windowControls.stories.tsx`, `App.stories.tsx` | Add fallback-timeout behavior evidence from backend lane |
 
 ### Process/tooling specs (Storybook stories not primary artifact)
 
@@ -101,21 +105,20 @@ Note: many stories now include `play` interactions. Remaining gap to full `cover
 ## Gap Summary
 
 - Implemented component specs assessed: `38`
-- UI-facing specs missing or partial story coverage: `24`
+- UI-facing specs missing or partial story coverage: `22`
 - UI-facing specs fully covered: `0`
-- Existing story files: `12`
+- Existing story files: `14`
 
 Primary blockers to "comprehensive design docs in Storybook":
 1. Several specs are only partially covered and need deeper edge-state stories.
 2. Explicit spec-id documentation linkage inside story docs is still incomplete.
-3. Window-startup and some explorer/graph continuity behaviors still lack dedicated stories.
+3. Backend fallback-timeout evidence (`COMP-WINDOW-STARTUP-003`) still depends on non-Storybook verification lane.
 
 ## Prioritized Gap Queue
 
-1. Add App startup/window-control stories for `COMP-WINDOW-STARTUP-003`.
-2. Expand explorer panel coverage for `COMP-EXPLORER-PANEL-SEARCH-001`.
-3. Add editor regression story for `COMP-MERMAID-INLINE-SPLIT-001`.
-4. Attach explicit spec-id docs annotations inside stories for full `covered` status.
+1. Add additional inline-mark variants for `COMP-MERMAID-INLINE-SPLIT-001` (emphasis/code/link).
+2. Add backend-lane evidence link for startup fallback timeout in Storybook docs for `COMP-WINDOW-STARTUP-003`.
+3. Attach explicit spec-id docs annotations inside stories for full `covered` status.
 
 ## Recommended Next Step
 
