@@ -254,7 +254,8 @@ describe("Editor Component", () => {
       expect(screen.getByRole("button", { name: "Italic" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Code" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Quote" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Quote" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Strikethrough" })).toBeInTheDocument();
     });
 
     it("shows block plus tool on collapsed cursor selection", async () => {
@@ -290,12 +291,14 @@ describe("Editor Component", () => {
       fireEvent.click(toggle);
 
       const menu = await screen.findByRole("menu", { name: "Insert block" });
-      const codeItem = screen.getByRole("menuitem", { name: "Code block" });
-      const quoteItem = screen.getByRole("menuitem", { name: "Blockquote" });
-      expect(document.activeElement).toBe(codeItem);
+      const items = within(menu).getAllByRole("menuitem");
+      expect(items.length).toBeGreaterThan(1);
+      const firstItem = items[0];
+      const secondItem = items[1];
+      expect(document.activeElement).toBe(firstItem);
 
       fireEvent.keyDown(menu, { key: "ArrowRight" });
-      expect(document.activeElement).toBe(quoteItem);
+      expect(document.activeElement).toBe(secondItem);
 
       fireEvent.keyDown(menu, { key: "Escape" });
       expect(screen.queryByRole("menu", { name: "Insert block" })).not.toBeInTheDocument();
@@ -317,8 +320,20 @@ describe("Editor Component", () => {
       fireEvent.click(await screen.findByRole("button", { name: "Open block menu" }));
       const menu = await screen.findByRole("menu", { name: "Insert block" });
 
+      expect(within(menu).getByRole("menuitem", { name: "Heading 1" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Heading 2" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Heading 3" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Bullet list" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Numbered list" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Horizontal rule" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Code block" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Blockquote" })).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-h1")).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-h2")).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-h3")).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-bullet")).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-ordered")).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-hr")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-code")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-quote")).toBeInTheDocument();
     });
@@ -555,6 +570,48 @@ describe("Editor Component", () => {
           detail: { target: "Project Alpha", missing: false },
         })
       );
+
+      await waitFor(() => {
+        expect(useVaultStore.getState().loadNote).toHaveBeenCalledWith("Project Alpha.md");
+      });
+    });
+
+    it("follows existing wikilink targets when clicked in view mode", async () => {
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: "[[Project Alpha]]",
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+        noteList: [
+          {
+            id: "2",
+            path: "Project Alpha.md",
+            title: "Project Alpha",
+            created_at: Date.now() / 1000,
+            modified_at: Date.now() / 1000,
+            word_count: 10,
+          },
+        ],
+      });
+
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: "[[Project Alpha]]",
+        isDirty: false,
+      });
+
+      render(<Editor />);
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+      fireEvent.click(screen.getByRole("link", { name: "Project Alpha" }));
 
       await waitFor(() => {
         expect(useVaultStore.getState().loadNote).toHaveBeenCalledWith("Project Alpha.md");

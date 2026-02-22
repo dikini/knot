@@ -47,7 +47,8 @@ impl PluginManifest {
     /// Load and parse a plugin manifest from a TOML file.
     pub fn from_file<P: AsRef<Path>>(path: P) -> crate::Result<Self> {
         let content = std::fs::read_to_string(path)?;
-        let manifest: PluginManifest = toml::from_str(&content).map_err(VaultError::Config)?;
+        let manifest: PluginManifest =
+            toml::from_str(&content).map_err(|error| VaultError::Config(error.to_string()))?;
         Ok(manifest)
     }
 

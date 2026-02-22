@@ -1,0 +1,73 @@
+tasks:
+  - id: MRM-001
+    title: "Add Mermaid dependency and render adapter boundary"
+    status: planned
+    size: M
+    spec_refs: [FR-3, FR-7, FR-8]
+    concerns: [SEC, CAP]
+    dependencies: []
+    acceptance: "Mermaid package is wired behind frontend renderer adapter with no runtime import breakage"
+
+  - id: MRM-002
+    title: "Define safe Mermaid config and fallback rendering contract"
+    status: planned
+    size: S
+    spec_refs: [FR-4, FR-7]
+    concerns: [REL, SEC]
+    dependencies: [MRM-001]
+    acceptance: "Renderer uses explicit safe config and deterministic fallback for invalid Mermaid blocks"
+
+  - id: MRM-003
+    title: "Render Mermaid fences in view mode"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-3, FR-8]
+    concerns: [REL, CAP]
+    dependencies: [MRM-001, MRM-002]
+    acceptance: "Code blocks marked mermaid are rendered as diagrams in view mode"
+
+  - id: MRM-004
+    title: "Implement non-crashing fallback for invalid Mermaid syntax"
+    status: planned
+    size: S
+    spec_refs: [FR-4]
+    concerns: [REL, CONF]
+    dependencies: [MRM-003]
+    acceptance: "Invalid Mermaid blocks show readable fallback and do not crash note rendering"
+
+  - id: MRM-005
+    title: "Style Mermaid render containers for editor view surface"
+    status: planned
+    size: S
+    spec_refs: [FR-3, FR-4, FR-8]
+    concerns: [CAP, CONF]
+    dependencies: [MRM-003]
+    acceptance: "Rendered diagrams and fallback states align with current view typography and spacing"
+
+  - id: MRM-006
+    title: "Add Mermaid diagram block insertion action"
+    status: planned
+    size: M
+    spec_refs: [FR-5, FR-6]
+    concerns: [COMP, CONF]
+    dependencies: [MRM-001]
+    acceptance: "Block menu includes Mermaid action that inserts starter ```mermaid fenced snippet"
+
+  - id: MRM-007
+    title: "Add markdown round-trip and compatibility regression tests"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-9]
+    concerns: [COMP, REL]
+    dependencies: [MRM-003, MRM-004]
+    acceptance: "Mermaid fences round-trip and non-Mermaid syntax behavior remains unchanged"
+
+  - id: MRM-008
+    title: "Add editor integration tests and run verification commands"
+    status: planned
+    size: M
+    spec_refs: [FR-2, FR-3, FR-4, FR-5, FR-6, FR-9]
+    concerns: [REL, SEC, COMP, CONF]
+    dependencies: [MRM-005, MRM-006, MRM-007]
+    acceptance: "Focused tests and typecheck pass with Mermaid view render + insertion behavior verified"
+

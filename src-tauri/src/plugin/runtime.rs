@@ -7,12 +7,14 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use wasmtime::{Engine, Instance, Linker, Module, Store};
-use wasmtime_wasi::preview1::WasiP1Ctx;
-use wasmtime_wasi::WasiCtxBuilder;
+use wasmtime_wasi::preview2::preview1::{self, WasiPreview1Adapter, WasiPreview1View};
+use wasmtime_wasi::preview2::{Table, WasiCtx, WasiCtxBuilder, WasiView};
 
 /// Context for plugin store
 pub struct PluginContext {
-    wasi: WasiP1Ctx,
+    table: Table,
+    wasi: WasiCtx,
+    preview1_adapter: WasiPreview1Adapter,
 }
 
 impl std::fmt::Debug for PluginContext {
@@ -24,8 +26,40 @@ impl std::fmt::Debug for PluginContext {
 impl PluginContext {
     /// Create a new plugin context with default WASI settings.
     pub fn new() -> Self {
-        let wasi = WasiCtxBuilder::new().inherit_stdio().build_p1();
-        Self { wasi }
+        let wasi = WasiCtxBuilder::new().inherit_stdio().build();
+        Self {
+            table: Table::new(),
+            wasi,
+            preview1_adapter: WasiPreview1Adapter::new(),
+        }
+    }
+}
+
+impl WasiView for PluginContext {
+    fn table(&self) -> &Table {
+        &self.table
+    }
+
+    fn table_mut(&mut self) -> &mut Table {
+        &mut self.table
+    }
+
+    fn ctx(&self) -> &WasiCtx {
+        &self.wasi
+    }
+
+    fn ctx_mut(&mut self) -> &mut WasiCtx {
+        &mut self.wasi
+    }
+}
+
+impl WasiPreview1View for PluginContext {
+    fn adapter(&self) -> &WasiPreview1Adapter {
+        &self.preview1_adapter
+    }
+
+    fn adapter_mut(&mut self) -> &mut WasiPreview1Adapter {
+        &mut self.preview1_adapter
     }
 }
 
@@ -132,10 +166,8 @@ impl PluginRuntime {
 
         // Create linker and add WASI preview1
         let mut linker = Linker::new(&self.engine);
-        wasmtime_wasi::preview1::add_to_linker_sync(&mut linker, |ctx: &mut PluginContext| {
-            &mut ctx.wasi
-        })
-        .map_err(|e| VaultError::Plugin(format!("Failed to add WASI to linker: {e}")))?;
+        preview1::add_to_linker_sync(&mut linker)
+            .map_err(|e| VaultError::Plugin(format!("Failed to add WASI to linker: {e}")))?;
 
         // Add custom host functions
         add_host_functions(&mut linker)?;

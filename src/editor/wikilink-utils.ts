@@ -21,13 +21,24 @@ function basenameWithoutExt(path: string): string {
   return name.endsWith(".md") ? name.slice(0, -3) : name;
 }
 
+function pathWithoutExt(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  return normalized.endsWith(".md") ? normalized.slice(0, -3) : normalized;
+}
+
 function noteCandidates(note: NoteSummary): string[] {
   return [
     note.title,
     note.path,
+    pathWithoutExt(note.path),
     basename(note.path),
     basenameWithoutExt(note.path),
   ].filter((candidate): candidate is string => candidate.trim().length > 0);
+}
+
+function suggestionTarget(note: NoteSummary, fallbackTitle: string): string {
+  const canonicalPath = pathWithoutExt(note.path);
+  return canonicalPath.includes("/") ? canonicalPath : fallbackTitle;
 }
 
 export function resolveWikilinkTargetPath(noteList: NoteSummary[], target: string): string | null {
@@ -78,7 +89,7 @@ export function getWikilinkSuggestions(
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
 
   const items = scored.slice(0, limit).map((entry) => ({
-    target: entry.title,
+    target: suggestionTarget(entry.note, entry.title),
     label: entry.title,
     path: entry.note.path,
   }));

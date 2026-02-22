@@ -10,8 +10,25 @@ import {
 import { IconButton } from "@components/IconButton";
 import { useEditorStore, useVaultStore } from "@lib/store";
 import * as api from "@lib/api";
-import { Save, Bold, Italic, Link2, Code, Plus, X, FileCode2, TextQuote } from "lucide-react";
-import { toggleMark } from "prosemirror-commands";
+import {
+  Save,
+  Bold,
+  Italic,
+  Link2,
+  Code,
+  Plus,
+  X,
+  FileCode2,
+  TextQuote,
+  Strikethrough,
+  Heading1,
+  Heading2,
+  Heading3,
+  List,
+  ListOrdered,
+  Minus,
+} from "lucide-react";
+import { toggleMark, wrapIn, setBlockType } from "prosemirror-commands";
 import { Selection, TextSelection, type Command } from "prosemirror-state";
 import { schema } from "@editor/schema";
 import type { ProseMirrorEditor } from "../../types/editor";
@@ -111,7 +128,7 @@ export function Editor() {
         // Non-tauri test/web contexts may not provide this command.
       });
     }
-  }, [currentNote?.path, isDirty]);
+  }, [currentNote, isDirty]);
 
   useEffect(() => {
     window.__KNOT_WIKILINK_TARGETS__ = [...buildKnownWikilinkTargets(noteList)];
@@ -186,6 +203,25 @@ export function Editor() {
     setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
   }, [wikilinkSuggest.from, wikilinkSuggest.to]);
 
+  const followOrCreateWikilinkTarget = useCallback(
+    async (target: string) => {
+      const normalizedTarget = target.trim();
+      if (!normalizedTarget) return;
+
+      const existingPath = resolveWikilinkTargetPath(noteList, normalizedTarget);
+      if (existingPath) {
+        await loadNote(existingPath);
+        return;
+      }
+
+      const path = notePathFromWikilinkTarget(normalizedTarget);
+      const created = await api.createNote(path, `# ${normalizedTarget}\n\n`);
+      setCurrentNote(created);
+      await useVaultStore.getState().loadNotes();
+    },
+    [loadNote, noteList, setCurrentNote]
+  );
+
   // Initialize editor
   useEffect(() => {
     if (editorMode !== "edit") {
@@ -255,6 +291,23 @@ export function Editor() {
 
     pmRef.current = pm;
 
+    if (editContainerRef.current) {
+      const { view } = pm;
+      const selection = view.state.selection;
+      if (selection.empty) {
+        const fromCoords = view.coordsAtPos(selection.from);
+        const containerRect = editContainerRef.current.getBoundingClientRect();
+        const proseRect = view.dom.getBoundingClientRect();
+        const gutterLeft = proseRect.left - containerRect.left;
+        const lineBottom = fromCoords.bottom - containerRect.top + editContainerRef.current.scrollTop;
+        setBlockTool({
+          visible: true,
+          x: Math.max(8, Math.min(gutterLeft - 36, containerRect.width - 36)),
+          y: Math.max(8, lineBottom - 14),
+        });
+      }
+    }
+
     return () => {
       pm.destroy();
       pmRef.current = null;
@@ -278,7 +331,7 @@ export function Editor() {
   }, [runCommand]);
 
   const insertBlockAfterSelection = useCallback(
-    (kind: "code_block" | "blockquote") => {
+    (kind: "code_block" | "blockquote" | "heading_1" | "heading_2" | "heading_3" | "bullet_list" | "ordered_list" | "horizontal_rule") => {
       if (!pmRef.current) return;
       const { view } = pmRef.current;
       const { state, dispatch } = view;
@@ -288,8 +341,26 @@ export function Editor() {
 
       if (kind === "code_block") {
         node = schema.nodes.code_block.create({ language: null });
-      } else {
+      } else if (kind === "blockquote") {
         node = schema.nodes.blockquote.create(null, schema.nodes.paragraph.create());
+      } else if (kind === "heading_1") {
+        node = schema.nodes.heading.create({ level: 1 });
+      } else if (kind === "heading_2") {
+        node = schema.nodes.heading.create({ level: 2 });
+      } else if (kind === "heading_3") {
+        node = schema.nodes.heading.create({ level: 3 });
+      } else if (kind === "bullet_list") {
+        node = schema.nodes.bullet_list.create(
+          null,
+          schema.nodes.list_item.create(null, schema.nodes.paragraph.create())
+        );
+      } else if (kind === "ordered_list") {
+        node = schema.nodes.ordered_list.create(
+          { order: 1 },
+          schema.nodes.list_item.create(null, schema.nodes.paragraph.create())
+        );
+      } else {
+        node = schema.nodes.horizontal_rule.create();
       }
 
       let tr = state.tr.insert(insertPos, node);
@@ -443,22 +514,40 @@ export function Editor() {
       const custom = event as CustomEvent<{ target: string; missing?: boolean }>;
       const target = custom.detail?.target?.trim();
       if (!target) return;
-
-      const existingPath = resolveWikilinkTargetPath(noteList, target);
-      if (existingPath) {
-        await loadNote(existingPath);
-        return;
-      }
-
-      const path = notePathFromWikilinkTarget(target);
-      const created = await api.createNote(path, `# ${target}\n\n`);
-      setCurrentNote(created);
-      await useVaultStore.getState().loadNotes();
+      await followOrCreateWikilinkTarget(target);
     };
 
     window.addEventListener("wikilink-click", handleWikilinkClick as EventListener);
     return () => window.removeEventListener("wikilink-click", handleWikilinkClick as EventListener);
-  }, [loadNote, noteList, setCurrentNote]);
+  }, [followOrCreateWikilinkTarget]);
+
+  const handleRenderedMarkdownClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      const targetElement = event.target as HTMLElement | null;
+      if (!targetElement) return;
+
+      const anchor = targetElement.closest("a") as HTMLAnchorElement | null;
+      if (!anchor) return;
+
+      const wikilinkTarget = anchor.getAttribute("data-wikilink");
+      if (wikilinkTarget) {
+        event.preventDefault();
+        void followOrCreateWikilinkTarget(wikilinkTarget);
+        return;
+      }
+
+      const href = anchor.getAttribute("href")?.trim();
+      if (!href || href.startsWith("http://") || href.startsWith("https://") || href.startsWith("#")) {
+        return;
+      }
+
+      if (href.endsWith(".md")) {
+        event.preventDefault();
+        void loadNote(href);
+      }
+    },
+    [followOrCreateWikilinkTarget, loadNote]
+  );
 
   if (!currentNote) {
     return (
@@ -589,6 +678,34 @@ export function Editor() {
               <button
                 type="button"
                 className="editor-selection-toolbar__action"
+                aria-label="Quote"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  const blockquoteNode = schema.nodes.blockquote;
+                  if (!blockquoteNode) return;
+                  runCommand(wrapIn(blockquoteNode));
+                }}
+              >
+                <TextQuote size={14} />
+                <span className="editor-selection-toolbar__label">Quote</span>
+              </button>
+              <button
+                type="button"
+                className="editor-selection-toolbar__action"
+                aria-label="Strikethrough"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  const strikeMark = schema.marks.strike;
+                  if (!strikeMark) return;
+                  runCommand(toggleMark(strikeMark));
+                }}
+              >
+                <Strikethrough size={14} />
+                <span className="editor-selection-toolbar__label">Strike</span>
+              </button>
+              <button
+                type="button"
+                className="editor-selection-toolbar__action"
                 aria-label="Link"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={handleToggleLink}
@@ -626,6 +743,75 @@ export function Editor() {
                   aria-label="Insert block"
                   onKeyDown={(event) => handleLinearToolbarKeydown(event, { closeOnEscape: true })}
                 >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
+                    onClick={() => {
+                      const heading = schema.nodes.heading;
+                      if (!heading) return;
+                      runCommand(setBlockType(heading, { level: 1 }));
+                      setBlockMenuOpen(false);
+                    }}
+                  >
+                    <Heading1 size={14} data-testid="block-menu-icon-h1" aria-hidden="true" />
+                    <span>Heading 1</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
+                    onClick={() => {
+                      const heading = schema.nodes.heading;
+                      if (!heading) return;
+                      runCommand(setBlockType(heading, { level: 2 }));
+                      setBlockMenuOpen(false);
+                    }}
+                  >
+                    <Heading2 size={14} data-testid="block-menu-icon-h2" aria-hidden="true" />
+                    <span>Heading 2</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
+                    onClick={() => {
+                      const heading = schema.nodes.heading;
+                      if (!heading) return;
+                      runCommand(setBlockType(heading, { level: 3 }));
+                      setBlockMenuOpen(false);
+                    }}
+                  >
+                    <Heading3 size={14} data-testid="block-menu-icon-h3" aria-hidden="true" />
+                    <span>Heading 3</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
+                    onClick={() => insertBlockAfterSelection("bullet_list")}
+                  >
+                    <List size={14} data-testid="block-menu-icon-bullet" aria-hidden="true" />
+                    <span>Bullet list</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
+                    onClick={() => insertBlockAfterSelection("ordered_list")}
+                  >
+                    <ListOrdered size={14} data-testid="block-menu-icon-ordered" aria-hidden="true" />
+                    <span>Numbered list</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
+                    onClick={() => insertBlockAfterSelection("horizontal_rule")}
+                  >
+                    <Minus size={14} data-testid="block-menu-icon-hr" aria-hidden="true" />
+                    <span>Horizontal rule</span>
+                  </button>
                   <button
                     type="button"
                     role="menuitem"
@@ -689,7 +875,11 @@ export function Editor() {
       )}
       {editorMode === "view" && (
         <div className="editor-container editor-container--view">
-          <article className="editor-view-markdown" dangerouslySetInnerHTML={{ __html: renderedHtml }} />
+          <article
+            className="editor-view-markdown"
+            onClick={handleRenderedMarkdownClick}
+            dangerouslySetInnerHTML={{ __html: renderedHtml }}
+          />
         </div>
       )}
     </div>

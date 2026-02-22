@@ -142,7 +142,7 @@ const markdownSerializer = new MarkdownSerializer(
 
         const href = mark.attrs.href as string;
         const title = mark.attrs.title as string | null;
-        return title ? `](${href} \"${title}\")` : `](${href})`;
+        return title ? `](${href} "${title}")` : `](${href})`;
       },
       mixable: false,
     },

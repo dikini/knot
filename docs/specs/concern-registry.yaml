@@ -1,0 +1,36 @@
+concerns:
+  REL:
+    name: Reliability
+    requirements:
+      - Deterministic behavior under normal input
+      - Bounded failure modes with explicit fallback
+  SEC:
+    name: Security
+    requirements:
+      - Input sanitization and safe rendering boundaries
+      - No untrusted script execution
+  OBS:
+    name: Observability
+    requirements:
+      - Diagnostic logging for recoverable failures
+      - Traceable failure points for debugging
+  CAP:
+    name: Capacity
+    requirements:
+      - Bounded CPU/memory impact for heavy documents
+      - Avoid repeated expensive recomputation
+  CONS:
+    name: Consistency
+    requirements:
+      - Stable behavior across application surfaces
+      - Deterministic serialization/parsing outcomes
+  COMP:
+    name: Compatibility
+    requirements:
+      - Backward-compatible markdown handling
+      - Safe rollout with toggles when needed
+  CONF:
+    name: UX Confidence
+    requirements:
+      - Predictable interaction behavior
+      - Clear fallback states for user trust

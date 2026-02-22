@@ -286,8 +286,9 @@
 }
 
 .editor-block-tool__menu {
-  display: inline-flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  align-items: stretch;
   gap: 6px;
   padding: 6px;
   border-radius: 8px;
@@ -303,13 +304,23 @@
   background: rgba(255, 255, 255, 0.06);
   padding: 0.22rem 0.5rem;
   font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  min-height: 30px;
+  white-space: nowrap;
   cursor: pointer;
 }
 
 .editor-block-tool__menu-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  width: 100%;
+}
+
+@container editor-surface (max-width: 640px) {
+  .editor-block-tool__menu {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .editor-block-tool__menu button:hover {
@@ -500,8 +511,9 @@
   padding: 0.35rem 0.45rem;
   text-align: left;
   display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
   cursor: pointer;
 }
 
@@ -513,7 +525,9 @@
 
 .editor-wikilink-suggest__path {
   color: var(--editor-subtle);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
+  line-height: 1.1;
+  opacity: 0.85;
 }
 
 .editor-wikilink-suggest__more {
