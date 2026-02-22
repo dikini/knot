@@ -23,6 +23,10 @@ const config: StorybookConfig = {
 
     return {
       ...config,
+      build: {
+        ...(config.build ?? {}),
+        chunkSizeWarningLimit: 1500,
+      },
       resolve: {
         ...(config.resolve ?? {}),
         alias: {

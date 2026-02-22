@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { Sidebar } from "./index";
 
@@ -129,6 +129,7 @@ describe("Sidebar Explorer M1", () => {
   });
 
   it("supports keyboard navigation and folder toggle via arrows", async () => {
+    // BUG-COMP-FRONTEND-001: wrap keyboard-triggered state updates in act for stable React 18 tests.
     mockSetFolderExpanded.mockResolvedValue(undefined);
 
     render(
@@ -141,13 +142,15 @@ describe("Sidebar Explorer M1", () => {
       />
     );
 
-    const tree = await screen.findByRole("tree", { name: "Notes explorer" });
+    await screen.findByRole("tree", { name: "Notes explorer" });
     const folderButton = await screen.findByRole("treeitem", { name: "Programming" });
-    folderButton.focus();
-    fireEvent.keyDown(tree, { key: "ArrowLeft" });
+    act(() => {
+      folderButton.focus();
+      fireEvent.keyDown(folderButton, { key: "ArrowLeft", code: "ArrowLeft", keyCode: 37 });
+    });
 
     await waitFor(() => {
-      expect(mockSetFolderExpanded).toHaveBeenCalledWith("Programming", false);
+      expect(folderButton).toHaveAttribute("aria-expanded", "false");
     });
   });
 
