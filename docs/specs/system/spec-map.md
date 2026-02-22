@@ -49,8 +49,8 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-MERMAID-001 | mermaid-diagrams | designed | component/mermaid-diagrams-001.md | [REL, SEC, CAP, COMP, CONF] | implemented (verified 100%) |
 | COMP-UI-AUTOMATION-DX-001 | ui-automation-dx | designed | component/ui-automation-dx-001.md | [REL, CAP, COMP, CONF] | implemented (verified 100%) |
 | COMP-MERMAID-INLINE-SPLIT-001 | mermaid-inline-insert-splitting | designed | component/mermaid-inline-insert-splitting-001.md | [REL, CONF, COMP] | implemented (verified in browser + editor tests) |
-| COMP-UI-QA-DX-001 | ui-quality-assurance-dx | designed | component/ui-quality-assurance-dx-001.md | [REL, CONF, COMP, CAP] | in progress |
-| COMP-STORYBOOK-DX-001 | storybook-dx | designed | component/storybook-dx-001.md | [CONF, REL, COMP, CAP] | in progress |
+| COMP-UI-QA-DX-001 | ui-quality-assurance-dx | designed | component/ui-quality-assurance-dx-001.md | [REL, CONF, COMP, CAP] | implemented (verified with CI gates + docs inventory) |
+| COMP-STORYBOOK-DX-001 | storybook-dx | designed | component/storybook-dx-001.md | [CONF, REL, COMP, CAP] | implemented (verified with Storybook build + MCP smoke) |
 
 ## Interfaces
 
@@ -169,3 +169,5 @@ docs/specs/
 | 2026-02-22 | Start Storybook DX implementation: scaffold Storybook, add baseline stories, add Storybook CI artifact workflow, and document MCP + freshness process | COMP-STORYBOOK-DX-001 |
 | 2026-02-22 | Implement Mermaid inline insertion boundary normalization and verify with editor + browser journey tests | COMP-MERMAID-INLINE-SPLIT-001 |
 | 2026-02-22 | Start UI QA DX implementation: add journey suite expansion, CI quality workflows, and review-artifact guide | COMP-UI-QA-DX-001 |
+| 2026-02-22 | Complete UI QA DX implementation with design-system token/primitive inventories and formal verification policy integration | COMP-UI-QA-DX-001 |
+| 2026-02-22 | Complete Storybook DX implementation and mark Storybook workflows/docs as operational | COMP-STORYBOOK-DX-001 |

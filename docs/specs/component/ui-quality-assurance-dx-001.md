@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-UI-QA-DX-001`
 - Scope: `component`
-- Status: `in progress`
+- Status: `implemented`
 - Parent: `COMP-UI-AUTOMATION-DX-001`, `COMP-EDITOR-MODES-001`, `COMP-MERMAID-001`
 - Concerns: `[REL, CONF, COMP, CAP]`
 - Trace: `DESIGN-ui-qa-dx-001`
@@ -76,9 +76,9 @@ Raise Knot's UI verification from baseline automation to a reviewable, repeatabl
 - [x] At least one automated native runtime smoke test executes and reports status.
 - [x] PR CI enforces required UI quality gates.
 - [x] Human-reviewable UI state catalog exists and is kept current.
-- [ ] Token and primitive inventories are documented from current implementation.
-- [ ] Primitive usage contracts are documented and traceable to implemented components.
-- [ ] No mandatory external UI framework migration is introduced.
+- [x] Token and primitive inventories are documented from current implementation.
+- [x] Primitive usage contracts are documented and traceable to implemented components.
+- [x] No mandatory external UI framework migration is introduced.
 
 ## Verification Strategy (Future)
 - Run expanded browser-lane Playwright suite and confirm deterministic pass rate.
@@ -90,4 +90,4 @@ Raise Knot's UI verification from baseline automation to a reviewable, repeatabl
 ## Related
 - Depends on: `COMP-UI-AUTOMATION-DX-001`
 - Complements: `COMP-MERMAID-001`, `COMP-MERMAID-INLINE-SPLIT-001`
-- Follow-up: planning and phased implementation are intentionally deferred.
+- Follow-up: Storybook expansion and broader primitive coverage are incremental improvements, not blockers.

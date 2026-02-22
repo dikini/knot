@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-STORYBOOK-DX-001`
 - Scope: `component`
-- Status: `in progress`
+- Status: `implemented`
 - Parent: `COMP-UI-QA-DX-001`, `COMP-UI-AUTOMATION-DX-001`, `COMP-TOOLCHAIN-001`
 - Concerns: `[CONF, REL, COMP, CAP]`
 - Trace: `DESIGN-storybook-dx-001`

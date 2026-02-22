@@ -115,6 +115,30 @@ Scan scope for:
 - **Warning**: Untested code, missing docs
 - **Info**: Missing tests for edge cases
 
+### 3.5. UI Documentation Freshness Verification (When UI Scope Is Touched)
+
+If verification scope includes UI implementation paths (for example `src/components/**`, `src/editor/**`, `src/styles/**`), run UI freshness checks in addition to marker compliance:
+
+```bash
+# PR/branch delta
+npm run -s qa:docsync -- --against=<base-ref>
+
+# Optional staged check during local pre-commit
+npm run -s qa:docsync:staged
+```
+
+For Storybook-enabled repos, verify docs/artifact tooling is healthy:
+
+```bash
+npm run -s storybook:smoke
+npm run -s storybook:build
+```
+
+Report UI verification signals in the compliance summary:
+- Browser-evidence sync status
+- Storybook docs/build status
+- Missing story/doc updates for changed UI primitives
+
 ### 4. Report
 
 Generate report in requested format:
@@ -241,6 +265,7 @@ Fix required:
     # Fails if:
     # - Hallucinated markers found (critical)
     # - Critical gaps found (security, reliability)
+    # - UI doc/evidence freshness gates fail for UI changes
 ```
 
 ## Future Enhancements
