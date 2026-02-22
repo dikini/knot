@@ -24,7 +24,7 @@ The following old "next steps" from this file were retired because they are impl
 
 ## Current Open Work
 
-1. Increase extracted frontend completeness for `COMP-FRONTEND-001` from 90% toward full scoped coverage.
+1. No outstanding in-progress workstreams in the current roadmap/status set.
 
 ## Notes
 

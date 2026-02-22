@@ -6,6 +6,7 @@
 - Purpose: Canonical state of project features, traceability, and completion status
 - Workflow: bk-\*
 - Latest verification set:
+  - `docs/audit/frontend-verification-2026-02-22.md`
   - `docs/audit/storybook-dx-001-verification-2026-02-22.md`
   - `docs/audit/ui-qa-dx-001-verification-2026-02-22.md`
   - `docs/audit/ui-automation-dx-001-verification-2026-02-22.md`
@@ -21,7 +22,7 @@
 | COMP-GRAPH-001        | graph           | active          | 100%       | ✅     | ✅        |
 | COMP-MARKDOWN-001     | markdown        | active          | 100%       | ✅     | ✅        |
 | COMP-DATABASE-001     | database        | active          | 100%       | ✅     | ✅        |
-| COMP-FRONTEND-001     | frontend        | active          | 90%        | ✅     | ✅        |
+| COMP-FRONTEND-001     | frontend        | active          | 100%       | ✅     | ✅        |
 | COMP-VAULT-UI-001     | vault-ui        | **implemented** | 100%       | ⚠️     | ❌        |
 | COMP-CONTENT-LOAD-001 | content-loading | **implemented** | 100%       | ✅     | ✅        |
 | COMP-NOTE-SEL-001     | note-selection  | **implemented** | 100%       | ✅     | ✅        |
@@ -318,9 +319,9 @@ These specs were machine-generated from existing code. They now have SPEC-marker
 | COMP-GRAPH-001    | 100%       | ✅     | ✅        | Verified via `docs/audit/graph-verification-2026-02-19.md` |
 | COMP-MARKDOWN-001 | 100%       | ✅     | ✅        | Verified via `docs/audit/markdown-verification-2026-02-19.md` |
 | COMP-DATABASE-001 | 100%       | ✅     | ✅        | Verified via `docs/audit/database-verification-2026-02-19.md` |
-| COMP-FRONTEND-001 | 90%        | ✅     | ✅        | Verified via `docs/audit/frontend-verification-2026-02-19.md` |
+| COMP-FRONTEND-001 | 100%       | ✅     | ✅        | Verified via `docs/audit/frontend-verification-2026-02-22.md` |
 
-**Action Required**: Continue iterating extracted-spec completeness (compliance target beyond current 90% for `COMP-FRONTEND-001`)
+**Action Required**: Maintain extracted/frontend alignment as frontend scope evolves.
 
 ---
 
@@ -360,9 +361,9 @@ These specs are designed but have no implementation yet.
   - All have formal verification reports in `docs/audit/`
 - ✅ COMP-FRONTEND-001
   - Traceability is complete
-  - Verification report exists
-  - Automated frontend verification is green (`npm run typecheck`, `npm test -- --run`)
-  - Current extracted-spec compliance: 90%
+  - Verification report exists (`docs/audit/frontend-verification-2026-02-22.md`)
+  - Automated frontend verification is green (`npm run -s typecheck`, `npm test -- --run`)
+  - Current extracted-spec compliance: 100%
 
 ### Not Started
 
@@ -433,7 +434,7 @@ All verification reports in `docs/audit/`:
 | COMP-GRAPH-001        | graph-verification-2026-02-19.md           | 2026-02-19 | 100%       |
 | COMP-MARKDOWN-001     | markdown-verification-2026-02-19.md        | 2026-02-19 | 100%       |
 | COMP-DATABASE-001     | database-verification-2026-02-19.md        | 2026-02-19 | 100%       |
-| COMP-FRONTEND-001     | frontend-verification-2026-02-19.md        | 2026-02-19 | 90%        |
+| COMP-FRONTEND-001     | frontend-verification-2026-02-22.md        | 2026-02-22 | 100%       |
 | COMP-GRAPH-UI-001     | graph-ui-verification-2026-02-19.md        | 2026-02-19 | 100%       |
 | COMP-SEARCH-UI-001    | search-ui-verification-2026-02-20.md       | 2026-02-20 | 100%       |
 | COMP-TAG-EXTRACTION-001 | tag-extraction-verification-2026-02-20.md | 2026-02-20 | 100%       |

@@ -12,7 +12,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-GRAPH-001        | graph           | extracted | extracted/graph-001.md           | [CAP, REL]       | active (traceable, verified 100%)      |
 | COMP-MARKDOWN-001     | markdown        | extracted | extracted/markdown-001.md        | [CAP]            | active (traceable, verified 100%)      |
 | COMP-DATABASE-001     | database        | extracted | extracted/database-001.md        | [REL, SEC, CAP]  | active (traceable, verified 100%)      |
-| COMP-FRONTEND-001     | frontend        | extracted | extracted/frontend-001.md        | [CAP, REL]       | active (traceable, verified 90%)       |
+| COMP-FRONTEND-001     | frontend        | extracted | extracted/frontend-001.md        | [CAP, REL]       | active (traceable, verified 100%)      |
 | COMP-VAULT-UI-001     | vault-ui        | designed  | component/vault-ui-001.md        | [REL, SEC, CONF] | implemented (verified 100%)            |
 | COMP-CONTENT-LOAD-001 | content-loading | designed  | component/content-loading-001.md | [REL, SEC]       | implemented (bug fixed, verified 100%) |
 | COMP-NOTE-SEL-001     | note-selection  | designed  | component/note-selection-001.md  | [REL, CAP]       | implemented (verified 100%)            |

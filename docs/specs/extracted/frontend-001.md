@@ -6,257 +6,161 @@
 - Component: `frontend`
 - Depth: `standard`
 - Extracted: `2026-02-19`
+- Updated: `2026-02-22`
 - Concerns: [CAP, REL]
 
 ## Source Reference
 - Codebase: `src/`
 - Entry Points:
-  - `App.tsx` (Main app component)
-  - `lib/api.ts` (Tauri API client)
-  - `lib/store.ts` (Zustand state management)
-  - `components/Editor/` (ProseMirror editor)
-  - `components/Sidebar/` (Navigation)
-- Lines Analyzed: ~800
+  - `App.tsx` (shell orchestration, view/tool state, vault lifecycle integration)
+  - `lib/api.ts` (typed Tauri client)
+  - `lib/store.ts` (Zustand app/editor/shell state)
+  - `components/Editor/` (ProseMirror-based edit/source/view modes)
+  - `components/Sidebar/` (vault switcher + explorer tree + note navigation)
+  - `components/SearchBox/` and `components/GraphView/` (integrated feature surfaces)
+- Lines Analyzed: ~2200
 
 ## Confidence Assessment
 | Requirement | Confidence | Evidence | Needs Review |
 |-------------|------------|----------|--------------|
-| FR-1: Vault management UI | high | Implementation | no |
-| FR-2: Note list display | high | Implementation | no |
-| FR-3: Note editor | medium | Basic implementation | yes |
-| FR-4: API client | high | Implementation | no |
-| FR-5: State management | high | Implementation | no |
-| FR-6: Keyboard shortcuts | medium | Partial implementation | yes |
+| FR-1: Vault management UI | high | `src/App.tsx`, `src/components/VaultSwitcher` | no |
+| FR-2: Note list/explorer navigation | high | `src/components/Sidebar/index.tsx` | no |
+| FR-3: ProseMirror editor surface | high | `src/components/Editor/index.tsx` | no |
+| FR-4: Type-safe API client | high | `src/lib/api.ts` | no |
+| FR-5: Global state management | high | `src/lib/store.ts` | no |
+| FR-6: Keyboard shortcuts | high | `src/components/Editor/index.tsx`, `src/App.tsx` | no |
 
 ## Contract
 
 ### Functional Requirements
 
-**FR-1**: Vault management UI (open, close, display info)
-- Evidence: `App.tsx:8-109`
-- Confidence: high
-- Features:
-  - Input field for vault path
-  - Open vault button
-  - Close vault button
-  - Display vault name, path, note count, last modified
-  - Error display banner
-  - Loading indicators
+**FR-1**: Vault management UI (open/create/close/switch/status)  
+- Evidence: `src/App.tsx`, `src/components/VaultSwitcher/index.tsx`, `src/lib/api.ts`  
+- Implemented:
+  - Open/create vault flows (dialog + recent vault switching)
+  - Current vault state display and close flow
+  - Error/loading surfacing via shared state and toasts
 
-**FR-2**: Note list in sidebar
-- Evidence: `components/Sidebar/index.tsx` (assumed from glob), `App.tsx:47`
-- Confidence: high
-- Uses: `useVaultStore.noteList`
+**FR-2**: Note list and explorer-based navigation  
+- Evidence: `src/components/Sidebar/index.tsx`, `src/lib/store.ts`  
+- Implemented:
+  - Explorer tree load/refresh/listen flows
+  - Note selection and load
+  - Unsaved-change guard integration when switching notes
+  - Folder/note create/rename/delete paths through typed API calls
 
-**FR-3**: ProseMirror-based note editor
-- Evidence: `components/Editor/index.tsx:1-123`
-- Confidence: medium
-- Features:
-  - Markdown editing with ProseMirror
-  - Auto-load current note content
-  - Dirty state indicator
-  - Save button (enabled when dirty)
-  - Word count and modification date display
-- Status: Basic implementation, distraction-free features not yet implemented
+**FR-3**: ProseMirror-based editor surface with mode-aware UX  
+- Evidence: `src/components/Editor/index.tsx`, `src/editor/*`  
+- Implemented:
+  - Source/edit/view mode switching
+  - Markdown editing with dirty-state tracking and save integration
+  - Selection toolbar + block insert controls
+  - Wikilink suggestion/insert/follow flows
+  - Markdown rendering lane with mermaid rendering support in view mode
 
-**FR-4**: Type-safe API client for Tauri commands
-- Evidence: `lib/api.ts:1-247`
-- Confidence: high
-- Coverage:
-  - Vault: create, open, close, info, check, recent notes
-  - Notes: list, get, save, delete, rename, create
-  - Search: search, suggestions
-  - Graph: layout
-  - Test: greet
+**FR-4**: Type-safe API client for frontend-to-Tauri commands  
+- Evidence: `src/lib/api.ts`  
+- Implemented:
+  - Vault operations (open/create/close/info/recent/sync/unsaved-state)
+  - Note + explorer operations (CRUD + directory/tree)
+  - Search and graph operations
+  - Typed invoke wrappers and centralized error normalization
 
-**FR-5**: Global state management with Zustand
-- Evidence: `lib/store.ts:1-149`
-- Confidence: high
-- State slices:
-  - `VaultState`: vault, currentNote, noteList, isLoading, error
-  - `EditorState`: content, isDirty, cursorPosition
-- Actions: openVault, closeVault, loadNotes, loadNote, saveCurrentNote
+**FR-5**: Global state management with Zustand  
+- Evidence: `src/lib/store.ts`  
+- Implemented:
+  - `VaultState` for vault/note/shell/load/error state
+  - `EditorState` for content/dirty/cursor state
+  - Async action layer for open/close/load/save flows
+  - Shell UI preferences and panel/tool toggles
 
-**FR-6**: Keyboard shortcuts
-- Evidence: `components/Editor/index.tsx:69-90`
-- Confidence: medium
-- Implemented: Ctrl/Cmd + S (save)
-- Missing: Many editor shortcuts not yet implemented
+**FR-6**: Keyboard shortcuts for core frontend workflows  
+- Evidence: `src/components/Editor/index.tsx`, `src/App.tsx`  
+- Implemented:
+  - Save shortcut (`Ctrl/Cmd+S`) in editor workflows
+  - Shell tool mode switching (`Ctrl/Cmd+1/2/3`) for notes/search/graph
+  - Additional mode-specific interactions covered by editor-mode specs
 
 ### Interface (TypeScript)
 
 ```typescript
-// Vault Types (from types/vault.ts)
-export interface VaultInfo {
-  path: string;
-  name: string;
-  note_count: number;
-  last_modified: number;
+// From src/types/vault.ts
+interface VaultInfo { path: string; name: string; note_count: number; last_modified: number }
+interface NoteSummary { id: string; path: string; title: string; created_at: number; modified_at: number; word_count: number }
+interface NoteData { id: string; path: string; title: string; content: string; created_at: number; modified_at: number; word_count: number; headings: Heading[]; backlinks: Backlink[] }
+
+// From src/lib/store.ts
+type ShellToolMode = "notes" | "search" | "graph";
+type ShellDensityMode = "comfortable" | "adaptive";
+interface ShellState {
+  toolMode: ShellToolMode;
+  isToolRailCollapsed: boolean;
+  isContextPanelCollapsed: boolean;
+  isInspectorRailOpen: boolean;
+  contextPanelWidth: number;
+  densityMode: ShellDensityMode;
+  showTextLabels: boolean;
 }
 
-export interface NoteSummary {
-  id: string;
-  path: string;
-  title: string;
-  created_at: number;
-  modified_at: number;
-  word_count: number;
-}
-
-export interface NoteData {
-  id: string;
-  path: string;
-  title: string;
-  content: string;
-  created_at: number;
-  modified_at: number;
-  word_count: number;
-  headings: Heading[];
-  backlinks: Backlink[];
-}
-
-// Store State (from lib/store.ts)
-interface VaultState {
-  vault: VaultInfo | null;
-  currentNote: NoteData | null;
-  noteList: NoteSummary[];
-  isLoading: boolean;
-  error: string | null;
-  
-  setVault: (vault: VaultInfo | null) => void;
-  setCurrentNote: (note: NoteData | null) => void;
-  setNoteList: (notes: NoteSummary[]) => void;
-  setLoading: (loading: boolean) => void;
-  setError: (error: string | null) => void;
-  
-  openVault: (path: string) => Promise<void>;
-  closeVault: () => Promise<void>;
-  loadNotes: () => Promise<void>;
-  loadNote: (path: string) => Promise<void>;
-  saveCurrentNote: () => Promise<void>;
-  
-  hasVault: () => boolean;
-  hasNote: () => boolean;
-}
-
-interface EditorState {
-  content: string;
-  isDirty: boolean;
-  cursorPosition: number;
-  
-  setContent: (content: string) => void;
-  markDirty: (dirty: boolean) => void;
-  setCursorPosition: (pos: number) => void;
-  reset: () => void;
-}
-
-// API Functions (from lib/api.ts)
-export async function createVault(path: string): Promise<VaultInfo>;
-export async function openVault(path: string): Promise<VaultInfo>;
-export async function closeVault(): Promise<void>;
-export async function getVaultInfo(): Promise<VaultInfo | null>;
-export async function isVaultOpen(): Promise<boolean>;
-export async function getRecentNotes(limit?: number): Promise<NoteSummary[]>;
-export async function listNotes(): Promise<NoteSummary[]>;
-export async function getNote(path: string): Promise<NoteData>;
-export async function saveNote(path: string, content: string): Promise<void>;
-export async function deleteNote(path: string): Promise<void>;
-export async function renameNote(oldPath: string, newPath: string): Promise<void>;
-export async function createNote(path: string, content?: string): Promise<NoteData>;
-export async function searchNotes(query: string, limit?: number): Promise<SearchResult[]>;
-export async function searchSuggestions(query: string, limit?: number): Promise<string[]>;
-export async function getGraphLayout(width: number, height: number): Promise<GraphLayout>;
-export async function greet(name: string): Promise<string>;
-```
-
-### Component Structure
-
-```
-src/
-├── App.tsx                 # Main app layout, vault management UI
-├── main.tsx                # React entry point
-├── components/
-│   ├── Editor/
-│   │   ├── index.tsx       # Editor component with ProseMirror
-│   │   └── Editor.css      # Editor styles
-│   └── Sidebar/
-│       ├── index.tsx       # Navigation sidebar
-│       └── Sidebar.css     # Sidebar styles
-├── editor/                 # ProseMirror-specific code
-│   ├── index.ts            # Editor initialization
-│   ├── markdown.ts         # Markdown schema/serialization
-│   ├── schema.ts           # ProseMirror schema
-│   └── plugins/            # Editor plugins
-│       ├── index.ts
-│       ├── keymap.ts       # Keyboard shortcuts
-│       ├── syntax-hide.ts  # (Distraction-free feature)
-│       └── wikilinks.ts    # Wiki link handling
-├── lib/
-│   ├── api.ts              # Tauri API client
-│   └── store.ts            # Zustand state management
-├── types/
-│   ├── vault.ts            # Shared types
-│   └── editor.ts           # Editor types
-└── styles/
-    ├── App.css             # App styles
-    └── global.css          # Global styles
+// From src/lib/api.ts
+// Vault + UI
+openVault(path), createVault(path), openVaultDialog(), createVaultDialog(), closeVault(),
+getVaultInfo(), isVaultOpen(), getRecentVaults(), getRecentNotes(limit), syncExternalChanges(), setUnsavedChanges(dirty)
+// Notes + explorer
+listNotes(), getNote(path), saveNote(path, content), createNote(path, content?), renameNote(oldPath, newPath), deleteNote(path),
+getExplorerTree(), setFolderExpanded(path, expanded), createDirectory(path), renameDirectory(oldPath, newPath), deleteDirectory(path, recursive)
+// Search + graph
+searchNotes(query, limit?), searchSuggestions(query, limit?), getGraphLayout(width, height)
 ```
 
 ### Behavior
 
-**Given** no vault is open
-**When** user enters path and clicks "Open Vault"
-**Then** API called, vault loaded, notes list populated
+**Given** no vault is open  
+**When** user opens/creates a vault  
+**Then** vault state hydrates and notes/explorer load.
 
-**Given** vault is open with notes
-**When** note is selected in sidebar
-**Then** Editor loads with note content, dirty flag cleared
+**Given** a note is selected  
+**When** user edits content  
+**Then** editor dirty state and unsaved backend flag are synchronized.
 
-**Given** user edits note content
-**When** typing occurs
-**Then** dirty flag set to true, save button enabled
+**Given** unsaved note content exists  
+**When** user switches note or vault  
+**Then** guard flow prompts save/discard before transition.
 
-**Given** dirty note with Ctrl+S pressed
-**When** save completes
-**Then** dirty flag cleared, note list refreshed
-
-**Given** error from backend
-**When** error occurs
-**Then** Error banner displayed with message
+**Given** user uses shell shortcuts  
+**When** `Ctrl/Cmd+1/2/3` is pressed with a vault open  
+**Then** active tool mode changes to notes/search/graph.
 
 ## Design Decisions (Inferred)
 
 | Decision | Evidence | Confidence |
 |----------|----------|------------|
-| React 18+ with hooks | `App.tsx:1` | high |
-| Zustand for state management | `lib/store.ts:1` | high |
-| ProseMirror for editor | `editor/index.ts` | high |
-| TypeScript strict mode | `tsconfig.json` | high |
-| Vite for build tooling | `vite.config.ts` | high |
-| Path aliases (@components, @lib) | `vite.config.ts`, `tsconfig.json` | high |
-| Async Tauri invoke with error handling | `lib/api.ts:18-26` | high |
+| React with hook-first composition | `src/App.tsx` | high |
+| Zustand as state boundary | `src/lib/store.ts` | high |
+| ProseMirror editor core with mode layering | `src/components/Editor/index.tsx` | high |
+| Typed Tauri IPC wrapper | `src/lib/api.ts` | high |
+| Feature specialization via component specs | SPEC markers in frontend modules | high |
 
 ## Uncertainties
 
-- [ ] Distraction-free editing features (syntax hiding) - partially implemented in plugins
-- [ ] Sidebar functionality - only basic structure visible
-- [ ] Graph visualization UI - not yet implemented
-- [ ] Search UI - not yet implemented
-- [ ] Mobile/responsive design - not addressed
-- [ ] Theme/dark mode - not implemented
+- [ ] None significant for current extracted scope; feature-specific evolution is tracked in designed component specs.
 
 ## Acceptance Criteria (Derived from Code)
 
-- [ ] Vault can be opened via UI
-- [ ] Vault info displays correctly
-- [ ] Notes list loads when vault opens
-- [ ] Editor loads note content
-- [ ] Dirty state tracks changes
-- [ ] Save button saves note
-- [ ] Ctrl+S keyboard shortcut works
-- [ ] Error messages display
+- [x] Vault can be opened/created/switched from UI flows.
+- [x] Vault and note navigation state are rendered and synchronized.
+- [x] Editor loads selected note content and tracks dirty state.
+- [x] Save and unsaved-change guards are wired through frontend and API boundary.
+- [x] Search and graph surfaces are reachable through shell controls.
+- [x] Core keyboard shortcuts (`Ctrl/Cmd+S`, `Ctrl/Cmd+1/2/3`) work in frontend workflows.
+- [x] Error handling and loading states are surfaced through stores/UI.
 
 ## Related
-- Extracted from: `src/` directory
-- Depends on: Tauri frontend API, Backend commands
-- Uses: `COMP-VAULT-001`, `COMP-NOTE-001`, `COMP-SEARCH-001`, `COMP-GRAPH-001`
+- Extracted from: `src/`
+- Depends on: `COMP-VAULT-001`, `COMP-NOTE-001`, `COMP-SEARCH-001`, `COMP-GRAPH-001`
+- Complemented by designed specs:
+  - `COMP-EDITOR-MODES-001`
+  - `COMP-EDITOR-WYSIWYM-002`
+  - `COMP-SEARCH-UI-001`
+  - `COMP-GRAPH-UI-001`
+  - `COMP-TOOL-RAIL-CONTEXT-001`
