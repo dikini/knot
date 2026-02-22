@@ -2,7 +2,7 @@ import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./schema";
 import { plugins } from "./plugins";
-import { parseMarkdownAuto, serializeMarkdownAuto } from "./markdown";
+import { parseMarkdown, serializeMarkdown } from "./markdown";
 import type {
   EditorConfig,
   ProseMirrorEditor,
@@ -38,7 +38,7 @@ export function initProseMirrorEditor(
 
   // Parse initial markdown content
   const doc = initialContent 
-    ? parseMarkdownAuto(initialContent)
+    ? parseMarkdown(initialContent)
     : schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Start writing...")])]);
 
   const state = EditorState.create({
@@ -63,7 +63,7 @@ export function initProseMirrorEditor(
       }
 
       if (transaction.docChanged && onChange) {
-        const markdown = serializeMarkdownAuto(newState.doc);
+        const markdown = serializeMarkdown(newState.doc);
         onChange({
           markdown,
           cursorPosition: newState.selection.head,
@@ -86,10 +86,10 @@ export function initProseMirrorEditor(
       view.focus();
     },
     getMarkdown() {
-      return serializeMarkdownAuto(view.state.doc);
+      return serializeMarkdown(view.state.doc);
     },
     setMarkdown(markdown: string) {
-      const newDoc = parseMarkdownAuto(markdown);
+      const newDoc = parseMarkdown(markdown);
       const newState = EditorState.create({
         doc: newDoc,
         schema,

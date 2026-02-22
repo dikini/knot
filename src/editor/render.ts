@@ -1,5 +1,5 @@
 import { DOMSerializer } from "prosemirror-model";
-import { parseMarkdownAuto } from "./markdown";
+import { parseMarkdown } from "./markdown";
 import { schema } from "./schema";
 
 /**
@@ -7,7 +7,7 @@ import { schema } from "./schema";
  * used by edit mode, so view mode stays structurally consistent.
  */
 export function renderMarkdownToHtml(markdown: string): string {
-  const doc = parseMarkdownAuto(markdown);
+  const doc = parseMarkdown(markdown);
   const serializer = DOMSerializer.fromSchema(schema);
   const fragment = serializer.serializeFragment(doc.content);
   const container = document.createElement("div");

@@ -70,12 +70,12 @@ const markdownParser = new MarkdownParser(schema, markdownTokenizer, {
     getAttrs: (token) => ({ level: Number.parseInt(token.tag.slice(1), 10) }),
   },
   code_block: {
-    node: "code_block",
+    block: "code_block",
     noCloseToken: true,
     getAttrs: () => ({ language: null }),
   },
   fence: {
-    node: "code_block",
+    block: "code_block",
     noCloseToken: true,
     getAttrs: (token) => {
       const language = token.info?.trim().split(/\s+/)[0] || null;
@@ -113,6 +113,9 @@ const markdownParser = new MarkdownParser(schema, markdownTokenizer, {
 const markdownSerializer = new MarkdownSerializer(
   {
     ...defaultMarkdownSerializer.nodes,
+    bullet_list(state, node) {
+      state.renderList(node, "  ", () => "- ");
+    },
     code_block(state, node) {
       state.write("```" + ((node.attrs.language as string | null) ?? "") + "\n");
       state.text(node.textContent, false);

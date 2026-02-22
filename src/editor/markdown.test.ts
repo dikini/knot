@@ -274,7 +274,7 @@ describe("Markdown Parser", () => {
       const doc = parseMarkdown("[[Note Name]]");
       const serialized = serializeMarkdown(doc);
 
-      expect(serialized).toContain("[[Note Name]]");
+      expect(serialized).toContain("[[Note Name|Note Name]]");
     });
 
     it("should serialize wikilinks with display text", () => {

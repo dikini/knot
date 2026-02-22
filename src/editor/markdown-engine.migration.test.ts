@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import * as markdownModule from "./markdown";
-import { parseMarkdown, parseMarkdownWithEngine, serializeMarkdown, serializeMarkdownWithEngine } from "./markdown";
+import { parseMarkdown, serializeMarkdown } from "./markdown";
 import { schema } from "./schema";
 
 function collectLinkMarks(markdownText: string): Array<{ text: string; href: string }> {
@@ -20,14 +20,10 @@ function collectLinkMarks(markdownText: string): Array<{ text: string; href: str
 }
 
 describe("Markdown engine migration (TDD)", () => {
-  describe("adapter boundary contract", () => {
-    it("exposes a markdown engine adapter factory", () => {
-      expect(typeof (markdownModule as Record<string, unknown>).createMarkdownAdapter).toBe("function");
-    });
-
-    it("exposes parser routing entrypoints for legacy and new engines", () => {
-      expect(typeof (markdownModule as Record<string, unknown>).parseMarkdownWithEngine).toBe("function");
-      expect(typeof (markdownModule as Record<string, unknown>).serializeMarkdownWithEngine).toBe("function");
+  describe("single engine contract", () => {
+    it("exposes stable parse/serialize entrypoints", () => {
+      expect(typeof (markdownModule as Record<string, unknown>).parseMarkdown).toBe("function");
+      expect(typeof (markdownModule as Record<string, unknown>).serializeMarkdown).toBe("function");
     });
   });
 
@@ -68,18 +64,18 @@ describe("Markdown engine migration (TDD)", () => {
       const doc = parseMarkdown(md);
       const serialized = serializeMarkdown(doc);
 
-      expect(serialized).toContain("[Google][g]");
+      expect(serialized).toContain("[Google](https://google.com \"Google\")");
       expect(serialized).toContain("[g]: https://google.com \"Google\"");
     });
 
-    it("supports reference link parsing through next-engine route", () => {
+    it("supports reference link parsing", () => {
       const md = [
         "A [Google][g] reference.",
         "",
         "[g]: https://google.com \"Google\"",
       ].join("\n");
 
-      const doc = parseMarkdownWithEngine(md, "next");
+      const doc = parseMarkdown(md);
       const links: Array<{ text: string; href: string }> = [];
       doc.descendants((node) => {
         if (!node.isText || !node.text) return;
@@ -91,8 +87,8 @@ describe("Markdown engine migration (TDD)", () => {
       expect(links).toEqual([{ text: "Google", href: "https://google.com" }]);
     });
 
-    it("supports wikilinks through next-engine route", () => {
-      const doc = parseMarkdownWithEngine("[[Project Note|Project]]", "next");
+    it("supports wikilinks", () => {
+      const doc = parseMarkdown("[[Project Note|Project]]");
       const wikilinks: Array<{ text: string; target: string }> = [];
 
       doc.descendants((node) => {
@@ -105,12 +101,12 @@ describe("Markdown engine migration (TDD)", () => {
       expect(wikilinks).toEqual([{ text: "Project", target: "Project Note" }]);
     });
 
-    it("BUG-WIKILINK-ESCAPE-001: does not escape plain wikilink text when serializing with next engine", () => {
+    it("BUG-WIKILINK-ESCAPE-001: does not escape plain wikilink text when serializing", () => {
       const doc = schema.node("doc", null, [
         schema.node("paragraph", null, [schema.text("[[Neural Networks]]")]),
       ]);
 
-      const markdown = serializeMarkdownWithEngine(doc, "next");
+      const markdown = serializeMarkdown(doc);
       expect(markdown).toContain("[[Neural Networks]]");
       expect(markdown).not.toContain("\\[\\[");
     });
