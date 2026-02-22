@@ -1,6 +1,12 @@
 import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { initProseMirrorEditor } from "@editor/index";
 import { renderMarkdownToHtml } from "@editor/render";
+import {
+  buildKnownWikilinkTargets,
+  getWikilinkSuggestions,
+  notePathFromWikilinkTarget,
+  resolveWikilinkTargetPath,
+} from "@editor/wikilink-utils";
 import { IconButton } from "@components/IconButton";
 import { useEditorStore, useVaultStore } from "@lib/store";
 import * as api from "@lib/api";
@@ -16,6 +22,7 @@ import "./Editor.css";
 // SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
 // SPEC: COMP-EDITOR-MODES-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-9, FR-11
 // TRACE: DESIGN-editor-medium-like-interactions
+// TRACE: DESIGN-editor-wikilink-ux-003
 export function Editor() {
   const editorRef = useRef<HTMLDivElement>(null);
   const editContainerRef = useRef<HTMLDivElement>(null);
@@ -24,7 +31,7 @@ export function Editor() {
   const blockMenuRef = useRef<HTMLDivElement>(null);
   const blockToggleRef = useRef<HTMLButtonElement>(null);
   const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
-  const { currentNote, setCurrentNote, shell } = useVaultStore();
+  const { currentNote, setCurrentNote, loadNote, noteList, shell } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
   const [editorMode, setEditorMode] = useState<"source" | "edit" | "view">("edit");
   const [selectionToolbar, setSelectionToolbar] = useState<{
@@ -48,6 +55,23 @@ export function Editor() {
     y: 0,
   });
   const [blockMenuOpen, setBlockMenuOpen] = useState(false);
+  const [wikilinkSuggest, setWikilinkSuggest] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    from: number;
+    to: number;
+    items: Array<{ target: string; label: string; path: string }>;
+    hasMore: boolean;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    from: 0,
+    to: 0,
+    items: [],
+    hasMore: false,
+  });
 
   const noteScopedModeKey = currentNote ? `knot:editor-mode:${currentNote.path}` : null;
 
@@ -79,6 +103,79 @@ export function Editor() {
     markDirty(false);
   }, [currentNote, setContent, markDirty]);
 
+  useEffect(() => {
+    window.__KNOT_WIKILINK_TARGETS__ = [...buildKnownWikilinkTargets(noteList)];
+    if (!pmRef.current) return;
+    const { view } = pmRef.current;
+    view.dispatch(view.state.tr.setMeta("wikilink-targets-updated", true));
+  }, [noteList]);
+
+  const updateWikilinkSuggest = useCallback(() => {
+    if (!pmRef.current || !editContainerRef.current) {
+      setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
+      return;
+    }
+
+    const { view } = pmRef.current;
+    const selection = view.state.selection as typeof view.state.selection & { $from?: typeof view.state.selection.$from };
+    if (!selection.empty) {
+      setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
+      return;
+    }
+
+    if (!selection.$from || typeof selection.from !== "number") {
+      setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
+      return;
+    }
+
+    const { $from } = selection;
+    if (!$from.parent.isTextblock) {
+      setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
+      return;
+    }
+
+    const textBefore = $from.parent.textBetween(0, $from.parentOffset, "", "");
+    const markerIndex = textBefore.lastIndexOf("[[");
+    if (markerIndex < 0) {
+      setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
+      return;
+    }
+
+    const query = textBefore.slice(markerIndex + 2).trim();
+    if (query.includes("|") || query.length < 3) {
+      setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
+      return;
+    }
+
+    const { items, hasMore } = getWikilinkSuggestions(noteList, query, 5);
+    if (items.length === 0) {
+      setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
+      return;
+    }
+
+    const containerRect = editContainerRef.current.getBoundingClientRect();
+    const cursor = view.coordsAtPos(selection.from);
+
+    setWikilinkSuggest({
+      visible: true,
+      x: Math.max(8, cursor.left - containerRect.left),
+      y: Math.max(8, cursor.bottom - containerRect.top + editContainerRef.current.scrollTop + 6),
+      from: $from.start() + markerIndex,
+      to: selection.from,
+      items,
+      hasMore,
+    });
+  }, [noteList]);
+
+  const applyWikilinkSuggestion = useCallback((target: string) => {
+    if (!pmRef.current) return;
+    const { view } = pmRef.current;
+    const transaction = view.state.tr.insertText(`[[${target}]]`, wikilinkSuggest.from, wikilinkSuggest.to);
+    view.dispatch(transaction);
+    view.focus();
+    setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
+  }, [wikilinkSuggest.from, wikilinkSuggest.to]);
+
   // Initialize editor
   useEffect(() => {
     if (editorMode !== "edit") {
@@ -94,12 +191,14 @@ export function Editor() {
       onChange: (state) => {
         setContent(state.markdown);
         markDirty(true);
+        updateWikilinkSuggest();
       },
       onSelectionChange: (selection) => {
         if (!editContainerRef.current || !pmRef.current) {
           setSelectionToolbar((prev) => ({ ...prev, visible: false }));
           setBlockTool((prev) => ({ ...prev, visible: false }));
           setBlockMenuOpen(false);
+          setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
           return;
         }
         const view = pmRef.current.view;
@@ -120,6 +219,7 @@ export function Editor() {
             x: Math.max(8, Math.min(gutterLeft - 36, containerWidth - 36)),
             y: Math.max(8, lineBottom - 14),
           });
+          updateWikilinkSuggest();
           return;
         }
 
@@ -137,6 +237,7 @@ export function Editor() {
           y: placeBelow ? belowY : Math.max(8, preferredAboveY),
           placeBelow,
         });
+        setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
       },
       initialContent:
         useEditorStore.getState().content || currentNote.content || initialContentRef.current,
@@ -148,7 +249,7 @@ export function Editor() {
       pm.destroy();
       pmRef.current = null;
     };
-  }, [editorMode, currentNote, setContent, markDirty]);
+  }, [editorMode, currentNote, setContent, markDirty, updateWikilinkSuggest]);
 
   const runCommand = useCallback((command: Command) => {
     if (!pmRef.current) return;
@@ -326,6 +427,28 @@ export function Editor() {
     window.addEventListener("editor-save", handleSaveEvent);
     return () => window.removeEventListener("editor-save", handleSaveEvent);
   }, [handleSave]);
+
+  useEffect(() => {
+    const handleWikilinkClick = async (event: Event) => {
+      const custom = event as CustomEvent<{ target: string; missing?: boolean }>;
+      const target = custom.detail?.target?.trim();
+      if (!target) return;
+
+      const existingPath = resolveWikilinkTargetPath(noteList, target);
+      if (existingPath) {
+        await loadNote(existingPath);
+        return;
+      }
+
+      const path = notePathFromWikilinkTarget(target);
+      const created = await api.createNote(path, `# ${target}\n\n`);
+      setCurrentNote(created);
+      await useVaultStore.getState().loadNotes();
+    };
+
+    window.addEventListener("wikilink-click", handleWikilinkClick as EventListener);
+    return () => window.removeEventListener("wikilink-click", handleWikilinkClick as EventListener);
+  }, [loadNote, noteList, setCurrentNote]);
 
   if (!currentNote) {
     return (
@@ -512,6 +635,30 @@ export function Editor() {
                     <span>Blockquote</span>
                   </button>
                 </div>
+              )}
+            </div>
+          )}
+          {wikilinkSuggest.visible && (
+            <div
+              className="editor-wikilink-suggest"
+              style={{ left: `${wikilinkSuggest.x}px`, top: `${wikilinkSuggest.y}px` }}
+              role="listbox"
+              aria-label="Wikilink suggestions"
+            >
+              {wikilinkSuggest.items.map((item) => (
+                <button
+                  key={item.path}
+                  type="button"
+                  className="editor-wikilink-suggest__item"
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => applyWikilinkSuggestion(item.target)}
+                >
+                  <span>{item.label}</span>
+                  <span className="editor-wikilink-suggest__path">{item.path}</span>
+                </button>
+              ))}
+              {wikilinkSuggest.hasMore && (
+                <div className="editor-wikilink-suggest__more">More matches available…</div>
               )}
             </div>
           )}

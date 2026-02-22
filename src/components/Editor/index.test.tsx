@@ -532,6 +532,61 @@ describe("Editor Component", () => {
         expect(api.saveNote).toHaveBeenCalledWith("test.md", "# Test\n\nUpdated");
       });
     });
+
+    it("follows existing wikilink targets", async () => {
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        noteList: [
+          {
+            id: "2",
+            path: "Project Alpha.md",
+            title: "Project Alpha",
+            created_at: Date.now() / 1000,
+            modified_at: Date.now() / 1000,
+            word_count: 10,
+          },
+        ],
+      });
+
+      render(<Editor />);
+
+      window.dispatchEvent(
+        new CustomEvent("wikilink-click", {
+          detail: { target: "Project Alpha", missing: false },
+        })
+      );
+
+      await waitFor(() => {
+        expect(useVaultStore.getState().loadNote).toHaveBeenCalledWith("Project Alpha.md");
+      });
+    });
+
+    it("creates missing wikilink targets", async () => {
+      vi.mocked(api.createNote).mockResolvedValue({
+        id: "3",
+        path: "New Page.md",
+        title: "New Page",
+        content: "# New Page\n\n",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 2,
+        headings: [],
+        backlinks: [],
+      });
+
+      render(<Editor />);
+
+      window.dispatchEvent(
+        new CustomEvent("wikilink-click", {
+          detail: { target: "New Page", missing: true },
+        })
+      );
+
+      await waitFor(() => {
+        expect(api.createNote).toHaveBeenCalledWith("New Page.md", "# New Page\n\n");
+      });
+      expect(useVaultStore.getState().setCurrentNote).toHaveBeenCalled();
+    });
   });
 
   describe("Error Handling", () => {

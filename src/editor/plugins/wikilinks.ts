@@ -13,8 +13,19 @@ const wikilinkKey = new PluginKey<DecorationSet>("wikilinks");
 
 interface WikilinkMatch {
   text: string;
+  target: string;
   from: number;
   to: number;
+}
+
+declare global {
+  interface Window {
+    __KNOT_WIKILINK_TARGETS__?: string[];
+  }
+}
+
+function normalizeTarget(target: string): string {
+  return target.trim().toLowerCase();
 }
 
 /**
@@ -31,8 +42,11 @@ function findWikilinks(doc: ProseMirrorNode): WikilinkMatch[] {
     let match;
     
     while ((match = regex.exec(text)) !== null) {
+      const raw = match[1].trim();
+      const [target] = raw.includes("|") ? raw.split("|", 2) : [raw];
       links.push({
-        text: match[1],
+        text: raw,
+        target: target.trim(),
         from: pos + match.index,
         to: pos + match.index + match[0].length,
       });
@@ -62,10 +76,14 @@ export function wikilinkPlugin(): Plugin {
       apply(tr, _decorationSet) {
         // Find wikilinks and add decorations
         const links = findWikilinks(tr.doc);
+        const knownTargets = new Set((window.__KNOT_WIKILINK_TARGETS__ ?? []).map(normalizeTarget));
         const decorations = links.map((link) =>
           Decoration.inline(link.from, link.to, {
-            class: "wikilink",
-            "data-target": link.text,
+            class: knownTargets.has(normalizeTarget(link.target))
+              ? "wikilink"
+              : "wikilink wikilink--missing",
+            "data-target": link.target,
+            "data-missing": knownTargets.has(normalizeTarget(link.target)) ? "false" : "true",
           })
         );
         
@@ -84,10 +102,11 @@ export function wikilinkPlugin(): Plugin {
         if (target) {
           const noteName = target.getAttribute("data-target");
           if (noteName) {
+            const missing = target.getAttribute("data-missing") === "true";
             // Emit event for Tauri to handle navigation
             window.dispatchEvent(
               new CustomEvent("wikilink-click", {
-                detail: { target: noteName },
+                detail: { target: noteName, missing },
               })
             );
             return true;
