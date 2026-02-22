@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-STORYBOOK-DX-001`
 - Scope: `component`
-- Status: `designed (planning deferred)`
+- Status: `in progress`
 - Parent: `COMP-UI-QA-DX-001`, `COMP-UI-AUTOMATION-DX-001`, `COMP-TOOLCHAIN-001`
 - Concerns: `[CONF, REL, COMP, CAP]`
 - Trace: `DESIGN-storybook-dx-001`
@@ -96,15 +96,15 @@ Define how Knot adopts Storybook as a human- and agent-reviewable UI documentati
 - **M4**: Skill/process updates enforcing documentation freshness.
 
 ## Acceptance Criteria
-- [ ] Storybook is scaffolded and runnable locally with documented commands.
-- [ ] Storybook setup can be performed by an agent using documented automation commands.
-- [ ] CI can build Storybook and publish reviewable artifacts.
-- [ ] Baseline stories exist for core current UI primitives/surfaces.
-- [ ] Story docs include interaction/state guidance for human reviewers.
-- [ ] Storybook MCP configuration is documented and smoke-verifiable.
-- [ ] Skill updates/new skill decisions are documented with enforcement points.
-- [ ] Documentation freshness policy is defined and enforceable.
-- [ ] Penpot remains explicitly out of scope in this spec revision.
+- [x] Storybook is scaffolded and runnable locally with documented commands.
+- [x] Storybook setup can be performed by an agent using documented automation commands.
+- [x] CI can build Storybook and publish reviewable artifacts.
+- [x] Baseline stories exist for core current UI primitives/surfaces.
+- [x] Story docs include interaction/state guidance for human reviewers.
+- [x] Storybook MCP configuration is documented and smoke-verifiable.
+- [x] Skill updates/new skill decisions are documented with enforcement points.
+- [x] Documentation freshness policy is defined and enforceable.
+- [x] Penpot remains explicitly out of scope in this spec revision.
 
 ## Verification Strategy (Future)
 - Execute Storybook local and build commands.
@@ -117,4 +117,3 @@ Define how Knot adopts Storybook as a human- and agent-reviewable UI documentati
 - Depends on: `COMP-UI-QA-DX-001`
 - Complements: `COMP-UI-AUTOMATION-DX-001`
 - Follow-up: planning and implementation intentionally deferred.
-

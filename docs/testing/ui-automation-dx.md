@@ -37,8 +37,12 @@ npm run test:e2e:tauri -- --launch-smoke --timeout=300
   - `.github/workflows/ui-quality.yml`
 - Native cadence workflow:
   - `.github/workflows/native-smoke.yml`
+- Storybook docs/build workflow:
+  - `.github/workflows/storybook.yml`
 - Artifact review guide:
   - `docs/testing/ui-review-artifacts.md`
+- Storybook runbook:
+  - `docs/testing/storybook-dx.md`
 
 ## Approach 3 (Future R&D, Deferred)
 - Goal: protocol-level attach/automation against embedded WebKitGTK runtime.

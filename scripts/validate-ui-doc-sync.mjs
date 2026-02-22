@@ -18,6 +18,9 @@ function changedFilesFromRef(baseRef) {
 }
 
 function isUiImplementationPath(path) {
+  if (path.endsWith(".stories.tsx")) {
+    return false;
+  }
   return (
     path === "src/App.tsx" ||
     path.startsWith("src/components/") ||
@@ -33,11 +36,19 @@ function isUiEvidencePath(path) {
   return path.startsWith("e2e/browser/") && path.endsWith(".spec.ts");
 }
 
+function isStorybookStoryPath(path) {
+  return path.startsWith("src/") && path.endsWith(".stories.tsx");
+}
+
 function isUiDocumentationPath(path) {
   return (
     path === "docs/testing/ui-review-artifacts.md" ||
     path === "docs/testing/ui-automation-dx.md" ||
+    path === "docs/testing/storybook-dx.md" ||
+    path === "docs/testing/storybook-mcp.md" ||
+    path === "docs/process/storybook-doc-freshness.md" ||
     path === "docs/specs/component/ui-quality-assurance-dx-001.md" ||
+    path === "docs/specs/component/storybook-dx-001.md" ||
     path === "docs/specs/system/spec-map.md" ||
     path === "docs/planning/roadmap-index.md"
   );
@@ -51,6 +62,8 @@ function validateUiDocSync(files) {
 
   const hasUiEvidenceUpdate = files.some(isUiEvidencePath);
   const hasUiDocumentationUpdate = files.some(isUiDocumentationPath);
+  const hasStoryUpdate = files.some(isStorybookStoryPath);
+  const hasComponentUiChanges = uiImplementationChanges.some((path) => path.startsWith("src/components/"));
 
   const errors = [];
   if (!hasUiEvidenceUpdate) {
@@ -61,6 +74,11 @@ function validateUiDocSync(files) {
   if (!hasUiDocumentationUpdate) {
     errors.push(
       "UI implementation files changed without UI review documentation updates. Update docs/testing/ui-review-artifacts.md or docs/testing/ui-automation-dx.md (and related tracking docs when needed)."
+    );
+  }
+  if (hasComponentUiChanges && !hasStoryUpdate) {
+    errors.push(
+      "Component UI files changed without Storybook updates. Add/update at least one *.stories.tsx file."
     );
   }
 
@@ -93,4 +111,3 @@ function main() {
 }
 
 main();
-

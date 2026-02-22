@@ -37,6 +37,8 @@ coverage
 *.lcov
 test-results/
 playwright-report/
+.mcp/storybook-mcp.json
+storybook-static/
 
 # Environment
 .env

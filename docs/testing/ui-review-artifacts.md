@@ -10,6 +10,8 @@ Define how UI verification artifacts are produced and reviewed by humans and age
   - `npm run test:e2e:browser`
 - CI UI gate workflow:
   - `.github/workflows/ui-quality.yml`
+- Storybook artifact workflow:
+  - `.github/workflows/storybook.yml`
 - Native cadence workflow:
   - `.github/workflows/native-smoke.yml`
 
@@ -19,6 +21,8 @@ Define how UI verification artifacts are produced and reviewed by humans and age
 - Playwright HTML report (when enabled/generated):
   - `playwright-report/`
 - CI job logs for gate and native smoke runs.
+- Storybook static build artifact:
+  - `storybook-static/` (uploaded from CI)
 
 ## Human Review Checklist
 1. Confirm all required UI quality gate jobs are green.
