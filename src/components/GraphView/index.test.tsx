@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { GraphView } from "./index";
+import type { GraphLayout } from "@/types/vault";
 
 // Mock the API module
 vi.mock("@lib/api", () => ({
@@ -13,7 +14,6 @@ vi.mock("@lib/api", () => ({
 }));
 
 import { getGraphLayout } from "@lib/api";
-import type { GraphLayout } from "@lib/api";
 
 describe("GraphView Component", () => {
   const mockOnNodeClick = vi.fn();

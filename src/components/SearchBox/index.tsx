@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
 import { searchNotes } from "@lib/api";
-import type { SearchResult } from "@lib/api";
+import type { SearchResult } from "@/types/vault";
 import "./SearchBox.css";
 // SPEC: COMP-SEARCH-UI-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6
 

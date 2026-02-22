@@ -13,7 +13,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { getGraphLayout } from "@lib/api";
 import { IconButton } from "@components/IconButton";
-import type { GraphLayout, GraphNode } from "@lib/api";
+import type { GraphLayout, GraphNode } from "@/types/vault";
 import { RotateCcw } from "lucide-react";
 import "./GraphView.css";
 

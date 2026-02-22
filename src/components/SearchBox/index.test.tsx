@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor, cleanup, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SearchBox } from "./index";
+import type { SearchResult } from "@/types/vault";
 
 // Mock the API module
 vi.mock("@lib/api", () => ({
@@ -18,7 +19,6 @@ vi.mock("@lib/api", () => ({
 }));
 
 import { searchNotes } from "@lib/api";
-import type { SearchResult } from "@lib/api";
 
 describe("SearchBox Component", () => {
   const mockOnResultSelect = vi.fn();

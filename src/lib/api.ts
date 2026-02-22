@@ -4,6 +4,7 @@
  * Type-safe wrapper around Tauri commands.
  * All functions return Promises and use the refactored Rust core.
  * SPEC: COMP-FRONTEND-001 FR-4
+ * TRACE: BUG-storybook-type-runtime-imports
  */
 
 import { invoke } from "@tauri-apps/api/core";
@@ -359,15 +360,3 @@ export async function greet(name: string): Promise<string> {
 }
 
 //endregion
-
-// Re-export types
-export type {
-  VaultInfo,
-  NoteSummary,
-  NoteData,
-  SearchResult,
-  GraphLayout,
-  GraphNode,
-  GraphEdge,
-  VaultError,
-} from "../types/vault";
