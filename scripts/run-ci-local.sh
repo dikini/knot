@@ -2,12 +2,14 @@
 set -euo pipefail
 
 # Trace: DESIGN-local-ci-runner-2026-02-22
+# Trace: BUG-local-ci-playwright-deps-2026-02-22
 
 RUN_UI=1
 RUN_STORYBOOK=1
 RUN_NATIVE=1
 DO_INSTALL=1
 DO_PLAYWRIGHT_INSTALL=1
+PLAYWRIGHT_WITH_DEPS=0
 NATIVE_LAUNCH=1
 
 usage() {
@@ -23,6 +25,7 @@ Options:
   --skip-native                Skip native smoke workflow checks
   --skip-install               Skip npm ci
   --skip-playwright-install    Skip playwright browser install
+  --playwright-with-deps       Install playwright with system deps (may require sudo)
   --skip-native-launch         Skip native launch-smoke step
   -h, --help                   Show this help
 
@@ -49,6 +52,9 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-playwright-install)
       DO_PLAYWRIGHT_INSTALL=0
+      ;;
+    --playwright-with-deps)
+      PLAYWRIGHT_WITH_DEPS=1
       ;;
     --skip-native-launch)
       NATIVE_LAUNCH=0
@@ -80,7 +86,15 @@ fi
 
 if [[ "$RUN_UI" -eq 1 ]]; then
   if [[ "$DO_PLAYWRIGHT_INSTALL" -eq 1 ]]; then
-    run_step "Install Playwright browser (chromium)" npx playwright install --with-deps chromium
+    if npx playwright install --list | grep -q "chromium-"; then
+      echo "Playwright chromium already present; skipping browser install."
+    else
+      if [[ "$PLAYWRIGHT_WITH_DEPS" -eq 1 ]]; then
+        run_step "Install Playwright browser+deps (chromium)" npx playwright install --with-deps chromium
+      else
+        run_step "Install Playwright browser (chromium)" npx playwright install chromium
+      fi
+    fi
   fi
   run_step "Validate UI doc/evidence sync" npm run -s qa:docsync
   run_step "Validate Storybook coverage matrix" npm run -s qa:storybook-matrix
