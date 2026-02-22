@@ -42,6 +42,10 @@ interface MockBridgeFixture {
     };
     hidden_policy: string;
   } | null;
+  graphLayout?: {
+    nodes: Array<{ id: string; label: string; x: number; y: number }>;
+    edges: Array<{ source: string; target: string }>;
+  } | null;
 }
 
 export async function installMockTauriBridge(
@@ -59,6 +63,10 @@ export async function installMockTauriBridge(
     notes: [],
     noteDataByPath: {},
     explorerTree: null,
+    graphLayout: {
+      nodes: [],
+      edges: [],
+    },
   }
 ): Promise<void> {
   await page.addInitScript((data: MockBridgeFixture) => {
@@ -116,6 +124,7 @@ export async function installMockTauriBridge(
           return null;
         }
         if (cmd === "get_explorer_tree") return data.explorerTree ?? null;
+        if (cmd === "get_graph_layout") return data.graphLayout ?? { nodes: [], edges: [] };
         if (cmd === "plugin:event|listen") return 1;
         if (cmd === "plugin:event|unlisten") return null;
         if (cmd === "plugin:event|emit") return null;

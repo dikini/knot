@@ -10,6 +10,15 @@ Provide a minimal native-runtime smoke flow for Tauri integration confidence wit
 npm run test:e2e:tauri
 ```
 
+## Automated Launch Smoke (Optional)
+Run a bounded native launch check:
+```bash
+npm run test:e2e:tauri -- --launch-smoke --timeout=300
+```
+
+CI cadence workflow:
+- `.github/workflows/native-smoke.yml`
+
 ## Manual Smoke Steps
 1. Start native runtime:
 ```bash
@@ -24,4 +33,3 @@ npm run tauri dev
 - App starts in native runtime.
 - Basic open/create/save and mode-toggle behavior is functional.
 - No fatal runtime errors in the terminal session.
-

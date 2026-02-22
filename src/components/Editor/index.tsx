@@ -336,9 +336,16 @@ export function Editor() {
       if (!pmRef.current) return;
       const { view } = pmRef.current;
       const { state, dispatch } = view;
-      const insertPos = state.selection.to;
+      const selectionWithResolved = state.selection as typeof state.selection & {
+        $from?: { depth: number; parent?: { isTextblock?: boolean }; after: (depth: number) => number };
+      };
+      let insertPos = state.selection.to;
 
       if (kind === "mermaid_diagram") {
+        if (selectionWithResolved.$from?.parent?.isTextblock) {
+          // Keep inline mark runs intact by inserting Mermaid as a sibling block.
+          insertPos = selectionWithResolved.$from.after(selectionWithResolved.$from.depth);
+        }
         // TRACE: BUG-mermaid-insert-escape-001
         const mermaidNode = schema.nodes.code_block.create(
           { language: "mermaid" },

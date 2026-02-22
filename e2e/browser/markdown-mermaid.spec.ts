@@ -126,10 +126,11 @@ test("inserts Mermaid when cursor is inside inline formatted text", async ({ pag
   const sourceValue = await sourceEditor.inputValue();
   await expect(sourceEditor).toHaveValue(/```mermaid/);
   await expect(sourceEditor).toHaveValue(/A\[Start\] --> B\[End\]/);
+  await expect(sourceEditor).toHaveValue(/\*\*bold\*\*/);
   await expect(sourceEditor).toHaveValue(/emphasis/);
   await expect(sourceEditor).not.toHaveValue(/\\\[Start\\\]/);
-  expect(sourceValue).toContain("**bo**");
-  expect(sourceValue).toContain("**ld**");
+  expect(sourceValue).not.toContain("**bo**");
+  expect(sourceValue).not.toContain("**ld**");
 
   await page.getByRole("tab", { name: "View" }).click();
   await expect(

@@ -11,4 +11,6 @@
 | vault-switch-ux-001 | component | implemented | - | [vault-unsaved-changes-001] | [COMP-VAULT-SWITCH-UX-001] |
 | mermaid-diagrams-001 | component | implemented | - | [markdown-engine-001, editor-modes-001] | [COMP-MERMAID-001] |
 | ui-automation-dx-001 | component | implemented | - | [frontend-toolchain-001] | [COMP-UI-AUTOMATION-DX-001] |
-| mermaid-inline-split-001 | component | designed (planning deferred) | - | [mermaid-diagrams-001, editor-modes-001] | [COMP-MERMAID-INLINE-SPLIT-001] |
+| mermaid-inline-split-001 | component | implemented | - | [mermaid-diagrams-001, editor-modes-001] | [COMP-MERMAID-INLINE-SPLIT-001] |
+| ui-qa-dx-001 | component | in progress | - | [ui-automation-dx-001, mermaid-diagrams-001] | [COMP-UI-QA-DX-001] |
+| storybook-dx-001 | component | designed (planning deferred) | - | [ui-qa-dx-001, frontend-toolchain-001] | [COMP-STORYBOOK-DX-001] |

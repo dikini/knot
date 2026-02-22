@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-MERMAID-INLINE-SPLIT-001`
 - Scope: `component`
-- Status: `designed (planning deferred)`
+- Status: `implemented`
 - Parent: `COMP-MERMAID-001`, `COMP-EDITOR-MODES-001`, `COMP-EDITOR-WYSIWYM-002`
 - Concerns: `[REL, CONF, COMP]`
 - Trace: `BUG-mermaid-inline-split-001`
@@ -60,11 +60,11 @@ This behavior is reproducible in Playwright coverage:
    - Playwright assertion updated from current split behavior to expected non-splitting behavior.
 
 ## Acceptance Criteria
-- [ ] Inserting Mermaid inside bold text does not split bold token into fragments.
-- [ ] Inserting Mermaid inside emphasis/code/link text does not split those tokens into fragments.
-- [ ] Source mode preserves unescaped Mermaid fence and original inline-mark continuity.
-- [ ] Existing Mermaid insertion path remains functional in non-inline contexts.
-- [ ] Regression tests fail before fix and pass after fix.
+- [x] Inserting Mermaid inside bold text does not split bold token into fragments.
+- [x] Inserting Mermaid inside emphasis/code/link text does not split those tokens into fragments.
+- [x] Source mode preserves unescaped Mermaid fence and original inline-mark continuity.
+- [x] Existing Mermaid insertion path remains functional in non-inline contexts.
+- [x] Regression tests fail before fix and pass after fix.
 
 ## Verification Strategy (Future)
 - Run targeted editor component tests for block insertion with inline-marked input.
@@ -72,5 +72,4 @@ This behavior is reproducible in Playwright coverage:
 - Run `typecheck` and `lint`.
 
 ## Status Note
-This spec is intentionally design-only for now. Implementation planning (`bk-plan`) is explicitly deferred to a future stage.
-
+Implemented and verified with targeted editor tests and browser-lane Playwright journey coverage.

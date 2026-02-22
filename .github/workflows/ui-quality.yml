@@ -1,0 +1,45 @@
+name: UI Quality Gates
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  ui-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate UI doc and evidence sync
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: npm run -s qa:docsync
+
+      - name: Run UI quality gate
+        run: npm run -s qa:ci
+
+      - name: Upload UI test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-artifacts
+          path: |
+            test-results
+            playwright-report
+          if-no-files-found: ignore

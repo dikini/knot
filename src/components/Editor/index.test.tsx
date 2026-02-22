@@ -421,6 +421,65 @@ describe("Editor Component", () => {
       expect(insertedNode?.textContent).toContain("A[Start] --> B[End]");
     });
 
+    it("inserts Mermaid at block boundary when cursor is inside inline-marked text", async () => {
+      const tr = {
+        doc: {
+          content: { size: 32 },
+        },
+        insert: vi.fn().mockReturnThis(),
+        scrollIntoView: vi.fn().mockReturnThis(),
+      };
+
+      mockInitProseMirrorEditor.mockImplementationOnce(() => ({
+        destroy: vi.fn(),
+        getMarkdown: vi.fn(() => "# Demo\n\nBefore **bold** and after."),
+        setMarkdown: vi.fn(),
+        view: {
+          dom: {
+            getBoundingClientRect: vi.fn(() => ({
+              left: 120,
+              right: 720,
+              top: 80,
+              bottom: 520,
+              width: 600,
+              height: 440,
+              x: 120,
+              y: 80,
+              toJSON: () => ({}),
+            })),
+          },
+          state: {
+            selection: {
+              from: 8,
+              to: 8,
+              empty: true,
+              $from: {
+                depth: 1,
+                parent: { isTextblock: true },
+                after: vi.fn(() => 14),
+              },
+            },
+            tr: {
+              ...tr,
+              insertText: vi.fn(),
+            },
+          },
+          dispatch: vi.fn(),
+          focus: vi.fn(),
+          coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+        },
+      }));
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+
+      fireEvent.click(await screen.findByRole("button", { name: "Open block menu" }));
+      fireEvent.click(await screen.findByRole("menuitem", { name: "Mermaid diagram" }));
+
+      expect(tr.insert).toHaveBeenCalledTimes(1);
+      expect(tr.insert.mock.calls[0]?.[0]).toBe(14);
+    });
+
     it("does not reinitialize ProseMirror on content sync changes", async () => {
       useEditorStore.setState({
         ...useEditorStore.getState(),

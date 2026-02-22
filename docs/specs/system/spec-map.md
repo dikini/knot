@@ -48,7 +48,9 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-VAULT-SWITCH-UX-001 | vault-switch-unsaved-ux | designed | component/vault-switch-ux-001.md | [CONF, REL] | implemented (verified 100%) |
 | COMP-MERMAID-001 | mermaid-diagrams | designed | component/mermaid-diagrams-001.md | [REL, SEC, CAP, COMP, CONF] | implemented (verified 100%) |
 | COMP-UI-AUTOMATION-DX-001 | ui-automation-dx | designed | component/ui-automation-dx-001.md | [REL, CAP, COMP, CONF] | implemented (verified 100%) |
-| COMP-MERMAID-INLINE-SPLIT-001 | mermaid-inline-insert-splitting | designed | component/mermaid-inline-insert-splitting-001.md | [REL, CONF, COMP] | designed (planning deferred) |
+| COMP-MERMAID-INLINE-SPLIT-001 | mermaid-inline-insert-splitting | designed | component/mermaid-inline-insert-splitting-001.md | [REL, CONF, COMP] | implemented (verified in browser + editor tests) |
+| COMP-UI-QA-DX-001 | ui-quality-assurance-dx | designed | component/ui-quality-assurance-dx-001.md | [REL, CONF, COMP, CAP] | in progress |
+| COMP-STORYBOOK-DX-001 | storybook-dx | designed | component/storybook-dx-001.md | [CONF, REL, COMP, CAP] | designed (planning deferred) |
 
 ## Interfaces
 
@@ -162,3 +164,7 @@ docs/specs/
 | 2026-02-22 | Draft UI automation DX spec and implementation plan for browser lane + native smoke lane | COMP-UI-AUTOMATION-DX-001 |
 | 2026-02-22 | Implement and verify UI automation DX lanes (browser-first + tauri-native smoke) and defer protocol-attach as future R&D | COMP-UI-AUTOMATION-DX-001 |
 | 2026-02-22 | Document Mermaid inline mark splitting bug and draft fix design (planning deferred) | COMP-MERMAID-INLINE-SPLIT-001 |
+| 2026-02-22 | Draft UI QA DX maturity spec for expanded test coverage, reviewable artifacts, and implementation-derived design system docs (planning deferred) | COMP-UI-QA-DX-001 |
+| 2026-02-22 | Draft Storybook DX integration spec including DevOps automation, MCP configuration, and skill/process documentation freshness requirements (planning deferred; Penpot out of scope) | COMP-STORYBOOK-DX-001 |
+| 2026-02-22 | Implement Mermaid inline insertion boundary normalization and verify with editor + browser journey tests | COMP-MERMAID-INLINE-SPLIT-001 |
+| 2026-02-22 | Start UI QA DX implementation: add journey suite expansion, CI quality workflows, and review-artifact guide | COMP-UI-QA-DX-001 |

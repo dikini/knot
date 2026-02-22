@@ -11,6 +11,12 @@ Spec: `docs/specs/component/ui-automation-dx-001.md`
 ```bash
 npm run test:e2e:browser
 ```
+- Current browser journey coverage:
+  - app shell startup and recent vaults
+  - Mermaid insertion/rendering + source fence fidelity
+  - note edit/save/switch/reload persistence
+  - editor <-> graph mode switching
+  - unsaved-changes switch prompt with confirmed save
 
 ## Approach 2 (Implemented): Tauri-Native Smoke Lane
 - Goal: narrow shell/runtime confidence checks.
@@ -19,11 +25,22 @@ npm run test:e2e:browser
 ```bash
 npm run test:e2e:tauri
 ```
+- Optional bounded launch smoke:
+```bash
+npm run test:e2e:tauri -- --launch-smoke --timeout=300
+```
 - Follow-up checklist:
   - `docs/testing/tauri-native-smoke.md`
+
+## CI Gate
+- PR/UI gate workflow:
+  - `.github/workflows/ui-quality.yml`
+- Native cadence workflow:
+  - `.github/workflows/native-smoke.yml`
+- Artifact review guide:
+  - `docs/testing/ui-review-artifacts.md`
 
 ## Approach 3 (Future R&D, Deferred)
 - Goal: protocol-level attach/automation against embedded WebKitGTK runtime.
 - Current status: explicitly deferred to an unidentified future stage.
 - Scope note: this is not required for current CI/local delivery and has no implementation commitments in this cycle.
-
