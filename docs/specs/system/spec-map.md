@@ -44,6 +44,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-GRAPH-UI-CONTINUITY-003 | graph-ui-continuity | designed | component/graph-ui-continuity-003.md | [CONF, REL, CAP] | implemented (verified 100%) |
 | COMP-WINDOW-STARTUP-003 | window-startup-controls | designed | component/window-startup-controls-003.md | [CONF, REL] | implemented (verified 100%) |
 | COMP-NOTE-METADATA-001 | note-metadata-fidelity | designed | component/note-metadata-fidelity-001.md | [REL, CONF] | implemented (verified 100%) |
+| COMP-VAULT-UNSAVED-001 | vault-unsaved-changes | designed | component/vault-unsaved-changes-001.md | [REL, CONF] | implemented (verified 100%) |
 
 ## Interfaces
 
@@ -146,3 +147,6 @@ docs/specs/
 | 2026-02-22 | Implement and verify markdown engine migration with next-engine parser/serializer, reference links, and runtime toggle | COMP-MARKDOWN-ENGINE-001 |
 | 2026-02-22 | Draft note metadata fidelity spec and plan for backlink titles and heading positions | COMP-NOTE-METADATA-001 |
 | 2026-02-22 | Implement and verify note metadata fidelity for backlink titles and heading positions | COMP-NOTE-METADATA-001 |
+| 2026-02-22 | Draft vault unsaved-changes guard spec for open-vault replacement flows | COMP-VAULT-UNSAVED-001 |
+| 2026-02-22 | Draft implementation plan for vault unsaved-changes guard | COMP-VAULT-UNSAVED-001 |
+| 2026-02-22 | Implement and verify vault unsaved-changes guard for vault replacement flows | COMP-VAULT-UNSAVED-001 |

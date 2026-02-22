@@ -7,3 +7,4 @@
 | window-startup-controls-003 | component | implemented | - | [] | [COMP-WINDOW-STARTUP-003] |
 | markdown-engine-001 | component | implemented | - | [] | [COMP-MARKDOWN-ENGINE-001] |
 | note-metadata-fidelity-001 | component | implemented | - | [] | [COMP-NOTE-METADATA-001] |
+| vault-unsaved-changes-001 | component | implemented | - | [] | [COMP-VAULT-UNSAVED-001] |

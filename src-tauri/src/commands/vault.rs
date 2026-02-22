@@ -60,11 +60,12 @@ pub async fn create_vault(path: String, state: State<'_, AppState>) -> Result<Va
 pub async fn open_vault(path: String, state: State<'_, AppState>) -> Result<VaultInfo, String> {
     info!(path, "opening vault");
 
+    ensure_can_replace_open_vault(state.is_vault_open().await, state.has_unsaved_changes().await)?;
+
     let mut vault_guard = state.vault().lock().await;
 
     // Close any existing vault
     if vault_guard.is_some() {
-        // TODO: Check for unsaved changes before closing
         *vault_guard = None;
     }
 
@@ -75,6 +76,8 @@ pub async fn open_vault(path: String, state: State<'_, AppState>) -> Result<Vaul
 
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
+    drop(vault_guard);
+    state.set_unsaved_changes(false).await;
 
     info!(path, "vault opened");
     Ok(info)
@@ -183,10 +186,11 @@ pub async fn open_vault_dialog(
         ));
     }
 
+    ensure_can_replace_open_vault(state.is_vault_open().await, state.has_unsaved_changes().await)?;
+
     // Close any existing vault
     let mut vault_guard = state.vault().lock().await;
     if vault_guard.is_some() {
-        // TODO: Check for unsaved changes before closing
         *vault_guard = None;
     }
 
@@ -195,6 +199,8 @@ pub async fn open_vault_dialog(
 
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
+    drop(vault_guard);
+    state.set_unsaved_changes(false).await;
 
     info!(path = path_str, "vault opened from dialog");
     Ok(info)
@@ -212,8 +218,19 @@ pub async fn close_vault(state: State<'_, AppState>) -> Result<(), String> {
     if let Some(mut vault) = vault_guard.take() {
         vault.close().map_err(|e| e.to_response_string())?;
     }
+    drop(vault_guard);
+    state.set_unsaved_changes(false).await;
 
     info!("vault closed");
+    Ok(())
+}
+
+/// SPEC: COMP-VAULT-UNSAVED-001 FR-4
+/// Update backend unsaved-changes guard state from frontend editor lifecycle.
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn set_unsaved_changes(dirty: bool, state: State<'_, AppState>) -> Result<(), String> {
+    state.set_unsaved_changes(dirty).await;
     Ok(())
 }
 
@@ -301,6 +318,14 @@ fn note_meta_to_summary(meta: crate::note::NoteMeta) -> NoteSummary {
     }
 }
 
+/// SPEC: COMP-VAULT-UNSAVED-001 FR-1, FR-2, FR-3, FR-4
+fn ensure_can_replace_open_vault(has_open_vault: bool, has_unsaved_changes: bool) -> Result<(), String> {
+    if has_open_vault && has_unsaved_changes {
+        return Err("Cannot switch vault: unsaved changes detected. Save or discard your note edits first.".to_string());
+    }
+    Ok(())
+}
+
 /// Get the list of recently opened vaults.
 #[tauri::command]
 #[instrument]
@@ -386,4 +411,27 @@ pub async fn add_recent_vault(path: String, state: State<'_, AppState>) -> Resul
         .map_err(|e| format!("Failed to save recent vaults: {}", e))?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ensure_can_replace_open_vault;
+
+    #[test]
+    fn bug_vault_unsaved_001_allows_replace_when_clean() {
+        let result = ensure_can_replace_open_vault(true, false);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn bug_vault_unsaved_001_blocks_replace_when_dirty() {
+        let result = ensure_can_replace_open_vault(true, true);
+        assert!(result.is_err());
+        assert!(
+            result
+                .err()
+                .unwrap_or_default()
+                .contains("unsaved changes")
+        );
+    }
 }

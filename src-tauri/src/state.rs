@@ -18,6 +18,7 @@ pub struct AppState {
     /// The vault manager - holds the currently open vault.
     /// Wrapped in Arc<Mutex<_>> for thread-safe access across async commands.
     vault: Arc<Mutex<Option<VaultManager>>>,
+    unsaved_changes: Arc<Mutex<bool>>,
 }
 
 impl AppState {
@@ -25,6 +26,7 @@ impl AppState {
     pub fn new() -> Self {
         Self {
             vault: Arc::new(Mutex::new(None)),
+            unsaved_changes: Arc::new(Mutex::new(false)),
         }
     }
 
@@ -46,6 +48,38 @@ impl AppState {
         vault
             .as_ref()
             .map(|v| v.root_path().to_string_lossy().to_string())
+    }
+
+    /// SPEC: COMP-VAULT-UNSAVED-001 FR-4
+    /// Set whether the currently active editor context has unsaved changes.
+    pub async fn set_unsaved_changes(&self, has_unsaved_changes: bool) {
+        let mut guard = self.unsaved_changes.lock().await;
+        *guard = has_unsaved_changes;
+    }
+
+    /// SPEC: COMP-VAULT-UNSAVED-001 FR-4
+    /// Check whether unsaved changes are currently tracked.
+    pub async fn has_unsaved_changes(&self) -> bool {
+        let guard = self.unsaved_changes.lock().await;
+        *guard
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AppState;
+
+    #[tokio::test]
+    async fn bug_vault_unsaved_001_tracks_unsaved_changes_flag() {
+        let state = AppState::new();
+
+        assert!(!state.has_unsaved_changes().await);
+
+        state.set_unsaved_changes(true).await;
+        assert!(state.has_unsaved_changes().await);
+
+        state.set_unsaved_changes(false).await;
+        assert!(!state.has_unsaved_changes().await);
     }
 }
 

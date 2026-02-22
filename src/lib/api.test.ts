@@ -167,6 +167,14 @@ describe("API Client", () => {
 
       expect(invoke).toHaveBeenCalledWith("sync_external_changes");
     });
+
+    it("should sync unsaved changes state", async () => {
+      vi.mocked(invoke).mockResolvedValue(undefined);
+
+      await api.setUnsavedChanges(true);
+
+      expect(invoke).toHaveBeenCalledWith("set_unsaved_changes", { dirty: true });
+    });
   });
 
   describe("Note Operations", () => {

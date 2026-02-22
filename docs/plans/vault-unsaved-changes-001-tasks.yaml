@@ -1,0 +1,45 @@
+tasks:
+  - id: VUG-001
+    title: "Extend app state with unsaved flag"
+    status: completed
+    size: S
+    spec_refs: [FR-4]
+    concerns: [REL]
+    dependencies: []
+    acceptance: "AppState exposes set/get/reset unsaved changes methods"
+
+  - id: VUG-002
+    title: "Expose tauri command for unsaved state sync"
+    status: completed
+    size: M
+    spec_refs: [FR-4]
+    concerns: [REL]
+    dependencies: [VUG-001]
+    acceptance: "Frontend can set backend unsaved flag via command"
+
+  - id: VUG-003
+    title: "Guard open vault flows when dirty"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3]
+    concerns: [REL, CONF]
+    dependencies: [VUG-001]
+    acceptance: "open_vault and open_vault_dialog return unsaved-changes error when flagged"
+
+  - id: VUG-004
+    title: "Wire editor dirty lifecycle to backend"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3]
+    concerns: [CONF]
+    dependencies: [VUG-002]
+    acceptance: "Dirty edits set flag true; successful save/reset sets false"
+
+  - id: VUG-005
+    title: "Add targeted verification tests"
+    status: completed
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4]
+    concerns: [REL, CONF]
+    dependencies: [VUG-003, VUG-004]
+    acceptance: "Rust/TS tests cover blocked and allowed vault replacement behavior"

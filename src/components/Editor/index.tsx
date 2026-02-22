@@ -104,6 +104,16 @@ export function Editor() {
   }, [currentNote, setContent, markDirty]);
 
   useEffect(() => {
+    const dirty = Boolean(currentNote && isDirty);
+    const pending = api.setUnsavedChanges(dirty);
+    if (pending && typeof (pending as Promise<unknown>).catch === "function") {
+      void pending.catch(() => {
+        // Non-tauri test/web contexts may not provide this command.
+      });
+    }
+  }, [currentNote?.path, isDirty]);
+
+  useEffect(() => {
     window.__KNOT_WIKILINK_TARGETS__ = [...buildKnownWikilinkTargets(noteList)];
     if (!pmRef.current) return;
     const { view } = pmRef.current;

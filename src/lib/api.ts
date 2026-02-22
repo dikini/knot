@@ -166,6 +166,17 @@ export async function syncExternalChanges(): Promise<void> {
   }
 }
 
+/**
+ * Update backend unsaved-changes state for vault replacement guards.
+ */
+export async function setUnsavedChanges(dirty: boolean): Promise<void> {
+  try {
+    return await invoke("set_unsaved_changes", { dirty });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
 //endregion
 
 //region Note Operations
