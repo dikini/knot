@@ -3,6 +3,7 @@ set -euo pipefail
 
 # Trace: DESIGN-local-ci-runner-2026-02-22
 # Trace: BUG-local-ci-playwright-deps-2026-02-22
+# Trace: BUG-local-ci-base-ref-resolution-2026-02-22
 
 RUN_UI=1
 RUN_STORYBOOK=1
@@ -82,6 +83,21 @@ run_step() {
 
 if [[ "$DO_INSTALL" -eq 1 ]]; then
   run_step "Install dependencies (npm ci)" npm ci
+fi
+
+# ui-doc-sync expects BASE_REF to exist locally; auto-resolve a safe default.
+if [[ -z "${BASE_REF:-}" ]]; then
+  if git rev-parse --verify --quiet origin/main >/dev/null; then
+    export BASE_REF="origin/main"
+  elif git rev-parse --verify --quiet main >/dev/null; then
+    export BASE_REF="main"
+  elif git rev-parse --verify --quiet HEAD~1 >/dev/null; then
+    export BASE_REF="HEAD~1"
+  fi
+fi
+
+if [[ -n "${BASE_REF:-}" ]]; then
+  echo "Using BASE_REF=${BASE_REF}"
 fi
 
 if [[ "$RUN_UI" -eq 1 ]]; then
