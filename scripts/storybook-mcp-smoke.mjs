@@ -28,9 +28,10 @@ if (!parsed || typeof parsed !== "object") {
 
 const hasServer = Object.prototype.hasOwnProperty.call(parsed, "server");
 const hasBaseUrl = Object.prototype.hasOwnProperty.call(parsed, "baseUrl");
+const hasUrl = Object.prototype.hasOwnProperty.call(parsed, "url");
 
-if (!hasServer && !hasBaseUrl) {
-  console.error("[storybook-mcp] config must include `server` or `baseUrl`.");
+if (!hasServer && !hasBaseUrl && !hasUrl) {
+  console.error("[storybook-mcp] config must include `server`, `baseUrl`, or `url`.");
   process.exit(1);
 }
 

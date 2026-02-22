@@ -1,5 +1,7 @@
 {
-  "server": "@storybook/mcp",
+  "server": "storybook",
   "baseUrl": "http://127.0.0.1:6006",
-  "notes": "Copy this file to .mcp/storybook-mcp.json and adjust values for your environment."
+  "mcpPath": "/mcp",
+  "url": "http://127.0.0.1:6006/mcp",
+  "notes": "Copy this file to .mcp/storybook-mcp.json and adapt baseUrl/url when Storybook runs on a different host/port."
 }
