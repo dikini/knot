@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Trace: DESIGN-pre-push-ci-gate-2026-02-22
+
+echo "[pre-push] running local CI gate..."
+npm run -s ci:local -- --skip-install --skip-playwright-install --skip-native-launch
+echo "[pre-push] gate passed."

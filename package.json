@@ -25,6 +25,7 @@
     "test:e2e:browser": "playwright test --config=playwright.browser.config.ts",
     "test:e2e:tauri": "node scripts/tauri-native-smoke.mjs --check",
     "test:e2e:tauri:launch": "node scripts/tauri-native-smoke.mjs --launch-smoke --timeout=300",
+    "ci:local": "bash scripts/run-ci-local.sh",
     "qa:docsync": "node scripts/validate-ui-doc-sync.mjs",
     "qa:docsync:staged": "node scripts/validate-ui-doc-sync.mjs --staged",
     "qa:storybook-matrix": "node scripts/validate-storybook-coverage-matrix.mjs",
