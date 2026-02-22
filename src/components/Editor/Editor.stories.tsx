@@ -83,6 +83,34 @@ const mermaidNote: NoteData = {
   content: "```mermaid\nflowchart TD\n  A[Source] --> B[View]\n```",
 };
 
+const emptyDocNote: NoteData = {
+  ...defaultNote,
+  id: "n3",
+  path: "notes/empty-doc.md",
+  title: "Empty Doc",
+  content: "",
+  word_count: 0,
+};
+
+const referenceMarkdownNote: NoteData = {
+  ...defaultNote,
+  id: "n4",
+  path: "notes/reference-links.md",
+  title: "Reference Links",
+  content:
+    "# Reference Links\n\nRead the [vault policy][vault-policy].\n\n[vault-policy]: https://example.com/policy",
+};
+
+const mermaidVariantsNote: NoteData = {
+  ...defaultNote,
+  id: "n5",
+  path: "notes/mermaid-variants.md",
+  title: "Mermaid Variants",
+  content:
+    "```mermaid\nflowchart LR\n  A[Draft] --> B[Review]\n```\n\n```mermaid\nsequenceDiagram\n  participant U as User\n  participant A as App\n  U->>A: Open note\n  A-->>U: Rendered\n```",
+};
+// Trace: DESIGN-storybook-coverage-closure-2026-02-22
+
 const meta = {
   title: "Editor/Editor",
   component: EditorStoryHarness,
@@ -135,6 +163,47 @@ export const SourceModeRoundTrip: Story = {
   },
 };
 
+export const EditModeBlockMenu: Story = {
+  args: {
+    note: defaultNote,
+    editorContent: defaultNote.content,
+  },
+  play: async ({ canvas }) => {
+    const toggle = canvas.getByRole("button", { name: "Open block menu" });
+    await userEvent.click(toggle);
+    await expect(canvas.getByRole("menu", { name: "Insert block" })).toBeInTheDocument();
+    await expect(canvas.getByRole("menuitem", { name: "Mermaid diagram" })).toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "Close block menu" }));
+    await expect(canvas.queryByRole("menu", { name: "Insert block" })).not.toBeInTheDocument();
+  },
+};
+
+export const SourceModeEmptyDocument: Story = {
+  args: {
+    note: emptyDocNote,
+    editorContent: "",
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
+    await expect(canvas.getByLabelText("Source markdown editor")).toHaveValue("");
+  },
+};
+
+export const ReferenceMarkdownRoundTrip: Story = {
+  args: {
+    note: referenceMarkdownNote,
+    editorContent: referenceMarkdownNote.content,
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
+    await expect(canvas.getByLabelText("Source markdown editor")).toHaveValue(
+      referenceMarkdownNote.content
+    );
+    await userEvent.click(canvas.getByRole("tab", { name: "View" }));
+    await expect(canvas.getByRole("link", { name: "vault policy" })).toBeInTheDocument();
+  },
+};
+
 export const ViewModeWithMermaid: Story = {
   args: {
     note: mermaidNote,
@@ -144,5 +213,19 @@ export const ViewModeWithMermaid: Story = {
     await userEvent.click(canvas.getByRole("tab", { name: "View" }));
     await expect(canvas.getByText("Mermaid Sample")).toBeInTheDocument();
     await expect(canvasElement.querySelector("[data-mermaid-diagram='true']")).not.toBeNull();
+  },
+};
+
+export const ViewModeWithMermaidVariants: Story = {
+  args: {
+    note: mermaidVariantsNote,
+    editorContent: mermaidVariantsNote.content,
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await userEvent.click(canvas.getByRole("tab", { name: "View" }));
+    await expect(canvas.getByText("Mermaid Variants")).toBeInTheDocument();
+    await expect(
+      canvasElement.querySelectorAll("[data-mermaid-diagram='true']").length
+    ).toBeGreaterThanOrEqual(2);
   },
 };

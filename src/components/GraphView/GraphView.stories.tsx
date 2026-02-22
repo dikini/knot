@@ -25,6 +25,16 @@ const duplicateLabelLayout: GraphLayout = {
   edges: [],
 };
 
+const disconnectedLayout: GraphLayout = {
+  nodes: [
+    { id: "notes/root.md", label: "Root", x: 240, y: 120 },
+    { id: "notes/child-a.md", label: "Child A", x: 120, y: 220 },
+    { id: "notes/disconnected.md", label: "Disconnected", x: 500, y: 180 },
+  ],
+  edges: [{ source: "notes/root.md", target: "notes/child-a.md" }],
+};
+// Trace: DESIGN-storybook-coverage-closure-2026-02-22
+
 const meta = {
   title: "Graph/GraphView",
   component: GraphView,
@@ -60,6 +70,19 @@ export const VaultScopeDefault: Story = {
   },
 };
 
+export const HoverHighlightsConnectedEdges: Story = {
+  play: async ({ canvas, canvasElement }) => {
+    await waitFor(() => {
+      expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
+    });
+    await userEvent.hover(canvas.getByText("Child A"));
+    await waitFor(() => {
+      expect(canvasElement.querySelectorAll(".graph-edge--highlighted").length).toBe(1);
+    });
+    await expect(canvasElement.querySelectorAll(".graph-edge--dimmed").length).toBe(1);
+  },
+};
+
 export const NodeScopeWithoutCenter: Story = {
   args: {
     scope: "node",
@@ -85,6 +108,21 @@ export const NodeScopeDepthTwo: Story = {
   },
 };
 
+export const ResetAfterZoom: Story = {
+  play: async ({ canvas }) => {
+    await waitFor(() => {
+      expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
+    });
+    const graph = canvas.getByRole("img", { name: "Note link graph" });
+    graph.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }));
+    await waitFor(() => {
+      expect(canvas.getByText("110%")).toBeInTheDocument();
+    });
+    await userEvent.click(canvas.getByRole("button", { name: "Reset" }));
+    await expect(canvas.getByText("100%")).toBeInTheDocument();
+  },
+};
+
 export const DuplicateLabelDisambiguation: Story = {
   beforeEach: async () => {
     mocked(getGraphLayout).mockResolvedValue(duplicateLabelLayout);
@@ -97,6 +135,38 @@ export const DuplicateLabelDisambiguation: Story = {
     await expect(
       canvas.getByText("type-systems (programming/type-systems)")
     ).toBeInTheDocument();
+  },
+};
+
+export const DisconnectedNodeDiscoverability: Story = {
+  beforeEach: async () => {
+    mocked(getGraphLayout).mockResolvedValue(disconnectedLayout);
+  },
+  play: async ({ canvas }) => {
+    await waitFor(() => {
+      expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
+    });
+    await expect(canvas.getByText("Disconnected")).toBeInTheDocument();
+    await expect(canvas.getByText("3 nodes · 1 edges")).toBeInTheDocument();
+  },
+};
+
+export const ControlledSelectionFromShellState: Story = {
+  args: {
+    selectedNodeId: "notes/child-b.md",
+  },
+  play: async ({ canvas, args }) => {
+    await waitFor(() => {
+      expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(args.onSelectionChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: "notes/child-b.md",
+          title: "Child B",
+        })
+      );
+    });
   },
 };
 

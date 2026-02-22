@@ -24,6 +24,7 @@ const meta = {
     layout: "padded",
   },
 } satisfies Meta<typeof GraphContextPanel>;
+// Trace: DESIGN-storybook-coverage-closure-2026-02-22
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -68,5 +69,18 @@ export const RelationSelection: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "бележки/дневник-на-идеи.md" }));
     await expect(args.onRelationSelect).toHaveBeenCalledWith("product-docs/roadmap-brief.md");
     await expect(args.onRelationSelect).toHaveBeenCalledWith("бележки/дневник-на-идеи.md");
+  },
+};
+
+export const ActiveRelationHighlight: Story = {
+  args: {
+    selectedPath: "product-docs/roadmap-brief.md",
+  },
+  play: async ({ canvas, canvasElement }) => {
+    const active = canvas.getByRole("button", { name: "product-docs/roadmap-brief.md" });
+    await expect(active).toBeInTheDocument();
+    await expect(
+      canvasElement.querySelector(".graph-context-panel__relation-item--active")
+    ).not.toBeNull();
   },
 };

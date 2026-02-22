@@ -20,17 +20,17 @@ Story files present:
 - `src/components/VaultSwitcher/VaultSwitcher.stories.tsx`
 - `src/lib/vaultSwitchGuard.stories.tsx`
 
-Story exports present (33):
+Story exports present (52):
 - App/Shell: `NoVaultOpen`, `VaultOpenNoNoteSelected`, `EditorActive`, `GraphActive`
-- Editor: `NoNoteSelected`, `EditModeDefault`, `SourceModeRoundTrip`, `ViewModeWithMermaid`
-- Graph/GraphView: `VaultScopeDefault`, `NodeScopeWithoutCenter`, `NodeScopeDepthTwo`, `DuplicateLabelDisambiguation`, `EmptyGraph`, `ErrorState`
-- Graph/GraphContextPanel: `SelectedNodeDetails`, `NoNodeSelected`, `NodeScopeDepthControls`, `RelationSelection`
+- Editor: `NoNoteSelected`, `EditModeDefault`, `SourceModeRoundTrip`, `EditModeBlockMenu`, `SourceModeEmptyDocument`, `ReferenceMarkdownRoundTrip`, `ViewModeWithMermaid`, `ViewModeWithMermaidVariants`
+- Graph/GraphView: `VaultScopeDefault`, `HoverHighlightsConnectedEdges`, `NodeScopeWithoutCenter`, `ResetAfterZoom`, `NodeScopeDepthTwo`, `DuplicateLabelDisambiguation`, `DisconnectedNodeDiscoverability`, `ControlledSelectionFromShellState`, `EmptyGraph`, `ErrorState`
+- Graph/GraphContextPanel: `SelectedNodeDetails`, `NoNodeSelected`, `NodeScopeDepthControls`, `RelationSelection`, `ActiveRelationHighlight`
 - IconButton: `Default`, `IconOnly`, `Active`
 - SearchBox: `FocusedEmptyState`, `QueryWithResults`, `NoResults`
 - ContextPanel: `NotesMode`, `SearchMode`, `GraphMode`
 - InspectorRail: `OpenWithContent`, `Closed`, `CloseAction`
 - ToolRail: `Compact`, `WithLabels`
-- Sidebar: `NoVaultOpen`, `ExplorerTreeLoaded`, `KeyboardFolderToggle`
+- Sidebar: `NoVaultOpen`, `ExplorerTreeLoaded`, `KeyboardFolderToggle`, `DirtySwitchSavesBeforeOpen`, `ExplorerContextMenuCreateNote`, `IconOnlyActionAffordances`
 - VaultSwitcher: `WithCurrentVault`, `NoVaultOpen`
 - VaultSwitchGuard: `SaveAndProceed`, `DiscardAndProceed`, `SaveFails`
 
@@ -60,10 +60,10 @@ Note: many stories now include `play` interactions. Remaining gap to full `cover
 | `COMP-GRAPH-UI-001` | partial | `GraphView.stories.tsx` | Add pan/zoom reset interaction assertions |
 | `COMP-GRAPH-MODES-002` | partial | `GraphView.stories.tsx`, `GraphContextPanel.stories.tsx` | Add full mode transition continuity from App shell |
 | `COMP-GRAPH-UI-CONTINUITY-003` | partial | `App.stories.tsx`, `GraphView.stories.tsx` | Add explicit continuity/persisted toggle contract stories |
-| `COMP-GRAPH-HOVER-001` | missing | no hover-specific story assertions | Add hover highlight/dimmed edge behavior story |
+| `COMP-GRAPH-HOVER-001` | partial | `GraphView.stories.tsx` | Add graph hover + pointer-transition assertions for multi-hop graphs |
 | `COMP-GRAPH-CONSISTENCY-001` | partial | `GraphView.stories.tsx` | Add disconnected-node discoverability assertions |
 | `COMP-EXPLORER-TREE-001` | partial | `Sidebar.stories.tsx` | Add context-menu actions and optimistic rollback scenarios |
-| `COMP-EXPLORER-ICON-ACTIONS-001` | missing | no explorer icon-action stories | Add icon-only action states and affordances |
+| `COMP-EXPLORER-ICON-ACTIONS-001` | partial | `Sidebar.stories.tsx` | Add click-action assertions for icon-only actions |
 | `COMP-EXPLORER-PANEL-SEARCH-001` | missing | no explorer-panel stories | Add search-removed panel state docs |
 | `COMP-EDITOR-MODES-001` | partial | `Editor.stories.tsx` | Add floating toolbar/block-menu interaction stories |
 | `COMP-EDITOR-WYSIWYM-002` | partial | `Editor.stories.tsx` | Add heading-marker suppression and Enter stability explicit stories |
@@ -101,7 +101,7 @@ Note: many stories now include `play` interactions. Remaining gap to full `cover
 ## Gap Summary
 
 - Implemented component specs assessed: `38`
-- UI-facing specs missing or partial story coverage: `26`
+- UI-facing specs missing or partial story coverage: `24`
 - UI-facing specs fully covered: `0`
 - Existing story files: `12`
 
@@ -112,10 +112,10 @@ Primary blockers to "comprehensive design docs in Storybook":
 
 ## Prioritized Gap Queue
 
-1. Deepen `Editor` story coverage for floating controls, empty-doc regression, markdown-engine/reference-link parity, and mermaid variants.
-2. Expand `Sidebar` stories for note-selection guard, explorer context actions, and icon-only action affordances.
-3. Expand `Graph` stories for hover stability, continuity persistence, disconnected-node discoverability, and metadata-fidelity details.
-4. Add startup/window-control shell stories and explicit spec-trace docs annotations.
+1. Add App startup/window-control stories for `COMP-WINDOW-STARTUP-003`.
+2. Expand explorer panel coverage for `COMP-EXPLORER-PANEL-SEARCH-001`.
+3. Add editor regression story for `COMP-MERMAID-INLINE-SPLIT-001`.
+4. Attach explicit spec-id docs annotations inside stories for full `covered` status.
 
 ## Recommended Next Step
 
