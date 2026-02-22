@@ -46,6 +46,13 @@ export const QueryWithResults: Story = {
       },
     ]);
   },
+  parameters: {
+    docs: {
+      description: {
+        story: "Spec: COMP-SEARCH-UI-001. Query renders deterministic results and selecting a result emits path callback.",
+      },
+    },
+  },
   play: async ({ canvas, args }) => {
     const input = canvas.getByLabelText("Search notes");
     await userEvent.type(input, "graph");
@@ -59,9 +66,53 @@ export const QueryWithResults: Story = {
   },
 };
 
+export const KeyboardSelectFirstResult: Story = {
+  beforeEach: async () => {
+    mocked(searchNotes).mockResolvedValue([
+      {
+        path: "notes/keyboard-a.md",
+        title: "Keyboard Alpha",
+        excerpt: "First result",
+        score: 0.95,
+      },
+      {
+        path: "notes/keyboard-b.md",
+        title: "Keyboard Beta",
+        excerpt: "Second result",
+        score: 0.91,
+      },
+    ]);
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-SEARCH-UI-001 FR-3/FR-4/FR-5. Keyboard Arrow navigation and Enter selection in search results.",
+      },
+    },
+  },
+  play: async ({ canvas, args }) => {
+    const input = canvas.getByLabelText("Search notes");
+    await userEvent.type(input, "keyboard");
+    await waitFor(() => {
+      expect(canvas.getByText("Keyboard Alpha")).toBeInTheDocument();
+    });
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{Enter}");
+    await expect(args.onResultSelect).toHaveBeenCalledWith("notes/keyboard-b.md");
+  },
+};
+
 export const NoResults: Story = {
   beforeEach: async () => {
     mocked(searchNotes).mockResolvedValue([]);
+  },
+  parameters: {
+    docs: {
+      description: {
+        story: "Spec: COMP-SEARCH-UI-001. Empty-result state is shown for unmatched query terms.",
+      },
+    },
   },
   play: async ({ canvas }) => {
     const input = canvas.getByLabelText("Search notes");

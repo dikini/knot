@@ -190,6 +190,39 @@ export const GraphActive: Story = {
   },
 };
 
+export const AdaptiveLayoutRecovery: Story = {
+  args: {
+    vault: demoVault,
+    noteList: demoNotes,
+    currentNote: demoCurrentNote,
+    shell: {
+      toolMode: "graph",
+      densityMode: "adaptive",
+      isContextPanelCollapsed: true,
+      showTextLabels: true,
+      isInspectorRailOpen: true,
+      contextPanelWidth: 420,
+    },
+    editorContent: demoCurrentNote.content,
+    editorDirty: false,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Specs: COMP-UI-LAYOUT-002, COMP-LAYOUT-RECOVERY-001, COMP-GRAPH-UI-CONTINUITY-003. Restores adaptive density, collapsed context panel, labels enabled, and open inspector from shell state.",
+      },
+    },
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await expect(canvasElement.querySelector(".app--adaptive")).not.toBeNull();
+    await expect(canvas.queryByRole("complementary", { name: "Context panel" })).not.toBeInTheDocument();
+    await userEvent.click(canvas.getByRole("button", { name: "Graph mode" }));
+    await expect(canvas.getByRole("button", { name: "Edit note" })).toBeInTheDocument();
+    await expect(canvas.getByRole("complementary", { name: "Inspector rail" })).toBeInTheDocument();
+  },
+};
+
 export const NoCustomWindowControlButtons: Story = {
   args: {
     vault: demoVault,

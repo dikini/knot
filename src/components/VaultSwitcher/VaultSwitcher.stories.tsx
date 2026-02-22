@@ -1,7 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { fn } from "storybook/test";
+import { expect, fn, userEvent } from "storybook/test";
 import { VaultSwitcher } from "./index";
 
+// Trace: DESIGN-storybook-vaultswitcher-coverage-2026-02-22
 const meta = {
   title: "Shell/VaultSwitcher",
   component: VaultSwitcher,
@@ -29,7 +30,16 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const WithCurrentVault: Story = {};
+export const WithCurrentVault: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-VAULT-UI-001 FR-1/FR-3. Current vault selector opens menu with open/create/recent/close actions.",
+      },
+    },
+  },
+};
 
 export const NoVaultOpen: Story = {
   args: {
@@ -37,3 +47,36 @@ export const NoVaultOpen: Story = {
   },
 };
 
+export const OpenCreateAndRecentActions: Story = {
+  play: async ({ canvas, args }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Demo Vault" }));
+    await userEvent.click(canvas.getByRole("menuitem", { name: "Open Different Vault..." }));
+    await expect(args.onOpenVault).toHaveBeenCalled();
+
+    await userEvent.click(canvas.getByRole("button", { name: "Demo Vault" }));
+    await userEvent.click(canvas.getByRole("menuitem", { name: "Create New Vault..." }));
+    await expect(args.onCreateVault).toHaveBeenCalled();
+
+    await userEvent.click(canvas.getByRole("button", { name: "Demo Vault" }));
+    await userEvent.click(canvas.getByRole("menuitem", { name: "Work Vault" }));
+    await expect(args.onOpenRecent).toHaveBeenCalledWith("/tmp/knot-work");
+  },
+};
+
+export const CloseVaultAction: Story = {
+  play: async ({ canvas, args }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Demo Vault" }));
+    await userEvent.click(canvas.getByRole("menuitem", { name: "Close Vault" }));
+    await expect(args.onCloseVault).toHaveBeenCalled();
+  },
+};
+
+export const CloseDisabledWithoutVault: Story = {
+  args: {
+    vault: null,
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "No Vault Open" }));
+    await expect(canvas.getByRole("menuitem", { name: "Close Vault" })).toBeDisabled();
+  },
+};

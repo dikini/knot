@@ -54,6 +54,14 @@ export const NodeScopeDepthControls: Story = {
     scope: "node",
     nodeScopeDepth: 2,
   },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-GRAPH-MODES-002. Scope toggle and node-depth controls invoke the expected callbacks.",
+      },
+    },
+  },
   play: async ({ canvas, args }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Vault graph" }));
     await userEvent.click(canvas.getByRole("button", { name: "+" }));

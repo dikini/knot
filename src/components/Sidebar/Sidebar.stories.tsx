@@ -234,6 +234,14 @@ export const DirtySwitchSavesBeforeOpen: Story = {
     dirty: true,
     editorContent: "# Draft content",
   },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Specs: COMP-NOTE-SEL-001 and COMP-EXPLORER-TREE-001. Switching notes with unsaved changes saves first, then opens the selected note.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     const originalConfirm = window.confirm;
     window.confirm = () => true;
@@ -288,6 +296,14 @@ export const ExplorerContextMenuCreateNote: Story = {
 };
 
 export const IconOnlyActionAffordances: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-EXPLORER-ICON-ACTIONS-001. Explorer action chrome remains icon-first with accessible labels for New Note/New Folder/Collapse/Expand/Refresh.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     await waitFor(() => {
       expect(canvas.getByRole("button", { name: "New Note" })).toBeInTheDocument();

@@ -61,6 +61,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const VaultScopeDefault: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Specs: COMP-GRAPH-UI-001 and COMP-GRAPH-MODES-002. Vault graph renders and node selection emits callbacks.",
+      },
+    },
+  },
   play: async ({ canvas, args }) => {
     await waitFor(() => {
       expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
@@ -71,6 +79,14 @@ export const VaultScopeDefault: Story = {
 };
 
 export const HoverHighlightsConnectedEdges: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-GRAPH-HOVER-001. Hovering a node highlights connected edges and dims unrelated edges.",
+      },
+    },
+  },
   play: async ({ canvas, canvasElement }) => {
     await waitFor(() => {
       expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
@@ -109,6 +125,13 @@ export const NodeScopeDepthTwo: Story = {
 };
 
 export const ResetAfterZoom: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: "Spec: COMP-GRAPH-UI-001 FR-5. Reset action restores zoom indicator to 100%.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     await waitFor(() => {
       expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
@@ -142,6 +165,14 @@ export const DisconnectedNodeDiscoverability: Story = {
   beforeEach: async () => {
     mocked(getGraphLayout).mockResolvedValue(disconnectedLayout);
   },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-GRAPH-CONSISTENCY-001. Disconnected nodes remain visible and counted in graph stats.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     await waitFor(() => {
       expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
@@ -154,6 +185,14 @@ export const DisconnectedNodeDiscoverability: Story = {
 export const ControlledSelectionFromShellState: Story = {
   args: {
     selectedNodeId: "notes/child-b.md",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-GRAPH-UI-CONTINUITY-003. Selection controlled from shell state remains consistent across graph interactions.",
+      },
+    },
   },
   play: async ({ canvas, args }) => {
     await waitFor(() => {

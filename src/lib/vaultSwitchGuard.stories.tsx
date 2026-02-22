@@ -59,6 +59,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const SaveAndProceed: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Specs: COMP-VAULT-SWITCH-UX-001 and COMP-VAULT-UNSAVED-001. Dirty-note guard prompts and saves successfully before proceeding.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Run guard" }));
     await expect(canvas.getByLabelText("Guard result")).toHaveTextContent("Result: proceed");
