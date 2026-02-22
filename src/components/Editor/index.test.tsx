@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act, within } from "@testing-librar
 import { Editor } from "./index";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import * as api from "@lib/api";
+import { schema } from "@editor/schema";
 
 const mockInitProseMirrorEditor = vi.fn();
 
@@ -235,6 +236,19 @@ describe("Editor Component", () => {
       expect(screen.getByText("Bold")).toBeInTheDocument();
     });
 
+    it("renders Mermaid fences as diagram containers in view mode", () => {
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: "```mermaid\ngraph TD\n  A-->B\n```",
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      expect(document.querySelector("[data-mermaid-diagram='true']")).toBeInTheDocument();
+      expect(document.querySelector("pre[data-language='mermaid']")).not.toBeInTheDocument();
+    });
+
     it("shows selection toolbar when edit selection is non-empty", async () => {
       render(<Editor />);
       fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
@@ -326,6 +340,7 @@ describe("Editor Component", () => {
       expect(within(menu).getByRole("menuitem", { name: "Bullet list" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Numbered list" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Horizontal rule" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Mermaid diagram" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Code block" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Blockquote" })).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-h1")).toBeInTheDocument();
@@ -334,8 +349,76 @@ describe("Editor Component", () => {
       expect(within(menu).getByTestId("block-menu-icon-bullet")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-ordered")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-hr")).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-mermaid")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-code")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-quote")).toBeInTheDocument();
+    });
+
+    it("inserts Mermaid as a code_block node, not raw markdown text", async () => {
+      const insertTextMock = vi.fn();
+      const tr = {
+        doc: {
+          content: { size: 32 },
+        },
+        insert: vi.fn().mockReturnThis(),
+        scrollIntoView: vi.fn().mockReturnThis(),
+      };
+
+      mockInitProseMirrorEditor.mockImplementationOnce(() => ({
+        destroy: vi.fn(),
+        getMarkdown: vi.fn(() => "# Initial\n\nContent"),
+        setMarkdown: vi.fn(),
+        view: {
+          dom: {
+            getBoundingClientRect: vi.fn(() => ({
+              left: 120,
+              right: 720,
+              top: 80,
+              bottom: 520,
+              width: 600,
+              height: 440,
+              x: 120,
+              y: 80,
+              toJSON: () => ({}),
+            })),
+          },
+          state: {
+            selection: {
+              from: 2,
+              to: 2,
+              empty: true,
+            },
+            tr: {
+              ...tr,
+              insertText: insertTextMock,
+            },
+          },
+          dispatch: vi.fn(),
+          focus: vi.fn(),
+          coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+        },
+      }));
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+
+      const initCall = mockInitProseMirrorEditor.mock.calls[0];
+      const options = initCall?.[1] as {
+        onSelectionChange?: (selection: { from: number; to: number; empty: boolean }) => void;
+      };
+      act(() => {
+        options.onSelectionChange?.({ from: 2, to: 2, empty: true });
+      });
+
+      fireEvent.click(await screen.findByRole("button", { name: "Open block menu" }));
+      fireEvent.click(await screen.findByRole("menuitem", { name: "Mermaid diagram" }));
+
+      expect(insertTextMock).not.toHaveBeenCalled();
+      expect(tr.insert).toHaveBeenCalledTimes(1);
+      const insertedNode = tr.insert.mock.calls[0]?.[1];
+      expect(insertedNode?.type?.name).toBe(schema.nodes.code_block.name);
+      expect(insertedNode?.attrs?.language).toBe("mermaid");
+      expect(insertedNode?.textContent).toContain("A[Start] --> B[End]");
     });
 
     it("does not reinitialize ProseMirror on content sync changes", async () => {

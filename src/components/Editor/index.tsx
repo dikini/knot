@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { initProseMirrorEditor } from "@editor/index";
-import { renderMarkdownToHtml } from "@editor/render";
+import { renderMarkdownToHtml, renderMermaidDiagrams } from "@editor/render";
 import {
   buildKnownWikilinkTargets,
   getWikilinkSuggestions,
@@ -47,6 +47,7 @@ export function Editor() {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const blockMenuRef = useRef<HTMLDivElement>(null);
   const blockToggleRef = useRef<HTMLButtonElement>(null);
+  const viewArticleRef = useRef<HTMLElement>(null);
   const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
   const { currentNote, setCurrentNote, loadNote, noteList, shell } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
@@ -331,11 +332,24 @@ export function Editor() {
   }, [runCommand]);
 
   const insertBlockAfterSelection = useCallback(
-    (kind: "code_block" | "blockquote" | "heading_1" | "heading_2" | "heading_3" | "bullet_list" | "ordered_list" | "horizontal_rule") => {
+    (kind: "code_block" | "blockquote" | "heading_1" | "heading_2" | "heading_3" | "bullet_list" | "ordered_list" | "horizontal_rule" | "mermaid_diagram") => {
       if (!pmRef.current) return;
       const { view } = pmRef.current;
       const { state, dispatch } = view;
       const insertPos = state.selection.to;
+
+      if (kind === "mermaid_diagram") {
+        // TRACE: BUG-mermaid-insert-escape-001
+        const mermaidNode = schema.nodes.code_block.create(
+          { language: "mermaid" },
+          schema.text("graph TD\n  A[Start] --> B[End]")
+        );
+        const tr = state.tr.insert(insertPos, mermaidNode);
+        dispatch(tr.scrollIntoView());
+        view.focus();
+        setBlockMenuOpen(false);
+        return;
+      }
 
       let node;
 
@@ -462,6 +476,11 @@ export function Editor() {
     () => renderMarkdownToHtml(effectiveMarkdown),
     [effectiveMarkdown]
   );
+
+  useEffect(() => {
+    if (editorMode !== "view" || !viewArticleRef.current) return;
+    void renderMermaidDiagrams(viewArticleRef.current);
+  }, [editorMode, renderedHtml]);
 
   // Save note handler
   const handleSave = useCallback(async () => {
@@ -816,6 +835,15 @@ export function Editor() {
                     type="button"
                     role="menuitem"
                     className="editor-block-tool__menu-item"
+                    onClick={() => insertBlockAfterSelection("mermaid_diagram")}
+                  >
+                    <FileCode2 size={14} data-testid="block-menu-icon-mermaid" aria-hidden="true" />
+                    <span>Mermaid diagram</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
                     onClick={() => insertBlockAfterSelection("code_block")}
                   >
                     <FileCode2 size={14} data-testid="block-menu-icon-code" aria-hidden="true" />
@@ -876,6 +904,7 @@ export function Editor() {
       {editorMode === "view" && (
         <div className="editor-container editor-container--view">
           <article
+            ref={viewArticleRef}
             className="editor-view-markdown"
             onClick={handleRenderedMarkdownClick}
             dangerouslySetInnerHTML={{ __html: renderedHtml }}
