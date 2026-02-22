@@ -1,0 +1,36 @@
+tasks:
+  - id: VSU-001
+    title: "Add unsaved decision helper"
+    status: completed
+    size: S
+    spec_refs: [FR-1, FR-2]
+    concerns: [CONF]
+    dependencies: []
+    acceptance: "Helper returns proceed/cancel based on dirty state and user decision"
+
+  - id: VSU-002
+    title: "Wire App vault-open handlers"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+    concerns: [CONF, REL]
+    dependencies: [VSU-001]
+    acceptance: "Open Vault and Open Recent enforce save/discard flow before API open"
+
+  - id: VSU-003
+    title: "Add frontend tests for dirty switch"
+    status: completed
+    size: M
+    spec_refs: [FR-3, FR-4, FR-5]
+    concerns: [REL]
+    dependencies: [VSU-002]
+    acceptance: "Tests cover save success, save failure, discard, and clean state"
+
+  - id: VSU-004
+    title: "Publish verification and update status"
+    status: completed
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+    concerns: [CONF, REL]
+    dependencies: [VSU-003]
+    acceptance: "Audit doc exists and roadmap/spec-map statuses are implemented"

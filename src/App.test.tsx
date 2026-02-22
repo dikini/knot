@@ -111,10 +111,19 @@ vi.mock("@lib/api", () => ({
   addRecentVault: vi.fn(),
   createVaultDialog: vi.fn(),
   openVault: vi.fn(),
+  saveNote: vi.fn(),
+  setUnsavedChanges: vi.fn(),
 }));
 
 vi.mock("@lib/store", () => ({
   useVaultStore: () => mockStoreState,
+  useEditorStore: {
+    getState: vi.fn(() => ({
+      isDirty: false,
+      content: "",
+      markDirty: vi.fn(),
+    })),
+  },
 }));
 
 vi.mock("@editor/markdown", () => ({

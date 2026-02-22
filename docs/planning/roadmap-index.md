@@ -8,3 +8,4 @@
 | markdown-engine-001 | component | implemented | - | [] | [COMP-MARKDOWN-ENGINE-001] |
 | note-metadata-fidelity-001 | component | implemented | - | [] | [COMP-NOTE-METADATA-001] |
 | vault-unsaved-changes-001 | component | implemented | - | [] | [COMP-VAULT-UNSAVED-001] |
+| vault-switch-ux-001 | component | implemented | - | [vault-unsaved-changes-001] | [COMP-VAULT-SWITCH-UX-001] |

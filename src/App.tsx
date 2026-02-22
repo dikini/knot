@@ -11,8 +11,10 @@ import { Sidebar } from "@components/Sidebar";
 import { ToastContainer } from "@components/Toast";
 import { useToast } from "@hooks/useToast";
 import { useVaultStore } from "@lib/store";
+import { useEditorStore } from "@lib/store";
 import type { ShellToolMode } from "@lib/store";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
+import { resolveVaultSwitchWithUnsavedGuard } from "@lib/vaultSwitchGuard";
 import { setMarkdownEngineConfig } from "@editor/markdown";
 import * as api from "@lib/api";
 import type { RecentVault } from "@lib/api";
@@ -81,6 +83,33 @@ function App() {
     setShowTextLabels,
   } = useVaultStore();
   const { toasts, removeToast, success, error } = useToast();
+
+  const resolveUnsavedBeforeVaultSwitch = async (): Promise<boolean> => {
+    const editorState = useEditorStore.getState();
+    if (!currentNote || !editorState.isDirty) {
+      return true;
+    }
+
+    const result = await resolveVaultSwitchWithUnsavedGuard({
+      isDirty: editorState.isDirty,
+      currentNoteTitle: currentNote.title,
+      confirm: (message) => window.confirm(message),
+      saveCurrentNote: async () => {
+        await api.saveNote(currentNote.path, editorState.content);
+      },
+      clearUnsavedState: async () => {
+        useEditorStore.getState().markDirty(false);
+        await api.setUnsavedChanges(false);
+      },
+    });
+
+    if (result === "save-failed") {
+      error("Failed to save note. Vault switch cancelled.");
+      return false;
+    }
+
+    return true;
+  };
 
   // Load recent vaults and check for existing vault on mount
   useEffect(() => {
@@ -288,6 +317,9 @@ function App() {
 
   const handleOpenVault = async () => {
     try {
+      const canProceed = await resolveUnsavedBeforeVaultSwitch();
+      if (!canProceed) return;
+
       const info = await api.openVaultDialog();
       setVault(info);
       await api.addRecentVault(info.path);
@@ -324,6 +356,9 @@ function App() {
 
   const handleOpenRecent = async (path: string) => {
     try {
+      const canProceed = await resolveUnsavedBeforeVaultSwitch();
+      if (!canProceed) return;
+
       const info = await api.openVault(path);
       setVault(info);
       await api.addRecentVault(info.path);
