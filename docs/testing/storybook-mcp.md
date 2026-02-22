@@ -33,6 +33,7 @@ npm run codex:mcp:setup
 - Codex MCP server registrations live in user config (`~/.codex/config.toml`).
 - This project provides `scripts/setup-codex-storybook-mcp.mjs` to inject an idempotent managed block for `storybook_knot`.
 - The managed entry runs `scripts/storybook-mcp-codex.mjs`, which reads `.mcp/storybook-mcp.json` (or the example template fallback) and proxies to Storybook MCP via `mcp-remote`.
+- The managed block sets `startup_timeout_sec = 45` for `storybook_knot` to reduce false startup failures when Storybook/MCP cold-starts are slower.
 - Result: no per-session MCP editing when starting Codex in this repository.
 
 ## Endpoint Notes

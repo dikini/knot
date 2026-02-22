@@ -18,6 +18,7 @@ const blockLines = [
   "[mcp_servers.storybook_knot]",
   'command = "node"',
   `args = ["${launcherPath}"]`,
+  "startup_timeout_sec = 45",
   endMarker,
   "",
 ];

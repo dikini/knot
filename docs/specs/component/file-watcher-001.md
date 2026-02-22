@@ -4,12 +4,12 @@
 
 - ID: `COMP-FILE-WATCH-001`
 - Scope: `component`
-- Status: `partial`
+- Status: `implemented`
 - Parent: `COMP-VAULT-001`
 - Concerns: [REL, CONS]
 - Created: `2026-02-19`
-- Updated: `2026-02-19`
-- Verified: `2026-02-19` (partial; integration test and traceability gaps)
+- Updated: `2026-02-22`
+- Verified: `2026-02-19` (100%; see `docs/audit/file-watcher-verification-2026-02-19.md`)
 
 ## Purpose
 
@@ -17,13 +17,11 @@ Detect external changes to notes (made outside the app) and sync them to the dat
 
 ## Current State
 
-`src-tauri/src/watcher.rs` has an implemented `FileWatcher` using `notify` with markdown filtering, `.vault/` exclusion, and debounce batching.
+`src-tauri/src/watcher.rs` implements `FileWatcher` with markdown filtering, `.vault/` exclusion, and debounce batching.
 
 `src-tauri/src/core/vault.rs` integrates watcher startup and event syncing (`Modified`, `Deleted`, `Renamed`) into database, search index, and graph update paths.
 
-Remaining gaps are compliance-focused:
-- integration tests in `src-tauri/tests/watcher_integration_test.rs` are outdated
-- legacy `src-tauri/src/vault.rs` methods need explicit SPEC markers for this spec
+`src-tauri/src/vault.rs` and `src-tauri/tests/watcher_integration_test.rs` include traceability and passing watcher integration coverage as verified in `docs/audit/file-watcher-verification-2026-02-19.md`.
 
 ## Contract
 

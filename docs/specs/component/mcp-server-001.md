@@ -3,12 +3,12 @@
 ## Metadata
 - ID: `COMP-MCP-SERVER-001`
 - Scope: `component`
-- Status: `designed`
+- Status: `implemented`
 - Parent: `COMP-FRONTEND-001`, `COMP-VAULT-001`, `COMP-NOTE-001`, `COMP-SEARCH-001`, `COMP-GRAPH-001`
 - Concerns: `[REL, CONF]`
 - Trace: `DESIGN-mcp-server-core-tools-resources`
 - Created: `2026-02-20`
-- Updated: `2026-02-20`
+- Updated: `2026-02-22`
 
 ## Purpose
 Provide a local MCP (Model Context Protocol) server for AI agents, exposing core vault operations as tools and notes as MCP resources.

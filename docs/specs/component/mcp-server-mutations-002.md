@@ -3,12 +3,12 @@
 ## Metadata
 - ID: `COMP-MCP-SERVER-002`
 - Scope: `component`
-- Status: `designed`
+- Status: `implemented`
 - Parent: `COMP-MCP-SERVER-001`, `COMP-NOTE-001`, `COMP-EXPLORER-TREE-001`
 - Concerns: `[REL, CONF]`
 - Trace: `DESIGN-mcp-server-mutations-directory-tools`
 - Created: `2026-02-20`
-- Updated: `2026-02-20`
+- Updated: `2026-02-22`
 
 ## Purpose
 Extend MCP tooling with note mutation and directory management operations needed for agent-driven vault editing.
