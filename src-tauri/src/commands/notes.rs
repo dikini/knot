@@ -52,6 +52,8 @@ pub async fn get_note(path: String, state: State<'_, AppState>) -> Result<NoteDa
     match vault_guard.as_ref() {
         Some(vault) => {
             let note = vault.get_note(&path).map_err(|e| e.to_response_string())?;
+            let note_headings = note.headings();
+            let heading_positions = compute_heading_positions(note.content(), &note_headings);
 
             // Get backlinks from graph
             let backlinks = vault
@@ -60,7 +62,10 @@ pub async fn get_note(path: String, state: State<'_, AppState>) -> Result<NoteDa
                 .into_iter()
                 .map(|(source, context)| Backlink {
                     source_path: source.clone(),
-                    source_title: source, // TODO: Get actual title
+                    source_title: vault
+                        .get_note(&source)
+                        .map(|source_note| source_note.title().to_string())
+                        .unwrap_or_else(|_| fallback_title_from_path(&source)),
                     context,
                 })
                 .collect();
@@ -73,13 +78,13 @@ pub async fn get_note(path: String, state: State<'_, AppState>) -> Result<NoteDa
                 created_at: note.created_at(),
                 modified_at: note.modified_at(),
                 word_count: note.word_count(),
-                headings: note
-                    .headings()
+                headings: note_headings
                     .iter()
-                    .map(|h| Heading {
+                    .enumerate()
+                    .map(|(index, h)| Heading {
                         level: h.level as u8,
                         text: h.text.clone(),
-                        position: 0, // TODO: calculate actual position
+                        position: *heading_positions.get(index).unwrap_or(&0),
                     })
                     .collect(),
                 backlinks,
@@ -215,6 +220,8 @@ pub async fn create_note(
 
             // Return the newly created note
             let note = vault.get_note(&path).map_err(|e| e.to_response_string())?;
+            let note_headings = note.headings();
+            let heading_positions = compute_heading_positions(note.content(), &note_headings);
 
             let data = NoteData {
                 id: note.id().to_string(),
@@ -224,13 +231,13 @@ pub async fn create_note(
                 created_at: note.created_at(),
                 modified_at: note.modified_at(),
                 word_count: note.word_count(),
-                headings: note
-                    .headings()
+                headings: note_headings
                     .iter()
-                    .map(|h| Heading {
+                    .enumerate()
+                    .map(|(index, h)| Heading {
                         level: h.level as u8,
                         text: h.text.clone(),
-                        position: 0, // TODO: calculate actual position
+                        position: *heading_positions.get(index).unwrap_or(&0),
                     })
                     .collect(),
                 backlinks: vec![],
@@ -633,6 +640,96 @@ fn note_to_summary(meta: crate::note::NoteMeta) -> NoteSummary {
     }
 }
 
+/// SPEC: COMP-NOTE-METADATA-001 FR-4
+/// Build a display-friendly fallback title from note path when note lookup fails.
+fn fallback_title_from_path(path: &str) -> String {
+    Path::new(path)
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .filter(|stem| !stem.trim().is_empty())
+        .map(std::string::ToString::to_string)
+        .unwrap_or_else(|| path.to_string())
+}
+
+/// SPEC: COMP-NOTE-METADATA-001 FR-2, FR-3
+/// Compute zero-based byte offsets for heading line starts in source markdown.
+fn compute_heading_positions(content: &str, headings: &[crate::markdown::Heading]) -> Vec<usize> {
+    let mut heading_lines: Vec<(u8, String, usize)> = Vec::new();
+    let mut offset = 0usize;
+
+    for line_with_ending in content.split_inclusive('\n') {
+        let line = line_with_ending.trim_end_matches(['\n', '\r']);
+        if let Some((level, text)) = parse_atx_heading_line(line) {
+            heading_lines.push((level, text, offset));
+        }
+        offset += line_with_ending.len();
+    }
+
+    if !content.ends_with('\n') {
+        let trailing_start = content.rfind('\n').map_or(0, |idx| idx + 1);
+        if trailing_start < content.len() {
+            let trailing = &content[trailing_start..];
+            if let Some((level, text)) = parse_atx_heading_line(trailing) {
+                if heading_lines
+                    .last()
+                    .map(|(_, _, pos)| *pos != trailing_start)
+                    .unwrap_or(true)
+                {
+                    heading_lines.push((level, text, trailing_start));
+                }
+            }
+        }
+    }
+
+    let mut cursor = 0usize;
+    let mut positions = Vec::with_capacity(headings.len());
+
+    for heading in headings {
+        let wanted_level = heading.level as u8;
+        let wanted_text = heading.text.trim();
+
+        let found = heading_lines
+            .iter()
+            .enumerate()
+            .skip(cursor)
+            .find(|(_, (level, text, _))| *level == wanted_level && text == wanted_text)
+            .map(|(index, (_, _, position))| {
+                cursor = index + 1;
+                *position
+            })
+            .unwrap_or(0);
+
+        positions.push(found);
+    }
+
+    positions
+}
+
+fn parse_atx_heading_line(line: &str) -> Option<(u8, String)> {
+    let trimmed_start = line.trim_start();
+    let hash_count = trimmed_start.chars().take_while(|ch| *ch == '#').count();
+    if hash_count == 0 || hash_count > 6 {
+        return None;
+    }
+
+    let rest = trimmed_start.get(hash_count..)?;
+    if !rest.starts_with(' ') {
+        return None;
+    }
+
+    let text = rest
+        .trim()
+        .trim_end_matches('#')
+        .trim()
+        .to_string();
+
+    if text.is_empty() {
+        return None;
+    }
+
+    Some((hash_count as u8, text))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -703,5 +800,33 @@ mod tests {
         assert!(is_hidden_rel_path("Programming/.drafts"));
         assert!(is_hidden_rel_path(".hidden/file.md"));
         assert!(!is_hidden_rel_path("Programming/rust"));
+    }
+
+    #[test]
+    // BUG-NOTE-METADATA-001: heading positions must not remain placeholder zeros.
+    fn bug_note_metadata_001_heading_offsets_track_heading_line_starts() {
+        let content = "# Top\n\nText\n## Child\n";
+        let headings = vec![
+            crate::markdown::Heading {
+                level: 1,
+                text: "Top".to_string(),
+                anchor: "top".to_string(),
+            },
+            crate::markdown::Heading {
+                level: 2,
+                text: "Child".to_string(),
+                anchor: "child".to_string(),
+            },
+        ];
+
+        let offsets = compute_heading_positions(content, &headings);
+        assert_eq!(offsets, vec![0, 12]);
+    }
+
+    #[test]
+    // BUG-NOTE-METADATA-001: fallback backlink titles should be human-readable.
+    fn bug_note_metadata_001_title_fallback_uses_filename_stem() {
+        let title = fallback_title_from_path("projects/deep-learning.md");
+        assert_eq!(title, "deep-learning");
     }
 }

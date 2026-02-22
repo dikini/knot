@@ -43,6 +43,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-GRAPH-MODES-002 | graph-modes | designed | component/graph-modes-002.md | [CONF, REL, CAP] | implemented (verified 100%) |
 | COMP-GRAPH-UI-CONTINUITY-003 | graph-ui-continuity | designed | component/graph-ui-continuity-003.md | [CONF, REL, CAP] | implemented (verified 100%) |
 | COMP-WINDOW-STARTUP-003 | window-startup-controls | designed | component/window-startup-controls-003.md | [CONF, REL] | implemented (verified 100%) |
+| COMP-NOTE-METADATA-001 | note-metadata-fidelity | designed | component/note-metadata-fidelity-001.md | [REL, CONF] | implemented (verified 100%) |
 
 ## Interfaces
 
@@ -143,3 +144,5 @@ docs/specs/
 | 2026-02-21 | Implement startup-ready window reveal and accessible in-app window controls | COMP-WINDOW-STARTUP-003 |
 | 2026-02-22 | Draft markdown engine migration spec for prosemirror-markdown + markdown-it and reference links | COMP-MARKDOWN-ENGINE-001 |
 | 2026-02-22 | Implement and verify markdown engine migration with next-engine parser/serializer, reference links, and runtime toggle | COMP-MARKDOWN-ENGINE-001 |
+| 2026-02-22 | Draft note metadata fidelity spec and plan for backlink titles and heading positions | COMP-NOTE-METADATA-001 |
+| 2026-02-22 | Implement and verify note metadata fidelity for backlink titles and heading positions | COMP-NOTE-METADATA-001 |

@@ -1,0 +1,36 @@
+tasks:
+  - id: NMF-001
+    title: "Add heading-offset and title-fallback helpers"
+    status: completed
+    size: S
+    spec_refs: [FR-2, FR-4]
+    concerns: [REL, CONF]
+    dependencies: []
+    acceptance: "Pure helper functions compile and are unit-testable"
+
+  - id: NMF-002
+    title: "Resolve backlink source_title from source note metadata"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2, FR-4]
+    concerns: [REL, CONF]
+    dependencies: [NMF-001]
+    acceptance: "get_note returns source_title from note title with filename-stem fallback"
+
+  - id: NMF-003
+    title: "Use shared heading-position mapping in create_note"
+    status: completed
+    size: S
+    spec_refs: [FR-3]
+    concerns: [REL]
+    dependencies: [NMF-001]
+    acceptance: "create_note returns heading positions computed by shared helper"
+
+  - id: NMF-004
+    title: "Add targeted unit tests for metadata fidelity"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4]
+    concerns: [REL, CONF]
+    dependencies: [NMF-002, NMF-003]
+    acceptance: "Rust tests validate title resolution and heading offsets"
