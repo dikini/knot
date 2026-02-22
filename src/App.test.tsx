@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import App from "./App";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
+import { setMarkdownEngineConfig } from "@editor/markdown";
 
 const mockLoadNote = vi.fn();
 let editorMountCount = 0;
@@ -114,6 +115,10 @@ vi.mock("@lib/api", () => ({
 
 vi.mock("@lib/store", () => ({
   useVaultStore: () => mockStoreState,
+}));
+
+vi.mock("@editor/markdown", () => ({
+  setMarkdownEngineConfig: vi.fn(),
 }));
 
 vi.mock("@components/Sidebar", () => ({
@@ -446,6 +451,24 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /surface/i }));
     expect(contentArea.closest(".content-area")).toHaveClass("content-area--editor-dark");
+  });
+
+  it("defaults markdown engine to next and toggles to legacy", async () => {
+    render(<App />);
+
+    const engineToggle = await screen.findByRole("button", { name: /engine:\s*next/i });
+    expect(engineToggle).toBeInTheDocument();
+    expect(setMarkdownEngineConfig).toHaveBeenCalledWith({
+      activeEngine: "next",
+      enableLegacyFallback: true,
+    });
+
+    fireEvent.click(engineToggle);
+    expect(screen.getByRole("button", { name: /engine:\s*legacy/i })).toBeInTheDocument();
+    expect(setMarkdownEngineConfig).toHaveBeenCalledWith({
+      activeEngine: "legacy",
+      enableLegacyFallback: true,
+    });
   });
 
   it("remounts editor when selected note path changes", async () => {

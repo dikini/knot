@@ -1,0 +1,72 @@
+tasks:
+  - id: MDE-001
+    title: "Create markdown adapter boundary with legacy/new implementations"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-7]
+    concerns: [REL, CAP]
+    dependencies: []
+    acceptance: "Editor markdown API can route through legacy or new parser by configuration"
+
+  - id: MDE-002
+    title: "Add golden parity fixture harness for existing syntax"
+    status: completed
+    size: M
+    spec_refs: [FR-2, FR-8]
+    concerns: [COMP, REL]
+    dependencies: [MDE-001]
+    acceptance: "Fixture harness compares semantic parity for currently supported markdown constructs"
+
+  - id: MDE-003
+    title: "Implement baseline prosemirror-markdown mappings"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2]
+    concerns: [COMP]
+    dependencies: [MDE-001, MDE-002]
+    acceptance: "Current supported syntax parses and serializes under the new engine"
+
+  - id: MDE-004
+    title: "Restore wikilink behavior in new token pipeline"
+    status: completed
+    size: M
+    spec_refs: [FR-3]
+    concerns: [COMP]
+    dependencies: [MDE-003]
+    acceptance: "Wikilinks preserve target/display semantics in parse/serialize tests"
+
+  - id: MDE-005
+    title: "Implement markdown reference-link support"
+    status: completed
+    size: M
+    spec_refs: [FR-4, FR-5]
+    concerns: [COMP, CONF]
+    dependencies: [MDE-003]
+    acceptance: "Reference full/collapsed/shortcut links and definitions are preserved in round-trip"
+
+  - id: MDE-006
+    title: "Enable view-mode resolution for reference links"
+    status: completed
+    size: S
+    spec_refs: [FR-6]
+    concerns: [CONF]
+    dependencies: [MDE-005]
+    acceptance: "Rendered HTML view resolves reference links to anchors matching inline-link behavior"
+
+  - id: MDE-007
+    title: "Add feature-gated fallback between parser implementations"
+    status: completed
+    size: S
+    spec_refs: [FR-7]
+    concerns: [REL]
+    dependencies: [MDE-003, MDE-004, MDE-005]
+    acceptance: "Switching config reliably toggles legacy/new markdown engine"
+
+  - id: MDE-008
+    title: "Run migration verification and record audit"
+    status: completed
+    size: S
+    spec_refs: [FR-8]
+    concerns: [REL, COMP, CONF]
+    dependencies: [MDE-006, MDE-007]
+    acceptance: "Targeted tests and typecheck pass; migration audit output is documented"

@@ -36,6 +36,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-EXPLORER-ICON-ACTIONS-001 | explorer-icon-actions | designed | component/explorer-icon-only-actions-001.md | [CONF] | implemented (verified 100%) |
 | COMP-EDITOR-MODES-001 | editor-modes | designed | component/editor-modes-wysiwym-001.md | [CONF, REL] | implemented (M0-M4 verified) |
 | COMP-EDITOR-WYSIWYM-002 | editor-wysiwym-fixes | designed | component/editor-wysiwym-002.md | [CONF, REL, CAP] | implemented (verified 100%) |
+| COMP-MARKDOWN-ENGINE-001 | markdown-engine | designed | component/markdown-engine-001.md | [REL, COMP, CAP, CONF] | implemented (verified 100%) |
 | COMP-MCP-SERVER-001 | mcp-server | designed | component/mcp-server-001.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-MCP-SERVER-002 | mcp-server-mutations | designed | component/mcp-server-mutations-002.md | [REL, CONF] | implemented (verified 100%) |
 | COMP-TOOL-RAIL-CONTEXT-001 | tool-rail-context-policy | designed | component/tool-rail-context-policy-001.md | [CONF, REL, CAP] | implemented (verified 100%) |
@@ -140,3 +141,5 @@ docs/specs/
 | 2026-02-21 | Define graph UI continuity and toggle semantics refinement | COMP-GRAPH-UI-CONTINUITY-003 |
 | 2026-02-21 | Implement and verify graph UI continuity and toggle semantics refinement | COMP-GRAPH-UI-CONTINUITY-003 |
 | 2026-02-21 | Implement startup-ready window reveal and accessible in-app window controls | COMP-WINDOW-STARTUP-003 |
+| 2026-02-22 | Draft markdown engine migration spec for prosemirror-markdown + markdown-it and reference links | COMP-MARKDOWN-ENGINE-001 |
+| 2026-02-22 | Implement and verify markdown engine migration with next-engine parser/serializer, reference links, and runtime toggle | COMP-MARKDOWN-ENGINE-001 |

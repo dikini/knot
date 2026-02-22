@@ -12,6 +12,10 @@ import { Schema, DOMOutputSpec, Node as ProseMirrorNode, Mark } from "prosemirro
 
 const nodes = {
   doc: {
+    attrs: {
+      referenceDefinitions: { default: {} },
+      referenceOrder: { default: [] },
+    },
     content: "block+",
   },
 
@@ -197,6 +201,7 @@ const marks = {
     attrs: {
       href: {},
       title: { default: null },
+      refId: { default: null },
     },
     inclusive: false,
     parseDOM: [
@@ -205,12 +210,13 @@ const marks = {
         getAttrs: (dom: HTMLElement) => ({
           href: dom.getAttribute("href"),
           title: dom.getAttribute("title"),
+          refId: dom.getAttribute("data-ref-id"),
         }),
       },
     ],
     toDOM(mark: Mark): DOMOutputSpec {
-      const { href, title } = mark.attrs;
-      return ["a", { href, title }, 0];
+      const { href, title, refId } = mark.attrs;
+      return ["a", refId ? { href, title, "data-ref-id": refId } : { href, title }, 0];
     },
   },
 

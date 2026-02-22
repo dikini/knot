@@ -7,45 +7,179 @@
 
 import { Schema, Node as ProseMirrorNode } from "prosemirror-model";
 import { schema } from "./schema";
+import { parseMarkdownNextDocument, serializeMarkdownNextDocument } from "./markdown-next";
 
 export interface ParseOptions {
   preserveWhitespace?: boolean;
+  collectReferenceDefinitions?: boolean;
+  referenceDefinitions?: Record<string, ReferenceDefinition>;
+  referenceOrder?: string[];
+}
+
+export type MarkdownEngine = "legacy" | "next";
+
+export interface MarkdownAdapter {
+  engine: MarkdownEngine;
+  parse: (content: string, options?: ParseOptions) => ProseMirrorNode;
+  serialize: (doc: ProseMirrorNode) => string;
+}
+
+export interface ReferenceDefinition {
+  id: string;
+  href: string;
+  title: string | null;
+}
+
+export interface MarkdownEngineConfig {
+  activeEngine: MarkdownEngine;
+  enableLegacyFallback: boolean;
+}
+
+let markdownEngineConfig: MarkdownEngineConfig = {
+  activeEngine: "legacy",
+  enableLegacyFallback: true,
+};
+
+export function getMarkdownEngineConfig(): MarkdownEngineConfig {
+  return { ...markdownEngineConfig };
+}
+
+export function setMarkdownEngineConfig(next: Partial<MarkdownEngineConfig>): void {
+  markdownEngineConfig = {
+    ...markdownEngineConfig,
+    ...next,
+  };
+}
+
+export function parseMarkdownWithEngine(
+  content: string,
+  engine: MarkdownEngine = "legacy",
+  options: ParseOptions = {}
+): ProseMirrorNode {
+  switch (engine) {
+    case "legacy":
+      return parseMarkdownLegacy(content, options);
+    case "next":
+      return parseMarkdownNext(content, options);
+  }
+}
+
+export function serializeMarkdownWithEngine(
+  doc: ProseMirrorNode,
+  engine: MarkdownEngine = "legacy"
+): string {
+  switch (engine) {
+    case "legacy":
+      return serializeMarkdownLegacy(doc);
+    case "next":
+      return serializeMarkdownNext(doc);
+  }
+}
+
+export function createMarkdownAdapter(engine: MarkdownEngine = "legacy"): MarkdownAdapter {
+  return {
+    engine,
+    parse: (content: string, options: ParseOptions = {}) =>
+      parseMarkdownWithEngine(content, engine, options),
+    serialize: (doc: ProseMirrorNode) => serializeMarkdownWithEngine(doc, engine),
+  };
+}
+
+export function parseMarkdownAuto(content: string, options: ParseOptions = {}): ProseMirrorNode {
+  const { activeEngine, enableLegacyFallback } = markdownEngineConfig;
+  try {
+    return parseMarkdownWithEngine(content, activeEngine, options);
+  } catch (error) {
+    if (!enableLegacyFallback || activeEngine === "legacy") {
+      throw error;
+    }
+    return parseMarkdownWithEngine(content, "legacy", options);
+  }
+}
+
+export function serializeMarkdownAuto(doc: ProseMirrorNode): string {
+  const { activeEngine, enableLegacyFallback } = markdownEngineConfig;
+  try {
+    return serializeMarkdownWithEngine(doc, activeEngine);
+  } catch (error) {
+    if (!enableLegacyFallback || activeEngine === "legacy") {
+      throw error;
+    }
+    return serializeMarkdownWithEngine(doc, "legacy");
+  }
 }
 
 /**
  * Parse markdown text into a ProseMirror document.
  */
 export function parseMarkdown(content: string, _options: ParseOptions = {}): ProseMirrorNode {
+  return parseMarkdownLegacy(content, _options);
+}
+
+export function parseMarkdownLegacy(content: string, _options: ParseOptions = {}): ProseMirrorNode {
+  return parseMarkdownInternal(content, _options);
+}
+
+export function parseMarkdownNext(content: string, _options: ParseOptions = {}): ProseMirrorNode {
   const lines = content.split("\n");
+  const inheritedDefinitions = _options.referenceDefinitions ?? {};
+  const inheritedOrder = _options.referenceOrder ?? Object.values(inheritedDefinitions).map((value) => value.id);
+  const extracted = _options.collectReferenceDefinitions === false
+    ? { definitions: [] as ReferenceDefinition[] }
+    : extractReferenceDefinitions(lines);
+
+  const referenceDefinitions: Record<string, ReferenceDefinition> = { ...inheritedDefinitions };
+  const referenceOrder = [...inheritedOrder];
+
+  for (const definition of extracted.definitions) {
+    const normalized = normalizeReferenceId(definition.id);
+    if (!referenceOrder.includes(definition.id)) {
+      referenceOrder.push(definition.id);
+    }
+    referenceDefinitions[normalized] = definition;
+  }
+
+  const parsed = parseMarkdownNextDocument(content);
+  return schema.node("doc", { referenceDefinitions, referenceOrder }, parsed.content);
+}
+
+function parseMarkdownInternal(content: string, options: ParseOptions): ProseMirrorNode {
+  const lines = content.split("\n");
+  const {
+    lines: contentLines,
+    referenceDefinitions,
+    referenceOrder,
+  } = buildReferenceContext(lines, options);
+
   const nodes: ProseMirrorNode[] = [];
   
   let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
+  while (i < contentLines.length) {
+    const line = contentLines[i];
     
     // Parse headings
     if (line.startsWith("# ")) {
-      nodes.push(createHeading(schema, 1, line.slice(2)));
+      nodes.push(createHeading(schema, 1, line.slice(2), referenceDefinitions));
       i++;
     } else if (line.startsWith("## ")) {
-      nodes.push(createHeading(schema, 2, line.slice(3)));
+      nodes.push(createHeading(schema, 2, line.slice(3), referenceDefinitions));
       i++;
     } else if (line.startsWith("### ")) {
-      nodes.push(createHeading(schema, 3, line.slice(4)));
+      nodes.push(createHeading(schema, 3, line.slice(4), referenceDefinitions));
       i++;
     } else if (line.startsWith("#### ")) {
-      nodes.push(createHeading(schema, 4, line.slice(5)));
+      nodes.push(createHeading(schema, 4, line.slice(5), referenceDefinitions));
       i++;
     } else if (line.startsWith("##### ")) {
-      nodes.push(createHeading(schema, 5, line.slice(6)));
+      nodes.push(createHeading(schema, 5, line.slice(6), referenceDefinitions));
       i++;
     } else if (line.startsWith("###### ")) {
-      nodes.push(createHeading(schema, 6, line.slice(7)));
+      nodes.push(createHeading(schema, 6, line.slice(7), referenceDefinitions));
       i++;
     }
     // Parse code blocks
     else if (line.startsWith("```")) {
-      const { node, nextIndex } = parseCodeBlock(lines, i);
+      const { node, nextIndex } = parseCodeBlock(contentLines, i);
       nodes.push(node);
       i = nextIndex;
     }
@@ -56,24 +190,24 @@ export function parseMarkdown(content: string, _options: ParseOptions = {}): Pro
     }
     // Parse blockquote
     else if (line.startsWith("> ")) {
-      const { node, nextIndex } = parseBlockquote(lines, i);
+      const { node, nextIndex } = parseBlockquote(contentLines, i, referenceDefinitions, referenceOrder);
       nodes.push(node);
       i = nextIndex;
     }
     // Parse list items
     else if (line.match(/^(\s*)[-*+]\s/)) {
-      const { node, nextIndex } = parseList(lines, i, "bullet");
+      const { node, nextIndex } = parseList(contentLines, i, "bullet", referenceDefinitions, referenceOrder);
       nodes.push(node);
       i = nextIndex;
     }
     else if (line.match(/^(\s*)\d+\.\s/)) {
-      const { node, nextIndex } = parseList(lines, i, "ordered");
+      const { node, nextIndex } = parseList(contentLines, i, "ordered", referenceDefinitions, referenceOrder);
       nodes.push(node);
       i = nextIndex;
     }
     // Parse paragraph (default)
     else if (line.trim().length > 0) {
-      const { node, nextIndex } = parseParagraph(lines, i);
+      const { node, nextIndex } = parseParagraph(contentLines, i, referenceDefinitions);
       nodes.push(node);
       i = nextIndex;
     }
@@ -87,30 +221,67 @@ export function parseMarkdown(content: string, _options: ParseOptions = {}): Pro
     nodes.push(schema.node("paragraph"));
   }
 
-  return schema.node("doc", null, nodes);
+  return schema.node("doc", { referenceDefinitions, referenceOrder }, nodes);
 }
 
 /**
  * Serialize a ProseMirror document to markdown text.
  */
 export function serializeMarkdown(doc: ProseMirrorNode): string {
+  return serializeMarkdownLegacy(doc);
+}
+
+export function serializeMarkdownLegacy(doc: ProseMirrorNode): string {
   const parts: string[] = [];
   
   doc.forEach((node) => {
     parts.push(serializeNode(node));
   });
-  
-  return parts.join("\n\n");
+
+  const content = parts.join("\n\n");
+  const definitions = serializeReferenceDefinitions(doc);
+  if (definitions.length === 0) {
+    return content;
+  }
+
+  if (content.trim().length === 0) {
+    return definitions.join("\n");
+  }
+
+  return `${content}\n\n${definitions.join("\n")}`;
+}
+
+export function serializeMarkdownNext(doc: ProseMirrorNode): string {
+  const content = serializeMarkdownNextDocument(doc);
+  const definitions = serializeReferenceDefinitions(doc);
+  if (definitions.length === 0) {
+    return content;
+  }
+
+  if (content.trim().length === 0) {
+    return definitions.join("\n");
+  }
+
+  return `${content}\n\n${definitions.join("\n")}`;
 }
 
 //region Helper Functions
 
-function createHeading(schema: Schema, level: number, text: string): ProseMirrorNode {
-  const content = parseInline(text);
+function createHeading(
+  schema: Schema,
+  level: number,
+  text: string,
+  referenceDefinitions: Record<string, ReferenceDefinition>
+): ProseMirrorNode {
+  const content = parseInline(text, referenceDefinitions);
   return schema.node("heading", { level }, content);
 }
 
-function parseParagraph(lines: string[], start: number): { node: ProseMirrorNode; nextIndex: number } {
+function parseParagraph(
+  lines: string[],
+  start: number,
+  referenceDefinitions: Record<string, ReferenceDefinition>
+): { node: ProseMirrorNode; nextIndex: number } {
   const content: string[] = [];
   let i = start;
   
@@ -120,7 +291,7 @@ function parseParagraph(lines: string[], start: number): { node: ProseMirrorNode
   }
   
   const text = content.join(" ");
-  const inlineContent = parseInline(text);
+  const inlineContent = parseInline(text, referenceDefinitions);
   
   return {
     node: schema.node("paragraph", null, inlineContent),
@@ -153,7 +324,12 @@ function parseCodeBlock(lines: string[], start: number): { node: ProseMirrorNode
   };
 }
 
-function parseBlockquote(lines: string[], start: number): { node: ProseMirrorNode; nextIndex: number } {
+function parseBlockquote(
+  lines: string[],
+  start: number,
+  referenceDefinitions: Record<string, ReferenceDefinition>,
+  referenceOrder: string[]
+): { node: ProseMirrorNode; nextIndex: number } {
   const content: string[] = [];
   let i = start;
   
@@ -163,7 +339,11 @@ function parseBlockquote(lines: string[], start: number): { node: ProseMirrorNod
   }
   
   // Recursively parse the content inside the blockquote
-  const innerDoc = parseMarkdown(content.join("\n"));
+  const innerDoc = parseMarkdownInternal(content.join("\n"), {
+    collectReferenceDefinitions: false,
+    referenceDefinitions,
+    referenceOrder,
+  });
   const innerNodes: ProseMirrorNode[] = [];
   innerDoc.forEach((node) => innerNodes.push(node));
   
@@ -173,7 +353,13 @@ function parseBlockquote(lines: string[], start: number): { node: ProseMirrorNod
   };
 }
 
-function parseList(lines: string[], start: number, type: "bullet" | "ordered"): { node: ProseMirrorNode; nextIndex: number } {
+function parseList(
+  lines: string[],
+  start: number,
+  type: "bullet" | "ordered",
+  referenceDefinitions: Record<string, ReferenceDefinition>,
+  referenceOrder: string[]
+): { node: ProseMirrorNode; nextIndex: number } {
   const items: ProseMirrorNode[] = [];
   let i = start;
   
@@ -205,7 +391,11 @@ function parseList(lines: string[], start: number, type: "bullet" | "ordered"): 
     }
     
     // Parse item content
-    const innerDoc = parseMarkdown(itemLines.join("\n"));
+    const innerDoc = parseMarkdownInternal(itemLines.join("\n"), {
+      collectReferenceDefinitions: false,
+      referenceDefinitions,
+      referenceOrder,
+    });
     const innerNodes: ProseMirrorNode[] = [];
     innerDoc.forEach((node) => innerNodes.push(node));
     
@@ -219,7 +409,10 @@ function parseList(lines: string[], start: number, type: "bullet" | "ordered"): 
   };
 }
 
-function parseInline(text: string): ProseMirrorNode[] {
+function parseInline(
+  text: string,
+  referenceDefinitions: Record<string, ReferenceDefinition>
+): ProseMirrorNode[] {
   const nodes: ProseMirrorNode[] = [];
   let currentText = "";
   
@@ -253,7 +446,7 @@ function parseInline(text: string): ProseMirrorNode[] {
       const endIdx = findClosing(text, i + 2, marker);
       if (endIdx > 0) {
         const inner = text.slice(i + 2, endIdx);
-        const innerNodes = parseInline(inner);
+        const innerNodes = parseInline(inner, referenceDefinitions);
         nodes.push(...innerNodes.map(n => {
           if (n.isText) {
             return schema.text(n.text!, [...(n.marks || []), schema.mark("strong")]);
@@ -276,7 +469,7 @@ function parseInline(text: string): ProseMirrorNode[] {
       const endIdx = findClosing(text, i + 1, marker);
       if (endIdx > 0) {
         const inner = text.slice(i + 1, endIdx);
-        const innerNodes = parseInline(inner);
+        const innerNodes = parseInline(inner, referenceDefinitions);
         nodes.push(...innerNodes.map(n => {
           if (n.isText) {
             return schema.text(n.text!, [...(n.marks || []), schema.mark("em")]);
@@ -326,8 +519,58 @@ function parseInline(text: string): ProseMirrorNode[] {
         i++;
       }
     }
-    // Link ([...](...))
+    // Reference link ([...][id] or [...][])
     else if (text[i] === "[") {
+      const fullRefMatch = text.slice(i).match(/^\[([^\]]+)\]\[([^\]]*)\]/);
+      if (fullRefMatch) {
+        if (currentText) {
+          nodes.push(schema.text(currentText));
+          currentText = "";
+        }
+
+        const display = fullRefMatch[1].trim();
+        const refId = (fullRefMatch[2].trim() || display).trim();
+        const definition = findReferenceDefinition(referenceDefinitions, refId);
+        if (definition) {
+          nodes.push(
+            schema.text(display, [
+              schema.mark("link", {
+                href: definition.href,
+                title: definition.title,
+                refId: definition.id,
+              }),
+            ])
+          );
+          i += fullRefMatch[0].length;
+          continue;
+        }
+      }
+
+      // Shortcut reference link ([id])
+      const shortcutRefMatch = text.slice(i).match(/^\[([^\]]+)\](?!\()/);
+      if (shortcutRefMatch) {
+        const refId = shortcutRefMatch[1].trim();
+        const definition = findReferenceDefinition(referenceDefinitions, refId);
+        if (definition) {
+          if (currentText) {
+            nodes.push(schema.text(currentText));
+            currentText = "";
+          }
+          nodes.push(
+            schema.text(refId, [
+              schema.mark("link", {
+                href: definition.href,
+                title: definition.title,
+                refId: definition.id,
+              }),
+            ])
+          );
+          i += shortcutRefMatch[0].length;
+          continue;
+        }
+      }
+
+      // Link ([...](...))
       if (currentText) {
         nodes.push(schema.text(currentText));
         currentText = "";
@@ -339,7 +582,7 @@ function parseInline(text: string): ProseMirrorNode[] {
           const display = text.slice(i + 1, closeBracket);
           const href = text.slice(closeBracket + 2, closeParen);
           if (display.length > 0) {
-            nodes.push(schema.text(display, [schema.mark("link", { href, title: null })]));
+            nodes.push(schema.text(display, [schema.mark("link", { href, title: null, refId: null })]));
           }
           i = closeParen + 1;
         } else {
@@ -350,6 +593,11 @@ function parseInline(text: string): ProseMirrorNode[] {
         currentText += text[i];
         i++;
       }
+    }
+    // Link fallback branch handled above
+    else if (text[i] === "[") {
+      currentText += text[i];
+      i++;
     }
     // Strikethrough (~~)
     else if (text.slice(i, i + 2) === "~~" && i + 2 < text.length) {
@@ -502,7 +750,10 @@ function serializeInline(node: ProseMirrorNode): string {
           case "link": {
             const href = mark.attrs.href;
             const title = mark.attrs.title;
-            if (title) {
+            const refId = mark.attrs.refId;
+            if (refId) {
+              text = `[${text}][${refId}]`;
+            } else if (title) {
               text = `[${text}](${href} "${title}")`;
             } else {
               text = `[${text}](${href})`;
@@ -529,3 +780,108 @@ function serializeInline(node: ProseMirrorNode): string {
 }
 
 //endregion
+
+function normalizeReferenceId(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function sanitizeHref(rawHref: string): string {
+  const href = rawHref.trim();
+  if (href.startsWith("<") && href.endsWith(">")) {
+    return href.slice(1, -1);
+  }
+  return href;
+}
+
+function buildReferenceContext(
+  lines: string[],
+  options: ParseOptions
+): {
+  lines: string[];
+  referenceDefinitions: Record<string, ReferenceDefinition>;
+  referenceOrder: string[];
+} {
+  const inheritedDefinitions = options.referenceDefinitions ?? {};
+  const inheritedOrder = options.referenceOrder ?? Object.values(inheritedDefinitions).map((value) => value.id);
+
+  if (options.collectReferenceDefinitions === false) {
+    return {
+      lines,
+      referenceDefinitions: inheritedDefinitions,
+      referenceOrder: inheritedOrder,
+    };
+  }
+
+  const extracted = extractReferenceDefinitions(lines);
+  const referenceDefinitions: Record<string, ReferenceDefinition> = { ...inheritedDefinitions };
+  const referenceOrder = [...inheritedOrder];
+
+  for (const definition of extracted.definitions) {
+    const normalized = normalizeReferenceId(definition.id);
+    if (!referenceOrder.includes(definition.id)) {
+      referenceOrder.push(definition.id);
+    }
+    referenceDefinitions[normalized] = definition;
+  }
+
+  return {
+    lines: extracted.remainingLines,
+    referenceDefinitions,
+    referenceOrder,
+  };
+}
+
+function extractReferenceDefinitions(lines: string[]): {
+  definitions: ReferenceDefinition[];
+  remainingLines: string[];
+} {
+  const definitions: ReferenceDefinition[] = [];
+  const remainingLines: string[] = [];
+
+  for (const line of lines) {
+    const match = line.match(/^\s*\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]*)")?\s*$/);
+    if (!match) {
+      remainingLines.push(line);
+      continue;
+    }
+
+    const id = match[1].trim();
+    const href = sanitizeHref(match[2]);
+    const title = match[3] ?? null;
+    if (!id || !href) {
+      remainingLines.push(line);
+      continue;
+    }
+
+    definitions.push({ id, href, title });
+  }
+
+  return { definitions, remainingLines };
+}
+
+function findReferenceDefinition(
+  referenceDefinitions: Record<string, ReferenceDefinition>,
+  refId: string
+): ReferenceDefinition | null {
+  return referenceDefinitions[normalizeReferenceId(refId)] ?? null;
+}
+
+function serializeReferenceDefinitions(doc: ProseMirrorNode): string[] {
+  const attrs = doc.attrs as {
+    referenceDefinitions?: Record<string, ReferenceDefinition>;
+    referenceOrder?: string[];
+  };
+
+  const referenceDefinitions = attrs.referenceDefinitions ?? {};
+  const referenceOrder = attrs.referenceOrder ?? Object.values(referenceDefinitions).map((value) => value.id);
+
+  return referenceOrder
+    .map((id) => findReferenceDefinition(referenceDefinitions, id))
+    .filter((definition): definition is ReferenceDefinition => definition !== null)
+    .map((definition) => {
+      if (definition.title) {
+        return `[${definition.id}]: ${definition.href} "${definition.title}"`;
+      }
+      return `[${definition.id}]: ${definition.href}`;
+    });
+}

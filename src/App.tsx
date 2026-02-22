@@ -13,9 +13,10 @@ import { useToast } from "@hooks/useToast";
 import { useVaultStore } from "@lib/store";
 import type { ShellToolMode } from "@lib/store";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
+import { setMarkdownEngineConfig } from "@editor/markdown";
 import * as api from "@lib/api";
 import type { RecentVault } from "@lib/api";
-import { CaseSensitive, CircleEllipsis, Network, SquarePen } from "lucide-react";
+import { CaseSensitive, CircleEllipsis, FileCode2, Network, SquarePen } from "lucide-react";
 import "./styles/App.css";
 
 // SPEC: COMP-UI-LAYOUT-002 FR-5, FR-6
@@ -49,6 +50,7 @@ function App() {
     backlinks: [],
   });
   const [editorSurfaceMode, setEditorSurfaceMode] = useState<"sepia" | "dark">("sepia");
+  const [markdownEngine, setMarkdownEngine] = useState<"legacy" | "next">("next");
   const [editorMeasureBand, setEditorMeasureBand] = useState<45 | 54 | 62 | 70>(54);
   // SPEC: COMP-COMPLIANCE-001 FR-1, FR-2
   const [hydratedViewModeVaultPath, setHydratedViewModeVaultPath] = useState<string | null>(null);
@@ -242,11 +244,24 @@ function App() {
     if (stored === "sepia" || stored === "dark") {
       setEditorSurfaceMode(stored);
     }
+
+    const storedMarkdownEngine = localStorage.getItem("knot:markdown-engine");
+    const resolvedEngine =
+      storedMarkdownEngine === "legacy" || storedMarkdownEngine === "next"
+        ? storedMarkdownEngine
+        : "next";
+    setMarkdownEngine(resolvedEngine);
+    setMarkdownEngineConfig({ activeEngine: resolvedEngine, enableLegacyFallback: true });
   }, []);
 
   useEffect(() => {
     localStorage.setItem("knot:editor-surface-mode", editorSurfaceMode);
   }, [editorSurfaceMode]);
+
+  useEffect(() => {
+    localStorage.setItem("knot:markdown-engine", markdownEngine);
+    setMarkdownEngineConfig({ activeEngine: markdownEngine, enableLegacyFallback: true });
+  }, [markdownEngine]);
 
   useEffect(() => {
     const element = contentAreaRef.current;
@@ -492,6 +507,16 @@ function App() {
                 className="btn-secondary editor-surface-toggle"
                 showLabel={shell.showTextLabels}
                 onClick={() => setEditorSurfaceMode((mode) => (mode === "sepia" ? "dark" : "sepia"))}
+              />
+              <IconButton
+                icon={FileCode2}
+                label={markdownEngine === "next" ? "Engine: Next" : "Engine: Legacy"}
+                className="btn-secondary"
+                showLabel={shell.showTextLabels}
+                active={markdownEngine === "next"}
+                onClick={() =>
+                  setMarkdownEngine((engine) => (engine === "next" ? "legacy" : "next"))
+                }
               />
               <IconButton
                 icon={CaseSensitive}
