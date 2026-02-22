@@ -22,9 +22,9 @@ Story files present:
 - `src/lib/vaultSwitchGuard.stories.tsx`
 - `src/lib/windowControls.stories.tsx`
 
-Story exports present (58):
+Story exports present (61):
 - App/Shell: `NoVaultOpen`, `VaultOpenNoNoteSelected`, `EditorActive`, `GraphActive`, `NoCustomWindowControlButtons`
-- Editor: `NoNoteSelected`, `EditModeDefault`, `SourceModeRoundTrip`, `EditModeBlockMenu`, `SourceModeEmptyDocument`, `ReferenceMarkdownRoundTrip`, `ViewModeWithMermaid`, `ViewModeWithMermaidVariants`, `MermaidInsertInsideInlinePreservesMarks`
+- Editor: `NoNoteSelected`, `EditModeDefault`, `SourceModeRoundTrip`, `EditModeBlockMenu`, `SourceModeEmptyDocument`, `ReferenceMarkdownRoundTrip`, `ViewModeWithMermaid`, `ViewModeWithMermaidVariants`, `MermaidInsertInsideInlinePreservesMarks`, `MermaidInsertInsideEmphasisPreservesMarks`, `MermaidInsertInsideCodePreservesMarks`, `MermaidInsertInsideLinkPreservesMarks`
 - Graph/GraphView: `VaultScopeDefault`, `HoverHighlightsConnectedEdges`, `NodeScopeWithoutCenter`, `ResetAfterZoom`, `NodeScopeDepthTwo`, `DuplicateLabelDisambiguation`, `DisconnectedNodeDiscoverability`, `ControlledSelectionFromShellState`, `EmptyGraph`, `ErrorState`
 - Graph/GraphContextPanel: `SelectedNodeDetails`, `NoNodeSelected`, `NodeScopeDepthControls`, `RelationSelection`, `ActiveRelationHighlight`
 - IconButton: `Default`, `IconOnly`, `Active`
@@ -75,10 +75,10 @@ Note: many stories now include `play` interactions. Remaining gap to full `cover
 | `COMP-EDITOR-EMPTY-DOC-001` | partial | `Editor.stories.tsx` | Add explicit empty-doc fixture story |
 | `COMP-MARKDOWN-ENGINE-001` | partial | `Editor.stories.tsx` | Add reference-link and round-trip fixture stories |
 | `COMP-MERMAID-001` | partial | `Editor.stories.tsx` | Add additional diagram-type rendering stories |
-| `COMP-MERMAID-INLINE-SPLIT-001` | partial | `Editor.stories.tsx` | Add emphasis/code/link-specific inline insertion variants |
-| `COMP-NOTE-METADATA-001` | partial | `noteMetadataFidelity.stories.tsx` | Add app-surface presentation story once metadata UI is introduced |
+| `COMP-MERMAID-INLINE-SPLIT-001` | covered | `Editor.stories.tsx` | None |
+| `COMP-NOTE-METADATA-001` | covered | `noteMetadataFidelity.stories.tsx` | None |
 | `COMP-LAYOUT-RECOVERY-001` | partial | `App.stories.tsx` | Add explicit recovery regression scenario stories |
-| `COMP-WINDOW-STARTUP-003` | partial | `windowControls.stories.tsx`, `App.stories.tsx` | Add fallback-timeout behavior evidence from backend lane |
+| `COMP-WINDOW-STARTUP-003` | covered | `windowControls.stories.tsx`, `App.stories.tsx`, `docs/audit/window-startup-controls-003-verification-2026-02-21.md` | None |
 
 ### Process/tooling specs (Storybook stories not primary artifact)
 
@@ -106,20 +106,21 @@ Note: many stories now include `play` interactions. Remaining gap to full `cover
 Trace: `DESIGN-storybook-audit-summary-adjustment-2026-02-22`
 
 - Implemented component specs assessed: `38`
-- UI-facing specs missing or partial story coverage: `25`
-- UI-facing specs fully covered: `1`
+- UI-facing specs missing or partial story coverage: `22`
+- UI-facing specs fully covered: `4`
 - Existing story files: `14`
 
 Primary blockers to "comprehensive design docs in Storybook":
 1. Several specs are only partially covered and need deeper edge-state stories.
 2. Explicit spec-id documentation linkage inside story docs is still incomplete.
-3. Backend fallback-timeout evidence (`COMP-WINDOW-STARTUP-003`) still depends on non-Storybook verification lane.
+3. Remaining gap is predominantly spec-level docs linkage and deeper edge-case breadth for partial specs.
 
 ## Prioritized Gap Queue
+Trace: `DESIGN-storybook-partial-closure-2026-02-22`
 
-1. Add additional inline-mark variants for `COMP-MERMAID-INLINE-SPLIT-001` (emphasis/code/link).
-2. Add backend-lane evidence link for startup fallback timeout in Storybook docs for `COMP-WINDOW-STARTUP-003`.
-3. Attach explicit spec-id docs annotations inside stories for full `covered` status.
+1. Attach explicit spec-id docs annotations inside remaining partial stories.
+2. Deepen continuity/recovery edge-state stories for `App` and `Graph` surfaces.
+3. Expand keyboard and interaction assertions for remaining partial Explorer/Search specs.
 
 ## Recommended Next Step
 

@@ -300,6 +300,14 @@ export const IconOnlyActionAffordances: Story = {
 };
 
 export const ExplorerPanelHasNoSearchBox: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-EXPLORER-PANEL-SEARCH-001 FR-1/FR-2. Explorer panel intentionally omits search input while SearchBox remains a dedicated tool-mode surface.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     await waitFor(() => {
       expect(canvas.getByRole("tree", { name: "Notes explorer" })).toBeInTheDocument();

@@ -119,6 +119,30 @@ const inlineMarksNote: NoteData = {
   content: "Before **bold** and *emphasis* after.",
 };
 
+const inlineEmphasisNote: NoteData = {
+  ...defaultNote,
+  id: "n7",
+  path: "notes/inline-emphasis-mermaid.md",
+  title: "Inline Emphasis Mermaid",
+  content: "Before *emphasis* and **bold** after.",
+};
+
+const inlineCodeNote: NoteData = {
+  ...defaultNote,
+  id: "n8",
+  path: "notes/inline-code-mermaid.md",
+  title: "Inline Code Mermaid",
+  content: "Before `code` and *emphasis* after.",
+};
+
+const inlineLinkNote: NoteData = {
+  ...defaultNote,
+  id: "n9",
+  path: "notes/inline-link-mermaid.md",
+  title: "Inline Link Mermaid",
+  content: "Before [link](https://example.com) and **bold** after.",
+};
+
 const meta = {
   title: "Editor/Editor",
   component: EditorStoryHarness,
@@ -243,6 +267,14 @@ export const MermaidInsertInsideInlinePreservesMarks: Story = {
     note: inlineMarksNote,
     editorContent: inlineMarksNote.content,
   },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-MERMAID-INLINE-SPLIT-001 FR-1/FR-3. Inserting Mermaid from block menu while caret is inside inline-marked text preserves mark continuity.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("tab", { name: "Edit" })).toHaveAttribute("aria-selected", "true");
     await userEvent.click(canvas.getByText("bold"));
@@ -251,6 +283,54 @@ export const MermaidInsertInsideInlinePreservesMarks: Story = {
     await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
     const source = canvas.getByLabelText("Source markdown editor");
     await expect(source).toHaveValue(expect.stringContaining("**bold**"));
+    await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
+  },
+};
+
+export const MermaidInsertInsideEmphasisPreservesMarks: Story = {
+  args: {
+    note: inlineEmphasisNote,
+    editorContent: inlineEmphasisNote.content,
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByText("emphasis"));
+    await userEvent.click(canvas.getByRole("button", { name: "Open block menu" }));
+    await userEvent.click(canvas.getByRole("menuitem", { name: "Mermaid diagram" }));
+    await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
+    const source = canvas.getByLabelText("Source markdown editor");
+    await expect(source).toHaveValue(expect.stringContaining("*emphasis*"));
+    await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
+  },
+};
+
+export const MermaidInsertInsideCodePreservesMarks: Story = {
+  args: {
+    note: inlineCodeNote,
+    editorContent: inlineCodeNote.content,
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByText("code"));
+    await userEvent.click(canvas.getByRole("button", { name: "Open block menu" }));
+    await userEvent.click(canvas.getByRole("menuitem", { name: "Mermaid diagram" }));
+    await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
+    const source = canvas.getByLabelText("Source markdown editor");
+    await expect(source).toHaveValue(expect.stringContaining("`code`"));
+    await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
+  },
+};
+
+export const MermaidInsertInsideLinkPreservesMarks: Story = {
+  args: {
+    note: inlineLinkNote,
+    editorContent: inlineLinkNote.content,
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByText("link"));
+    await userEvent.click(canvas.getByRole("button", { name: "Open block menu" }));
+    await userEvent.click(canvas.getByRole("menuitem", { name: "Mermaid diagram" }));
+    await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
+    const source = canvas.getByLabelText("Source markdown editor");
+    await expect(source).toHaveValue(expect.stringContaining("[link](https://example.com)"));
     await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
   },
 };

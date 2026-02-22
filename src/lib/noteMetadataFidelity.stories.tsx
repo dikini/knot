@@ -76,6 +76,14 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const BacklinkTitlesAndHeadingOffsets: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-NOTE-METADATA-001 FR-1/FR-2/FR-4. Shows resolved backlink source titles and deterministic heading byte offsets in returned note metadata.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("list", { name: "Heading metadata" })).toBeInTheDocument();
     await expect(canvas.getByText("Top")).toBeInTheDocument();

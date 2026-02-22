@@ -199,6 +199,14 @@ export const NoCustomWindowControlButtons: Story = {
     editorContent: demoCurrentNote.content,
     editorDirty: false,
   },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Spec: COMP-WINDOW-STARTUP-003 FR-3. Confirms app chrome does not add custom minimize/maximize/close controls and relies on native OS window controls.",
+      },
+    },
+  },
   play: async ({ canvas }) => {
     await expect(canvas.queryByRole("button", { name: /minimize/i })).not.toBeInTheDocument();
     await expect(canvas.queryByRole("button", { name: /maximize/i })).not.toBeInTheDocument();
