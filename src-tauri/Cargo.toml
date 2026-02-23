@@ -85,6 +85,10 @@ path = "src/main.rs"
 name = "knot-mcp"
 path = "src/bin/knot-mcp.rs"
 
+[[bin]]
+name = "knotd"
+path = "src/bin/knotd.rs"
+
 [lib]
 name = "knot"
 path = "src/lib.rs"

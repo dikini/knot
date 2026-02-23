@@ -1,0 +1,19 @@
+plan: PLAN-KNOTD-DAEMON-002
+trace: DESIGN-knotd-daemon-bootstrap
+tasks:
+  - id: KDB-001
+    title: Add knotd CLI parsing tests
+    status: completed
+    refs: [FR-2, FR-3, FR-7]
+  - id: KDB-002
+    title: Implement knotd binary runtime bootstrap and MCP serving
+    status: completed
+    refs: [FR-1, FR-4, FR-5, FR-6]
+  - id: KDB-003
+    title: Register knotd bin target and compile check
+    status: completed
+    refs: [FR-1, FR-4]
+  - id: KDB-004
+    title: Verification run and audit report
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7]
