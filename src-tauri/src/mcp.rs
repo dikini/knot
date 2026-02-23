@@ -1434,6 +1434,9 @@ mod tests {
     use crate::core::VaultManager;
     use crate::runtime::{RuntimeHost, RuntimeMode};
     use serde_json::json;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
+    use std::thread;
     use tempfile::tempdir;
 
     fn setup_server() -> McpServer {
@@ -1810,5 +1813,99 @@ mod tests {
             .expect("list directory error response");
 
         assert_eq!(response["error"]["code"], json!(-32602));
+    }
+
+    #[test]
+    fn concurrent_mutating_writes_remain_stable_at_high_concurrency() {
+        // TRACE: DESIGN-daemon-ui-ipc-cutover
+        let server = Arc::new(setup_server());
+        let id_seq = Arc::new(AtomicU64::new(1000));
+        let workers = 24usize;
+        let notes_per_worker = 12usize;
+
+        let mut handles = Vec::with_capacity(workers);
+        for worker in 0..workers {
+            let server = Arc::clone(&server);
+            let id_seq = Arc::clone(&id_seq);
+            handles.push(thread::spawn(move || {
+                for idx in 0..notes_per_worker {
+                    let path = format!("concurrent/w{worker}/n{idx}.md");
+                    let create_id = id_seq.fetch_add(1, Ordering::SeqCst);
+                    let create = server
+                        .handle_request(&json!({
+                            "jsonrpc": "2.0",
+                            "id": create_id,
+                            "method": "tools/call",
+                            "params": {
+                                "name": "create_note",
+                                "arguments": { "path": path, "content": format!("# Start {worker}/{idx}") }
+                            }
+                        }))
+                        .expect("create_note response");
+                    assert!(create["result"]["isError"] == json!(false), "{create:?}");
+
+                    let replace_id = id_seq.fetch_add(1, Ordering::SeqCst);
+                    let replace = server
+                        .handle_request(&json!({
+                            "jsonrpc": "2.0",
+                            "id": replace_id,
+                            "method": "tools/call",
+                            "params": {
+                                "name": "replace_note",
+                                "arguments": { "path": path, "content": format!("# Final {worker}/{idx}") }
+                            }
+                        }))
+                        .expect("replace_note response");
+                    assert!(replace["result"]["isError"] == json!(false), "{replace:?}");
+                }
+            }));
+        }
+
+        for handle in handles {
+            handle.join().expect("worker join");
+        }
+
+        let list = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 9001,
+                "method": "tools/call",
+                "params": {
+                    "name": "list_notes",
+                    "arguments": {}
+                }
+            }))
+            .expect("list_notes response");
+        let text = list["result"]["content"][0]["text"]
+            .as_str()
+            .expect("list notes text");
+        let notes: Vec<Value> = serde_json::from_str(text).expect("list notes json");
+        let created_prefix = "concurrent/";
+        let created_count = notes
+            .iter()
+            .filter(|note| {
+                note.get("path")
+                    .and_then(Value::as_str)
+                    .map(|path| path.starts_with(created_prefix))
+                    .unwrap_or(false)
+            })
+            .count();
+        assert_eq!(created_count, workers * notes_per_worker);
+
+        let verify = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 9002,
+                "method": "tools/call",
+                "params": {
+                    "name": "get_note",
+                    "arguments": { "path": "concurrent/w7/n5.md" }
+                }
+            }))
+            .expect("get_note response");
+        let verify_text = verify["result"]["content"][0]["text"]
+            .as_str()
+            .expect("verify note text");
+        assert!(verify_text.contains("# Final 7/5"));
     }
 }
