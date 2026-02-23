@@ -1,0 +1,19 @@
+plan: PLAN-KNOTD-STATUS-003
+trace: DESIGN-knotd-session-status
+tasks:
+  - id: KDS-001
+    title: Add knotd status parse tests
+    status: completed
+    refs: [FR-1, FR-6]
+  - id: KDS-002
+    title: Implement knotd status mode with JSON output
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-5]
+  - id: KDS-003
+    title: Add lock classification in status payload
+    status: completed
+    refs: [FR-4]
+  - id: KDS-004
+    title: Verification run and audit report
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6]
