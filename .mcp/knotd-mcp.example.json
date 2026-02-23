@@ -1,0 +1,5 @@
+{
+  "vaultPath": "test-vault/canonical",
+  "createIfMissing": false,
+  "notes": "Optional local override file: .mcp/knotd-mcp.json. Set vaultPath to absolute or project-relative path."
+}

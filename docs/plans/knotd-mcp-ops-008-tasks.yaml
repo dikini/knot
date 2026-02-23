@@ -1,0 +1,23 @@
+plan: PLAN-KNOTD-OPS-008
+trace: DESIGN-knotd-mcp-ops
+tasks:
+  - id: KOP-001
+    title: Add knotd MCP launcher with probe-json preflight
+    status: completed
+    refs: [FR-1, FR-2]
+  - id: KOP-002
+    title: Add codex setup automation for knotd MCP
+    status: completed
+    refs: [FR-1, FR-3]
+  - id: KOP-003
+    title: Add knotd smoke script with help/version/capability checks
+    status: completed
+    refs: [FR-4, FR-5]
+  - id: KOP-004
+    title: Update docs for operational workflows
+    status: completed
+    refs: [FR-6]
+  - id: KOP-005
+    title: Verify and audit
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6]

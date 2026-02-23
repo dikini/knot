@@ -11,6 +11,8 @@ enum RunMode {
     Probe,
     ProbeJson,
     Capabilities,
+    Help,
+    Version,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,7 +22,7 @@ struct KnotdConfig {
     run_mode: RunMode,
 }
 
-const CAPABILITIES_FLAGS: [&str; 8] = [
+const CAPABILITIES_FLAGS: [&str; 12] = [
     "--vault",
     "--create",
     "--status",
@@ -28,6 +30,10 @@ const CAPABILITIES_FLAGS: [&str; 8] = [
     "--once",
     "--probe-json",
     "--print-capabilities",
+    "--help",
+    "-h",
+    "--version",
+    "-V",
     "KNOT_VAULT_PATH",
 ];
 
@@ -67,6 +73,14 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
                 run_mode = RunMode::Capabilities;
                 idx += 1;
             }
+            "--help" | "-h" => {
+                run_mode = RunMode::Help;
+                idx += 1;
+            }
+            "--version" | "-V" => {
+                run_mode = RunMode::Version;
+                idx += 1;
+            }
             "--vault" => {
                 let value = args
                     .get(idx + 1)
@@ -80,7 +94,10 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
         }
     }
 
-    if run_mode == RunMode::Capabilities {
+    if matches!(
+        run_mode,
+        RunMode::Capabilities | RunMode::Help | RunMode::Version
+    ) {
         return Ok(KnotdConfig {
             vault_path: PathBuf::new(),
             create,
@@ -188,9 +205,33 @@ fn capabilities_payload() -> KnotdCapabilitiesPayload {
     KnotdCapabilitiesPayload {
         mode: "capabilities",
         runtime_mode: "desktop-daemon-capable",
-        run_modes: vec!["serve", "status", "probe", "probe-json", "capabilities"],
+        run_modes: vec![
+            "serve",
+            "status",
+            "probe",
+            "probe-json",
+            "capabilities",
+            "help",
+            "version",
+        ],
         flags: CAPABILITIES_FLAGS.to_vec(),
     }
+}
+
+fn help_text() -> String {
+    [
+        "knotd - Knot daemon-capable MCP runtime host",
+        "",
+        "Usage:",
+        "  knotd --vault <path> [--create]              # serve MCP over stdio",
+        "  knotd --status --vault <path> [--create]     # JSON probe",
+        "  knotd --check|--once --vault <path> [--create] # one-line probe",
+        "  knotd --probe-json --vault <path> [--create] # JSON one-shot probe",
+        "  knotd --print-capabilities                    # list supported modes/flags",
+        "  knotd --help | -h                             # show help",
+        "  knotd --version | -V                          # show version",
+    ]
+    .join("\n")
 }
 
 fn main() {
@@ -212,6 +253,16 @@ fn main() {
                 std::process::exit(5);
             }
         }
+        std::process::exit(0);
+    }
+
+    if config.run_mode == RunMode::Help {
+        println!("{}", help_text());
+        std::process::exit(0);
+    }
+
+    if config.run_mode == RunMode::Version {
+        println!("knotd {}", env!("CARGO_PKG_VERSION"));
         std::process::exit(0);
     }
 
@@ -289,7 +340,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{capabilities_payload, parse_config, probe_exit_code, probe_json_payload, probe_outcome, probe_output_line, status_payload, KnotdConfig, RunMode};
+    use super::{capabilities_payload, help_text, parse_config, probe_exit_code, probe_json_payload, probe_outcome, probe_output_line, status_payload, KnotdConfig, RunMode};
     use knot::error::KnotError;
     use std::path::PathBuf;
 
@@ -371,6 +422,18 @@ mod tests {
     }
 
     #[test]
+    fn parse_sets_help_mode_when_flag_present() {
+        let cfg = parse_config(&args(&["knotd", "--help"]), None).expect("config");
+        assert_eq!(cfg.run_mode, RunMode::Help);
+    }
+
+    #[test]
+    fn parse_sets_version_mode_when_flag_present() {
+        let cfg = parse_config(&args(&["knotd", "--version"]), None).expect("config");
+        assert_eq!(cfg.run_mode, RunMode::Version);
+    }
+
+    #[test]
     fn parse_defaults_to_serve_mode() {
         let cfg = parse_config(&args(&["knotd", "--vault", "/tmp/vault"]), None).expect("config");
         assert_eq!(cfg.run_mode, RunMode::Serve);
@@ -435,6 +498,14 @@ mod tests {
         assert_eq!(value["mode"], "capabilities");
         assert!(value["run_modes"].to_string().contains("probe-json"));
         assert!(value["flags"].to_string().contains("--print-capabilities"));
+    }
+
+    #[test]
+    fn help_text_mentions_mode_descriptions() {
+        let text = help_text();
+        assert!(text.contains("--probe-json"));
+        assert!(text.contains("--print-capabilities"));
+        assert!(text.contains("--version"));
     }
 
     #[test]
