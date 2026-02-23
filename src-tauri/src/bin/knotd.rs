@@ -8,6 +8,7 @@ use serde::Serialize;
 enum RunMode {
     Serve,
     Status,
+    Probe,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -31,6 +32,10 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
             }
             "--status" => {
                 run_mode = RunMode::Status;
+                idx += 1;
+            }
+            "--check" | "--once" => {
+                run_mode = RunMode::Probe;
                 idx += 1;
             }
             "--vault" => {
@@ -102,6 +107,36 @@ fn status_payload(config: &KnotdConfig, result: &Result<(), knot::error::KnotErr
     }
 }
 
+fn classify_lock_status_text(result: &Result<(), knot::error::KnotError>) -> &'static str {
+    match result {
+        Ok(()) => "available",
+        Err(err) => match RuntimeHost::classify_open_error(err) {
+            VaultLockStatus::Contended => "contended",
+            VaultLockStatus::Available => "available",
+            VaultLockStatus::Unknown => "unknown",
+        },
+    }
+}
+
+fn probe_output_line(config: &KnotdConfig, result: &Result<(), knot::error::KnotError>) -> String {
+    let ok = result.is_ok();
+    let lock_status = classify_lock_status_text(result);
+    let error = result
+        .as_ref()
+        .err()
+        .map(|e| e.to_string())
+        .unwrap_or_else(|| "none".to_string())
+        .replace(' ', "_");
+    format!(
+        "mode=probe ok={} vault_path={} create={} lock_status={} error={}",
+        ok,
+        config.vault_path.to_string_lossy(),
+        config.create,
+        lock_status,
+        error
+    )
+}
+
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     let env_vault = std::env::var("KNOT_VAULT_PATH").ok();
@@ -143,6 +178,15 @@ fn main() {
         std::process::exit(code);
     }
 
+    if config.run_mode == RunMode::Probe {
+        println!("{}", probe_output_line(&config, &init_result));
+        if init_result.is_ok() {
+            let _ = rt.block_on(runtime.close());
+            std::process::exit(0);
+        }
+        std::process::exit(3);
+    }
+
     if let Err(err) = init_result {
         eprintln!(
             "Failed to initialize runtime for vault {}: {}",
@@ -161,7 +205,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_config, status_payload, KnotdConfig, RunMode};
+    use super::{parse_config, probe_output_line, status_payload, KnotdConfig, RunMode};
     use knot::error::KnotError;
     use std::path::PathBuf;
 
@@ -207,6 +251,26 @@ mod tests {
     }
 
     #[test]
+    fn parse_sets_check_mode_when_flag_present() {
+        let cfg = parse_config(
+            &args(&["knotd", "--check", "--vault", "/tmp/check-vault"]),
+            None,
+        )
+        .expect("config");
+        assert_eq!(cfg.run_mode, RunMode::Probe);
+    }
+
+    #[test]
+    fn parse_sets_once_mode_when_flag_present() {
+        let cfg = parse_config(
+            &args(&["knotd", "--once", "--vault", "/tmp/once-vault"]),
+            None,
+        )
+        .expect("config");
+        assert_eq!(cfg.run_mode, RunMode::Probe);
+    }
+
+    #[test]
     fn parse_defaults_to_serve_mode() {
         let cfg = parse_config(&args(&["knotd", "--vault", "/tmp/vault"]), None).expect("config");
         assert_eq!(cfg.run_mode, RunMode::Serve);
@@ -236,5 +300,16 @@ mod tests {
         );
         assert_eq!(payload.lock_status, "contended");
         assert!(!payload.ok);
+    }
+
+    #[test]
+    fn probe_output_contains_lock_status() {
+        let cfg = KnotdConfig {
+            vault_path: PathBuf::from("/tmp/v"),
+            create: false,
+            run_mode: RunMode::Probe,
+        };
+        let line = probe_output_line(&cfg, &Err(KnotError::Search("LockBusy".to_string())));
+        assert!(line.contains("lock_status=contended"), "line: {line}");
     }
 }

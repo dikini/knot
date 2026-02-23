@@ -1,0 +1,19 @@
+plan: PLAN-KNOTD-CHECK-004
+trace: DESIGN-knotd-check-once
+tasks:
+  - id: KCO-001
+    title: Add check/once parser tests
+    status: completed
+    refs: [FR-1, FR-5]
+  - id: KCO-002
+    title: Implement probe mode with one-line output
+    status: completed
+    refs: [FR-2, FR-3]
+  - id: KCO-003
+    title: Include lock classification in probe output
+    status: completed
+    refs: [FR-4]
+  - id: KCO-004
+    title: Verification run and audit report
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
