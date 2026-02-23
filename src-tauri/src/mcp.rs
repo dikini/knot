@@ -5,16 +5,18 @@
 //! TRACE: DESIGN-mcp-server-core-tools-resources
 
 use crate::core::VaultManager;
+use crate::runtime::RuntimeHost;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::io::{self, BufRead, BufReader, Read, Write};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 const JSONRPC_VERSION: &str = "2.0";
 const PROTOCOL_VERSION: &str = "2024-11-05";
 
 pub struct McpServer {
-    vault: Arc<Mutex<VaultManager>>,
+    vault: Arc<Mutex<Option<VaultManager>>>,
     server_name: &'static str,
     server_version: &'static str,
 }
@@ -22,10 +24,40 @@ pub struct McpServer {
 impl McpServer {
     pub fn new(vault: VaultManager) -> Self {
         Self {
-            vault: Arc::new(Mutex::new(vault)),
+            vault: Arc::new(Mutex::new(Some(vault))),
             server_name: "knot-mcp",
             server_version: env!("CARGO_PKG_VERSION"),
         }
+    }
+
+    pub fn from_runtime(runtime: &RuntimeHost) -> Self {
+        Self {
+            vault: runtime.vault().clone(),
+            server_name: "knot-mcp",
+            server_version: env!("CARGO_PKG_VERSION"),
+        }
+    }
+
+    fn with_vault<T, F>(&self, f: F) -> Result<T, (i32, String)>
+    where
+        F: FnOnce(&VaultManager) -> Result<T, (i32, String)>,
+    {
+        let guard = self.vault.blocking_lock();
+        let vault = guard
+            .as_ref()
+            .ok_or((-32000, "No vault is open".to_string()))?;
+        f(vault)
+    }
+
+    fn with_vault_mut<T, F>(&self, f: F) -> Result<T, (i32, String)>
+    where
+        F: FnOnce(&mut VaultManager) -> Result<T, (i32, String)>,
+    {
+        let mut guard = self.vault.blocking_lock();
+        let vault = guard
+            .as_mut()
+            .ok_or((-32000, "No vault is open".to_string()))?;
+        f(vault)
     }
 
     pub fn handle_request(&self, request: &Value) -> Option<Value> {
@@ -224,13 +256,11 @@ impl McpServer {
                     .ok_or((-32602, "Missing argument: query".to_string()))?;
                 let limit = arguments.get("limit").and_then(Value::as_u64).unwrap_or(20) as usize;
 
-                let guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                let results = guard
-                    .search(query, limit)
-                    .map_err(|e| (-32000, e.to_response_string()))?;
+                let results = self.with_vault(|vault| {
+                    vault
+                        .search(query, limit)
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
 
                 let payload = results
                     .into_iter()
@@ -260,13 +290,11 @@ impl McpServer {
                     .and_then(Value::as_str)
                     .ok_or((-32602, "Missing argument: path".to_string()))?;
 
-                let guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                let note = guard
-                    .get_note(path)
-                    .map_err(|e| (-32000, e.to_response_string()))?;
+                let note = self.with_vault(|vault| {
+                    vault
+                        .get_note(path)
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
 
                 let payload = json!({
                     "id": note.id(),
@@ -289,13 +317,11 @@ impl McpServer {
                 }))
             }
             "list_tags" => {
-                let guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                let tags = guard
-                    .list_tags()
-                    .map_err(|e| (-32000, e.to_response_string()))?;
+                let tags = self.with_vault(|vault| {
+                    vault
+                        .list_tags()
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
 
                 Ok(json!({
                     "content": [
@@ -314,29 +340,26 @@ impl McpServer {
                     .ok_or((-32602, "Missing argument: path".to_string()))?;
                 let depth = arguments.get("depth").and_then(Value::as_u64).unwrap_or(1) as usize;
 
-                let guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-
-                let nodes = guard.graph_neighbors(path, depth);
-                let mut edge_set = BTreeSet::<(String, String)>::new();
-                for node in &nodes {
-                    for target in guard.graph().get_forward_links(node) {
-                        if nodes.contains(&target) {
-                            edge_set.insert((node.clone(), target));
+                let payload = self.with_vault(|vault| {
+                    let nodes = vault.graph_neighbors(path, depth);
+                    let mut edge_set = BTreeSet::<(String, String)>::new();
+                    for node in &nodes {
+                        for target in vault.graph().get_forward_links(node) {
+                            if nodes.contains(&target) {
+                                edge_set.insert((node.clone(), target));
+                            }
                         }
                     }
-                }
-                let edges = edge_set
-                    .into_iter()
-                    .map(|(source, target)| json!({"source": source, "target": target}))
-                    .collect::<Vec<_>>();
+                    let edges = edge_set
+                        .into_iter()
+                        .map(|(source, target)| json!({"source": source, "target": target}))
+                        .collect::<Vec<_>>();
 
-                let payload = json!({
-                    "nodes": nodes,
-                    "edges": edges,
-                });
+                    Ok(json!({
+                        "nodes": nodes,
+                        "edges": edges,
+                    }))
+                })?;
 
                 Ok(json!({
                     "content": [
@@ -358,16 +381,15 @@ impl McpServer {
                     .and_then(Value::as_str)
                     .unwrap_or_default();
 
-                let mut guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                if guard.get_note(path).is_ok() {
-                    return Err((-32000, format!("Note already exists: {path}")));
-                }
-                guard
-                    .save_note(path, content)
-                    .map_err(|e| (-32000, e.to_response_string()))?;
+                self.with_vault_mut(|vault| {
+                    if vault.get_note(path).is_ok() {
+                        return Err((-32000, format!("Note already exists: {path}")));
+                    }
+                    vault
+                        .save_note(path, content)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(())
+                })?;
 
                 Ok(json!({
                     "content": [{ "type": "text", "text": format!("Created note: {path}") }],
@@ -380,13 +402,12 @@ impl McpServer {
                     .and_then(Value::as_str)
                     .ok_or((-32602, "Missing argument: path".to_string()))?;
 
-                let mut guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                guard
-                    .delete_note(path)
-                    .map_err(|e| (-32000, e.to_response_string()))?;
+                self.with_vault_mut(|vault| {
+                    vault
+                        .delete_note(path)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(())
+                })?;
 
                 Ok(json!({
                     "content": [{ "type": "text", "text": format!("Deleted note: {path}") }],
@@ -403,13 +424,12 @@ impl McpServer {
                     .and_then(Value::as_str)
                     .ok_or((-32602, "Missing argument: content".to_string()))?;
 
-                let mut guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                guard
-                    .save_note(path, content)
-                    .map_err(|e| (-32000, e.to_response_string()))?;
+                self.with_vault_mut(|vault| {
+                    vault
+                        .save_note(path, content)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(())
+                })?;
 
                 Ok(json!({
                     "content": [{ "type": "text", "text": format!("Replaced note content: {path}") }],
@@ -422,13 +442,12 @@ impl McpServer {
                     .and_then(Value::as_str)
                     .ok_or((-32602, "Missing argument: path".to_string()))?;
 
-                let guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                guard
-                    .create_directory(path)
-                    .map_err(|e| (-32000, e.to_response_string()))?;
+                self.with_vault(|vault| {
+                    vault
+                        .create_directory(path)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(())
+                })?;
 
                 Ok(json!({
                     "content": [{ "type": "text", "text": format!("Created directory: {path}") }],
@@ -445,37 +464,38 @@ impl McpServer {
                     .and_then(Value::as_bool)
                     .unwrap_or(true);
 
-                let mut guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
                 let normalized = normalize_rel_dir_for_mcp(path).map_err(|e| (-32602, e))?;
-                let target = guard.root_path().join(&normalized);
+                self.with_vault_mut(|vault| {
+                    let target = vault.root_path().join(&normalized);
 
-                let prefix = format!("{normalized}/");
-                let notes_to_delete = guard
-                    .list_notes()
-                    .map_err(|e| (-32000, e.to_response_string()))?
-                    .into_iter()
-                    .map(|n| n.path)
-                    .filter(|p| p == &normalized || p.starts_with(&prefix))
-                    .collect::<Vec<_>>();
+                    let prefix = format!("{normalized}/");
+                    let notes_to_delete = vault
+                        .list_notes()
+                        .map_err(|e| (-32000, e.to_response_string()))?
+                        .into_iter()
+                        .map(|n| n.path)
+                        .filter(|p| p == &normalized || p.starts_with(&prefix))
+                        .collect::<Vec<_>>();
 
-                for note_path in notes_to_delete {
-                    guard
-                        .delete_note(&note_path)
-                        .map_err(|e| (-32000, e.to_response_string()))?;
-                }
-
-                if target.exists() {
-                    if recursive {
-                        std::fs::remove_dir_all(&target)
-                            .map_err(|e| (-32000, format!("Failed to remove directory: {e}")))?;
-                    } else {
-                        std::fs::remove_dir(&target)
-                            .map_err(|e| (-32000, format!("Failed to remove directory: {e}")))?;
+                    for note_path in notes_to_delete {
+                        vault
+                            .delete_note(&note_path)
+                            .map_err(|e| (-32000, e.to_response_string()))?;
                     }
-                }
+
+                    if target.exists() {
+                        if recursive {
+                            std::fs::remove_dir_all(&target).map_err(|e| {
+                                (-32000, format!("Failed to remove directory: {e}"))
+                            })?;
+                        } else {
+                            std::fs::remove_dir(&target).map_err(|e| {
+                                (-32000, format!("Failed to remove directory: {e}"))
+                            })?;
+                        }
+                    }
+                    Ok(())
+                })?;
 
                 Ok(json!({
                     "content": [{ "type": "text", "text": format!("Removed directory: {path}") }],
@@ -492,13 +512,12 @@ impl McpServer {
                     .and_then(Value::as_str)
                     .ok_or((-32602, "Missing argument: new_path".to_string()))?;
 
-                let mut guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                guard
-                    .rename_directory(old_path, new_path)
-                    .map_err(|e| (-32000, e.to_response_string()))?;
+                self.with_vault_mut(|vault| {
+                    vault
+                        .rename_directory(old_path, new_path)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(())
+                })?;
 
                 Ok(json!({
                     "content": [{ "type": "text", "text": format!("Renamed directory: {old_path} -> {new_path}") }],
@@ -507,32 +526,31 @@ impl McpServer {
             }
             "list_directory" => {
                 let maybe_path = arguments.get("path").and_then(Value::as_str).map(str::trim);
-                let guard = self
-                    .vault
-                    .lock()
-                    .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-                let dir_path = resolve_directory_path(&guard, maybe_path)?;
-                let mut entries = std::fs::read_dir(&dir_path)
-                    .map_err(|e| (-32000, format!("Failed to read directory: {e}")))?
-                    .filter_map(|entry| entry.ok())
-                    .map(|entry| {
-                        let file_type = entry.file_type().ok();
-                        let is_dir = file_type.as_ref().map(|t| t.is_dir()).unwrap_or(false);
-                        let is_file = file_type.as_ref().map(|t| t.is_file()).unwrap_or(false);
-                        let name = entry.file_name().to_string_lossy().to_string();
-                        let rel = entry
-                            .path()
-                            .strip_prefix(guard.root_path())
-                            .map(|p| p.to_string_lossy().replace('\\', "/"))
-                            .unwrap_or_else(|_| name.clone());
-                        json!({
-                            "name": name,
-                            "path": rel,
-                            "entry_type": if is_dir { "directory" } else if is_file { "file" } else { "other" }
+                let entries = self.with_vault(|vault| {
+                    let dir_path = resolve_directory_path(vault, maybe_path)?;
+                    let mut entries = std::fs::read_dir(&dir_path)
+                        .map_err(|e| (-32000, format!("Failed to read directory: {e}")))?
+                        .filter_map(|entry| entry.ok())
+                        .map(|entry| {
+                            let file_type = entry.file_type().ok();
+                            let is_dir = file_type.as_ref().map(|t| t.is_dir()).unwrap_or(false);
+                            let is_file = file_type.as_ref().map(|t| t.is_file()).unwrap_or(false);
+                            let name = entry.file_name().to_string_lossy().to_string();
+                            let rel = entry
+                                .path()
+                                .strip_prefix(vault.root_path())
+                                .map(|p| p.to_string_lossy().replace('\\', "/"))
+                                .unwrap_or_else(|_| name.clone());
+                            json!({
+                                "name": name,
+                                "path": rel,
+                                "entry_type": if is_dir { "directory" } else if is_file { "file" } else { "other" }
+                            })
                         })
-                    })
-                    .collect::<Vec<_>>();
-                entries.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+                        .collect::<Vec<_>>();
+                    entries.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+                    Ok(entries)
+                })?;
 
                 Ok(json!({
                     "content": [{
@@ -547,24 +565,22 @@ impl McpServer {
     }
 
     fn resources_list(&self) -> Result<Value, (i32, String)> {
-        let guard = self
-            .vault
-            .lock()
-            .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-
-        let resources = guard
-            .list_notes()
-            .map_err(|e| (-32000, e.to_response_string()))?
-            .into_iter()
-            .map(|note| {
-                json!({
-                    "uri": note_uri(&note.path),
-                    "name": note.title,
-                    "description": note.path,
-                    "mimeType": "text/markdown",
+        let resources = self.with_vault(|vault| {
+            let resources = vault
+                .list_notes()
+                .map_err(|e| (-32000, e.to_response_string()))?
+                .into_iter()
+                .map(|note| {
+                    json!({
+                        "uri": note_uri(&note.path),
+                        "name": note.title,
+                        "description": note.path,
+                        "mimeType": "text/markdown",
+                    })
                 })
-            })
-            .collect::<Vec<_>>();
+                .collect::<Vec<_>>();
+            Ok(resources)
+        })?;
 
         Ok(json!({ "resources": resources }))
     }
@@ -576,13 +592,11 @@ impl McpServer {
             .ok_or((-32602, "Missing uri".to_string()))?;
 
         let path = parse_note_uri(uri).map_err(|e| (-32602, e))?;
-        let guard = self
-            .vault
-            .lock()
-            .map_err(|_| (-32000, "Vault lock poisoned".to_string()))?;
-        let note = guard
-            .get_note(&path)
-            .map_err(|e| (-32000, e.to_response_string()))?;
+        let note = self.with_vault(|vault| {
+            vault
+                .get_note(&path)
+                .map_err(|e| (-32000, e.to_response_string()))
+        })?;
 
         Ok(json!({
             "contents": [
@@ -778,6 +792,7 @@ fn write_framed_message<W: Write>(output: &mut W, value: &Value) -> io::Result<(
 mod tests {
     use super::*;
     use crate::core::VaultManager;
+    use crate::runtime::{RuntimeHost, RuntimeMode};
     use serde_json::json;
     use tempfile::tempdir;
 
@@ -800,6 +815,34 @@ mod tests {
             .expect("save python");
 
         McpServer::new(vault)
+    }
+
+    fn setup_runtime_backed_server() -> McpServer {
+        let dir = tempdir().expect("tempdir");
+        let root = dir.keep();
+        let runtime = RuntimeHost::new(RuntimeMode::DesktopEmbedded);
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("tokio runtime");
+
+        rt.block_on(async {
+            runtime.create_new(&root).await.expect("create runtime vault");
+            runtime
+                .with_manager_mut(|vault| {
+                    vault
+                        .save_note(
+                            "runtime/hello.md",
+                            "# Runtime\n\nRuntime-backed MCP note with #runtime.",
+                        )
+                        .map_err(|e| crate::error::KnotError::Other(e.to_response_string()))?;
+                    Ok(())
+                })
+                .await
+                .expect("seed note");
+        });
+
+        McpServer::from_runtime(&runtime)
     }
 
     #[test]
@@ -930,6 +973,27 @@ mod tests {
         let parsed_graph: Value = serde_json::from_str(graph_text).expect("graph json");
         assert!(parsed_graph.get("nodes").is_some());
         assert!(parsed_graph.get("edges").is_some());
+    }
+
+    #[test]
+    fn runtime_backed_server_handles_tools() {
+        let server = setup_runtime_backed_server();
+        let response = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 34,
+                "method": "tools/call",
+                "params": {
+                    "name": "get_note",
+                    "arguments": { "path": "runtime/hello.md" }
+                }
+            }))
+            .expect("get_note response");
+
+        let search_text = response["result"]["content"][0]["text"]
+            .as_str()
+            .expect("payload text");
+        assert!(search_text.contains("runtime/hello.md"));
     }
 
     #[test]

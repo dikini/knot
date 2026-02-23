@@ -20,6 +20,7 @@ pub mod markdown;
 pub mod mcp;
 pub mod note;
 pub mod recent_vaults;
+pub mod runtime;
 pub mod search;
 pub mod state;
 pub mod watcher;

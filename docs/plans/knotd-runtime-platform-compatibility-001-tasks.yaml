@@ -1,0 +1,27 @@
+plan: PLAN-KNOTD-RUNTIME-001
+trace: DESIGN-knotd-runtime-platform-compatibility
+tasks:
+  - id: KRT-001
+    title: Add runtime host module with mode, lifecycle metadata, and session ownership
+    status: completed
+    refs: [FR-1, FR-2, FR-4, FR-6]
+  - id: KRT-002
+    title: Add failing runtime tests for lifecycle and lock classification
+    status: completed
+    refs: [FR-8]
+  - id: KRT-003
+    title: Refactor AppState to delegate to runtime host while preserving API
+    status: completed
+    refs: [FR-3]
+  - id: KRT-004
+    title: Add MCP constructor backed by runtime host and coverage test
+    status: completed
+    refs: [FR-5, FR-8]
+  - id: KRT-005
+    title: Add desktop operating procedures documentation
+    status: completed
+    refs: [FR-7]
+  - id: KRT-006
+    title: Run verification checks and write audit report
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8]

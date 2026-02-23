@@ -6,6 +6,7 @@
 //! SPEC: COMP-VAULT-001 FR-5
 
 use crate::core::VaultManager;
+use crate::runtime::RuntimeHost;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -15,53 +16,48 @@ use tokio::sync::Mutex;
 /// to all command handlers via Tauri's state injection.
 #[derive(Default)]
 pub struct AppState {
-    /// The vault manager - holds the currently open vault.
-    /// Wrapped in Arc<Mutex<_>> for thread-safe access across async commands.
-    vault: Arc<Mutex<Option<VaultManager>>>,
-    unsaved_changes: Arc<Mutex<bool>>,
+    runtime: RuntimeHost,
 }
 
 impl AppState {
     /// Create a new empty application state.
     pub fn new() -> Self {
         Self {
-            vault: Arc::new(Mutex::new(None)),
-            unsaved_changes: Arc::new(Mutex::new(false)),
+            runtime: RuntimeHost::default(),
         }
     }
 
     /// Get a reference to the vault mutex.
     pub fn vault(&self) -> &Arc<Mutex<Option<VaultManager>>> {
-        &self.vault
+        self.runtime.vault()
+    }
+
+    /// Access shared runtime host.
+    pub fn runtime(&self) -> &RuntimeHost {
+        &self.runtime
     }
 
     /// SPEC: COMP-VAULT-001 FR-5
     /// Check if a vault is currently open.
     pub async fn is_vault_open(&self) -> bool {
-        let vault = self.vault.lock().await;
-        vault.is_some()
+        self.runtime.is_open().await
     }
 
     /// Get the path of the currently open vault, if any.
     pub async fn current_vault_path(&self) -> Option<String> {
-        let vault = self.vault.lock().await;
-        vault
-            .as_ref()
-            .map(|v| v.root_path().to_string_lossy().to_string())
+        self.runtime.current_vault_path().await
     }
 
     /// SPEC: COMP-VAULT-UNSAVED-001 FR-4
     /// Set whether the currently active editor context has unsaved changes.
     pub async fn set_unsaved_changes(&self, has_unsaved_changes: bool) {
-        let mut guard = self.unsaved_changes.lock().await;
-        *guard = has_unsaved_changes;
+        self.runtime.set_unsaved_changes(has_unsaved_changes).await;
     }
 
     /// SPEC: COMP-VAULT-UNSAVED-001 FR-4
     /// Check whether unsaved changes are currently tracked.
     pub async fn has_unsaved_changes(&self) -> bool {
-        let guard = self.unsaved_changes.lock().await;
-        *guard
+        self.runtime.has_unsaved_changes().await
     }
 }
 
