@@ -5,6 +5,8 @@ import App from "./App";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
 
 const mockLoadNote = vi.fn();
+const mockToastSuccess = vi.fn();
+const mockToastError = vi.fn();
 let editorMountCount = 0;
 let editorUnmountCount = 0;
 const mockStoreState: {
@@ -94,8 +96,8 @@ vi.mock("@hooks/useToast", () => ({
   useToast: () => ({
     toasts: [],
     removeToast: vi.fn(),
-    success: vi.fn(),
-    error: vi.fn(),
+    success: mockToastSuccess,
+    error: mockToastError,
   }),
 }));
 
@@ -112,6 +114,19 @@ vi.mock("@lib/api", () => ({
   openVault: vi.fn(),
   saveNote: vi.fn(),
   setUnsavedChanges: vi.fn(),
+  getVaultSettings: vi.fn().mockResolvedValue({
+    name: "vault",
+    plugins_enabled: false,
+    sync: { enabled: false, peers: [] },
+    editor: { font_size: 14, tab_size: 4 },
+  }),
+  updateVaultSettings: vi.fn().mockResolvedValue({
+    name: "vault",
+    plugins_enabled: false,
+    sync: { enabled: false, peers: [] },
+    editor: { font_size: 14, tab_size: 4 },
+  }),
+  reindexVault: vi.fn().mockResolvedValue({ reindexed_count: 2 }),
 }));
 
 vi.mock("@lib/store", () => ({
@@ -197,6 +212,8 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       densityMode: "comfortable",
       showTextLabels: false,
     };
+    mockToastSuccess.mockClear();
+    mockToastError.mockClear();
   });
 
   it("shows graph toggle when a vault is open and switches views", async () => {
@@ -501,6 +518,41 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
 
     await waitFor(() => {
       expect(mockStoreState.toggleToolRail).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("opens settings mode from the settings affordance and shows maintenance action", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /settings/i }));
+
+    expect(await screen.findByRole("heading", { name: /maintenance/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /reindex vault/i })).toBeInTheDocument();
+  });
+
+  it("switches settings sections and renders vault configuration fields", async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /settings/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /^vault$/i }));
+
+    expect(await screen.findByLabelText(/vault name/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/plugins enabled/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/sync enabled/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/sync peers/i)).toBeInTheDocument();
+  });
+
+  it("triggers reindex action and reports success toast", async () => {
+    const api = await import("@lib/api");
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /settings/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /maintenance/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /reindex vault/i }));
+
+    await waitFor(() => {
+      expect(api.reindexVault).toHaveBeenCalledTimes(1);
+      expect(mockToastSuccess).toHaveBeenCalled();
     });
   });
 

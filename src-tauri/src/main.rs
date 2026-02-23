@@ -61,6 +61,9 @@ fn main() {
             knot::commands::vault::add_recent_vault,
             knot::commands::vault::sync_external_changes,
             knot::commands::vault::set_unsaved_changes,
+            knot::commands::vault::get_vault_settings,
+            knot::commands::vault::update_vault_settings,
+            knot::commands::vault::reindex_vault,
             // Note commands
             knot::commands::notes::list_notes,
             knot::commands::notes::get_note,

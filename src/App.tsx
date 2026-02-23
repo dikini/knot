@@ -8,6 +8,7 @@ import { InspectorRail } from "@components/Shell/InspectorRail";
 import { ToolRail } from "@components/Shell/ToolRail";
 import { SearchBox } from "@components/SearchBox";
 import { Sidebar } from "@components/Sidebar";
+import { SettingsPane, type SettingsSection } from "@components/Settings/SettingsPane";
 import { ToastContainer } from "@components/Toast";
 import { useToast } from "@hooks/useToast";
 import { useVaultStore } from "@lib/store";
@@ -36,7 +37,7 @@ const TOOL_PANEL_POLICY: Record<ShellToolMode, ToolPanelPolicy> = {
 
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
-  const [viewMode, setViewMode] = useState<"editor" | "graph">("editor");
+  const [viewMode, setViewMode] = useState<"editor" | "graph" | "settings">("editor");
   const [graphScope, setGraphScope] = useState<"vault" | "node">("vault");
   const [nodeGraphDepth, setNodeGraphDepth] = useState(1);
   const [graphSelection, setGraphSelection] = useState<{
@@ -51,6 +52,12 @@ function App() {
     backlinks: [],
   });
   const [editorSurfaceMode, setEditorSurfaceMode] = useState<"sepia" | "dark">("sepia");
+  const [inspectorMode, setInspectorMode] = useState<"details" | "settings">("details");
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>("maintenance");
+  const [vaultSettings, setVaultSettings] = useState<api.VaultSettings | null>(null);
+  const [isVaultSettingsLoading, setIsVaultSettingsLoading] = useState(false);
+  const [isReindexing, setIsReindexing] = useState(false);
+  const [reindexStatus, setReindexStatus] = useState<string | null>(null);
   const [editorMeasureBand, setEditorMeasureBand] = useState<45 | 54 | 62 | 70>(54);
   // SPEC: COMP-COMPLIANCE-001 FR-1, FR-2
   const [hydratedViewModeVaultPath, setHydratedViewModeVaultPath] = useState<string | null>(null);
@@ -143,12 +150,13 @@ function App() {
       setViewMode("editor");
       setHydratedViewModeVaultPath(null);
       setHydratedShellVaultPath(null);
+      setVaultSettings(null);
       return;
     }
 
     const key = `knot:view-mode:${vault.path}`;
     const stored = localStorage.getItem(key);
-    if (stored === "graph" || stored === "editor") {
+    if (stored === "graph" || stored === "editor" || stored === "settings") {
       setViewMode(stored);
     } else {
       setViewMode("editor");
@@ -363,6 +371,19 @@ function App() {
     }
   };
 
+  const loadVaultSettings = async () => {
+    if (!vault) return;
+    setIsVaultSettingsLoading(true);
+    try {
+      const nextSettings = await api.getVaultSettings();
+      setVaultSettings(nextSettings);
+    } catch (err) {
+      error(err instanceof Error ? err.message : "Failed to load vault settings");
+    } finally {
+      setIsVaultSettingsLoading(false);
+    }
+  };
+
   const formatDate = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
     const now = new Date();
@@ -380,6 +401,11 @@ function App() {
   };
 
   const toggleViewMode = () => {
+    if (viewMode === "settings") {
+      setViewMode("editor");
+      return;
+    }
+
     if (viewMode === "editor") {
       setGraphScope("node");
       setViewMode("graph");
@@ -416,6 +442,44 @@ function App() {
     }
   };
 
+  const handleOpenSettings = () => {
+    setInspectorMode("details");
+    setSettingsSection("maintenance");
+    setInspectorRailOpen(false);
+    setViewMode("settings");
+    void loadVaultSettings();
+  };
+
+  const handleUpdateVaultSettings = async (patch: Partial<api.VaultSettings>) => {
+    try {
+      const updated = await api.updateVaultSettings(patch);
+      setVaultSettings(updated);
+      success("Vault settings updated");
+    } catch (err) {
+      error(err instanceof Error ? err.message : "Failed to update vault settings");
+    }
+  };
+
+  const handleReindexVault = async () => {
+    setIsReindexing(true);
+    setReindexStatus(null);
+    try {
+      const result = await api.reindexVault();
+      setReindexStatus(`Reindexed ${result.reindexed_count} notes.`);
+      await loadNotes();
+      if (currentNote) {
+        await loadNote(currentNote.path);
+      }
+      success(`Reindexed ${result.reindexed_count} notes.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to reindex vault";
+      setReindexStatus(message);
+      error(message);
+    } finally {
+      setIsReindexing(false);
+    }
+  };
+
   const handleToolModeSelect = (nextMode: ShellToolMode) => {
     const currentMode = shell.toolMode;
     const isPanelVisible = !shell.isContextPanelCollapsed;
@@ -433,6 +497,8 @@ function App() {
     if (nextMode === "graph") {
       setGraphScope("vault");
       setViewMode("graph");
+    } else if (viewMode === "settings") {
+      setViewMode("editor");
     }
     const policy = TOOL_PANEL_POLICY[nextMode];
 
@@ -475,6 +541,8 @@ function App() {
         mode={shell.toolMode}
         showLabels={shell.showTextLabels}
         onModeChange={handleToolModeSelect}
+        onOpenSettings={handleOpenSettings}
+        settingsActive={viewMode === "settings"}
       />
       <ContextPanel
         mode={shell.toolMode}
@@ -542,7 +610,14 @@ function App() {
                 className="btn-secondary"
                 showLabel={shell.showTextLabels}
                 active={shell.isInspectorRailOpen}
-                onClick={() => setInspectorRailOpen(!shell.isInspectorRailOpen)}
+                onClick={() => {
+                  if (shell.isInspectorRailOpen && inspectorMode === "details") {
+                    setInspectorRailOpen(false);
+                    return;
+                  }
+                  setInspectorMode("details");
+                  setInspectorRailOpen(true);
+                }}
               />
               <IconButton
                 icon={viewMode === "editor" ? Network : SquarePen}
@@ -554,7 +629,7 @@ function App() {
             </div>
             {viewMode === "editor" ? (
               <Editor key={currentNote?.path ?? "no-note-selected"} />
-            ) : (
+            ) : viewMode === "graph" ? (
               <GraphView
                 width={graphSize.width}
                 height={Math.max(240, graphSize.height - 52)}
@@ -566,6 +641,28 @@ function App() {
                 nodeScopeDepth={nodeGraphDepth}
                 // SPEC: COMP-GRAPH-CONSISTENCY-001 FR-3
                 selectedNodeId={graphSelection.path ?? currentNote?.path ?? null}
+              />
+            ) : (
+              <SettingsPane
+                section={settingsSection}
+                onSectionChange={setSettingsSection}
+                showTextLabels={shell.showTextLabels}
+                onShowTextLabelsChange={setShowTextLabels}
+                densityMode={shell.densityMode}
+                onDensityModeChange={setDensityMode}
+                contextPanelWidth={shell.contextPanelWidth}
+                onContextPanelWidthChange={setContextPanelWidth}
+                editorSurfaceMode={editorSurfaceMode}
+                onEditorSurfaceModeChange={setEditorSurfaceMode}
+                vaultSettings={vaultSettings}
+                isVaultSettingsLoading={isVaultSettingsLoading}
+                onRefreshVaultSettings={() => {
+                  void loadVaultSettings();
+                }}
+                onUpdateVaultSettings={handleUpdateVaultSettings}
+                onReindexVault={handleReindexVault}
+                isReindexing={isReindexing}
+                reindexStatus={reindexStatus}
               />
             )}
           </div>
@@ -607,9 +704,40 @@ function App() {
           </div>
         )}
       </main>
-      <InspectorRail isOpen={shell.isInspectorRailOpen} onClose={() => setInspectorRailOpen(false)}>
-        <p>Mode: {shell.toolMode}</p>
-        {currentNote ? <p>Note: {currentNote.title || currentNote.path}</p> : <p>No note selected</p>}
+      <InspectorRail
+        isOpen={shell.isInspectorRailOpen}
+        mode={inspectorMode}
+        title={inspectorMode === "settings" ? "Settings" : "Inspector"}
+        onClose={() => setInspectorRailOpen(false)}
+      >
+        {inspectorMode === "settings" ? (
+          <SettingsPane
+            section={settingsSection}
+            onSectionChange={setSettingsSection}
+            showTextLabels={shell.showTextLabels}
+            onShowTextLabelsChange={setShowTextLabels}
+            densityMode={shell.densityMode}
+            onDensityModeChange={setDensityMode}
+            contextPanelWidth={shell.contextPanelWidth}
+            onContextPanelWidthChange={setContextPanelWidth}
+            editorSurfaceMode={editorSurfaceMode}
+            onEditorSurfaceModeChange={setEditorSurfaceMode}
+            vaultSettings={vaultSettings}
+            isVaultSettingsLoading={isVaultSettingsLoading}
+            onRefreshVaultSettings={() => {
+              void loadVaultSettings();
+            }}
+            onUpdateVaultSettings={handleUpdateVaultSettings}
+            onReindexVault={handleReindexVault}
+            isReindexing={isReindexing}
+            reindexStatus={reindexStatus}
+          />
+        ) : (
+          <>
+            <p>Mode: {shell.toolMode}</p>
+            {currentNote ? <p>Note: {currentNote.title || currentNote.path}</p> : <p>No note selected</p>}
+          </>
+        )}
       </InspectorRail>
 
       {/* Toast notifications */}

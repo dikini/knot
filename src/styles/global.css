@@ -19,6 +19,9 @@
   --color-bg-secondary: #1b1f24;
   --color-bg-tertiary: #272d34;
   --color-text: #ddd7cf;
+  --color-ui-text: #ddd7cf;
+  --color-ui-text-secondary: #d2cbc0;
+  --color-ui-text-muted: #b6aea1;
   --color-text-muted: #9a9184;
   --color-text-subtle: #7b7165;
   --color-accent: #365b86;

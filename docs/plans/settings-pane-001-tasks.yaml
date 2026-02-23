@@ -1,0 +1,77 @@
+plan: settings-pane-001
+trace: DESIGN-settings-pane-001
+spec: docs/specs/component/settings-pane-001.md
+generated: 2026-02-23
+approach: sequential
+tasks:
+  - id: SP-001
+    title: Add failing tests for bottom settings affordance and inspector settings mode open behavior
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2]
+    concerns: [CONF]
+    dependencies: []
+    acceptance: Settings affordance exists at right rail edge and opens inspector in settings mode.
+
+  - id: SP-002
+    title: Add failing tests for section navigation and frontend/vault settings field visibility
+    status: planned
+    size: M
+    spec_refs: [FR-3, FR-6, FR-7]
+    concerns: [CONF]
+    dependencies: [SP-001]
+    acceptance: Section switching renders only active section fields across Appearance/Layout/Vault/Maintenance.
+
+  - id: SP-003
+    title: Add failing tests for reindex action trigger and success/failure feedback handling
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5]
+    concerns: [REL]
+    dependencies: [SP-002]
+    acceptance: Reindex button invokes API and shows deterministic success/error state.
+
+  - id: SP-004
+    title: Implement backend full reindex command and Tauri registration
+    status: planned
+    size: S
+    spec_refs: [FR-4, FR-5]
+    concerns: [REL, CAP]
+    dependencies: [SP-003]
+    acceptance: New command runs full reindex and can be invoked from frontend safely.
+
+  - id: SP-005
+    title: Implement frontend API wrappers for full reindex and vault settings get/update
+    status: planned
+    size: S
+    spec_refs: [FR-4, FR-7, FR-8]
+    concerns: [REL]
+    dependencies: [SP-004]
+    acceptance: API layer exposes typed wrappers and tests verify invoke payloads.
+
+  - id: SP-006
+    title: Build sectioned settings UI and right-rail bottom settings icon
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-6]
+    concerns: [CONF]
+    dependencies: [SP-005]
+    acceptance: User can open settings from right-edge icon and switch sections in inspector rail.
+
+  - id: SP-007
+    title: Wire settings persistence and vault config patch application from settings UI
+    status: planned
+    size: S
+    spec_refs: [FR-7, FR-8]
+    concerns: [REL]
+    dependencies: [SP-006]
+    acceptance: Edited settings persist via localStorage or vault config patch and reload correctly.
+
+  - id: SP-008
+    title: Verify feature and publish compliance audit report
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8]
+    concerns: [CONF, REL, CAP]
+    dependencies: [SP-007]
+    acceptance: Targeted tests, typecheck, lint, and audit doc completed with noted residual risks.

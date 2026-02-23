@@ -21,6 +21,11 @@ struct TreeChangedEventPayload {
     changed_count: usize,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct ReindexVaultResult {
+    pub reindexed_count: usize,
+}
+
 /// Greet command - simple test command.
 #[tauri::command]
 pub fn greet(name: &str) -> String {
@@ -369,6 +374,60 @@ pub async fn sync_external_changes(
     }
 
     Ok(())
+}
+
+/// Get vault configuration/settings JSON object.
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn get_vault_settings(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    let vault_guard = state.vault().lock().await;
+    match vault_guard.as_ref() {
+        Some(vault) => vault
+            .get_vault_settings_value()
+            .map_err(|e| e.to_response_string()),
+        None => Err("No vault is open".to_string()),
+    }
+}
+
+/// Apply partial vault settings update via RFC7396 JSON merge patch.
+#[tauri::command]
+#[instrument(skip(state, patch))]
+pub async fn update_vault_settings(
+    patch: serde_json::Value,
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    let mut vault_guard = state.vault().lock().await;
+    match vault_guard.as_mut() {
+        Some(vault) => vault
+            .update_vault_settings_patch(&patch)
+            .map_err(|e| e.to_response_string()),
+        None => Err("No vault is open".to_string()),
+    }
+}
+
+/// Perform explicit full vault reindex when users suspect metadata drift.
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn reindex_vault(
+    window: Window,
+    state: State<'_, AppState>,
+) -> Result<ReindexVaultResult, String> {
+    let mut vault_guard = state.vault().lock().await;
+    match vault_guard.as_mut() {
+        Some(vault) => {
+            let reindexed_count = vault.full_reindex().map_err(|e| e.to_response_string())?;
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "manual-reindex",
+                    changed_count: reindexed_count,
+                },
+            );
+            Ok(ReindexVaultResult { reindexed_count })
+        }
+        None => Err("No vault is open".to_string()),
+    }
 }
 
 /// Add a vault to the recent vaults list.

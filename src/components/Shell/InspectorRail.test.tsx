@@ -3,15 +3,25 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { InspectorRail } from "./InspectorRail";
 
 describe("InspectorRail", () => {
-  it("is hidden by default when closed", () => {
-    render(<InspectorRail isOpen={false} onClose={vi.fn()} />);
+  it("shows dock affordance when closed", () => {
+    render(
+      <InspectorRail
+        isOpen={false}
+        mode="details"
+        onClose={vi.fn()}
+      />
+    );
     expect(screen.queryByLabelText(/inspector rail/i)).not.toBeInTheDocument();
   });
 
   it("renders when open and closes on action", () => {
     const onClose = vi.fn();
     render(
-      <InspectorRail isOpen={true} onClose={onClose}>
+      <InspectorRail
+        isOpen={true}
+        mode="details"
+        onClose={onClose}
+      >
         <p>Details</p>
       </InspectorRail>
     );

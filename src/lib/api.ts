@@ -26,6 +26,19 @@ export interface RecentVault {
   opened_at: number;
 }
 
+export interface VaultSettings {
+  name: string;
+  plugins_enabled: boolean;
+  sync: {
+    enabled: boolean;
+    peers: string[];
+  };
+  editor: {
+    font_size: number;
+    tab_size: number;
+  };
+}
+
 // Helper to handle errors consistently
 function handleError(error: unknown): never {
   if (typeof error === "string") {
@@ -173,6 +186,39 @@ export async function syncExternalChanges(): Promise<void> {
 export async function setUnsavedChanges(dirty: boolean): Promise<void> {
   try {
     return await invoke("set_unsaved_changes", { dirty });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Get current vault settings/configuration.
+ */
+export async function getVaultSettings(): Promise<VaultSettings> {
+  try {
+    return await invoke<VaultSettings>("get_vault_settings");
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Apply merge-patch update to vault settings.
+ */
+export async function updateVaultSettings(patch: Partial<VaultSettings>): Promise<VaultSettings> {
+  try {
+    return await invoke<VaultSettings>("update_vault_settings", { patch });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Explicit full vault reindex for recovery from out-of-sync metadata.
+ */
+export async function reindexVault(): Promise<{ reindexed_count: number }> {
+  try {
+    return await invoke<{ reindexed_count: number }>("reindex_vault");
   } catch (error) {
     handleError(error);
   }

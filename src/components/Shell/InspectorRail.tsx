@@ -3,17 +3,24 @@ import "./InspectorRail.css";
 
 interface InspectorRailProps {
   isOpen: boolean;
+  mode: "details" | "settings";
+  title?: string;
   onClose: () => void;
   children?: ReactNode;
 }
 
-export function InspectorRail({ isOpen, onClose, children }: InspectorRailProps) {
+export function InspectorRail({
+  isOpen,
+  title,
+  onClose,
+  children,
+}: InspectorRailProps) {
   if (!isOpen) return null;
 
   return (
     <aside className="inspector-rail" aria-label="Inspector rail">
       <header className="inspector-rail__header">
-        <span>Inspector</span>
+        <h2>{title ?? "Inspector"}</h2>
         <button type="button" onClick={onClose} aria-label="Close inspector rail">
           ×
         </button>

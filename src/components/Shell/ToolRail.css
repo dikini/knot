@@ -18,6 +18,12 @@
   gap: 8px;
 }
 
+.tool-rail__footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .tool-rail__tool {
   border: 1px solid transparent;
   border-radius: 10px;

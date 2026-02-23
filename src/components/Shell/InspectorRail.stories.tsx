@@ -8,6 +8,8 @@ const meta = {
   component: InspectorRail,
   args: {
     isOpen: true,
+    mode: "details",
+    title: "Inspector",
     onClose: fn(),
     children: <p>Inspector details for selected note</p>,
   },

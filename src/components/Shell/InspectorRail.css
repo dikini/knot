@@ -15,6 +15,12 @@
   padding: 0 10px;
 }
 
+.inspector-rail__header h2 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .inspector-rail__header button {
   border: 1px solid var(--color-border);
   background: var(--color-bg-tertiary);

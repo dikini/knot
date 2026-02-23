@@ -1,4 +1,4 @@
-import { BookOpenText, Search, Network } from "lucide-react";
+import { BookOpenText, Search, Network, Settings2 } from "lucide-react";
 import { IconButton } from "@components/IconButton";
 import type { ShellToolMode } from "@lib/store";
 import "./ToolRail.css";
@@ -8,6 +8,8 @@ interface ToolRailProps {
   mode: ShellToolMode;
   showLabels: boolean;
   onModeChange: (mode: ShellToolMode) => void;
+  onOpenSettings: () => void;
+  settingsActive?: boolean;
 }
 
 const TOOL_ITEMS: Array<{ id: ShellToolMode; label: string; icon: typeof BookOpenText }> = [
@@ -16,7 +18,13 @@ const TOOL_ITEMS: Array<{ id: ShellToolMode; label: string; icon: typeof BookOpe
   { id: "graph", label: "Graph", icon: Network },
 ];
 
-export function ToolRail({ mode, showLabels, onModeChange }: ToolRailProps) {
+export function ToolRail({
+  mode,
+  showLabels,
+  onModeChange,
+  onOpenSettings,
+  settingsActive = false,
+}: ToolRailProps) {
   return (
     <aside className="tool-rail" aria-label="Tool rail">
       <div className="tool-rail__tools">
@@ -32,6 +40,16 @@ export function ToolRail({ mode, showLabels, onModeChange }: ToolRailProps) {
             aria-pressed={mode === item.id}
           />
         ))}
+      </div>
+      <div className="tool-rail__footer">
+        <IconButton
+          icon={Settings2}
+          label="Settings"
+          showLabel={showLabels}
+          active={settingsActive}
+          className="tool-rail__tool"
+          onClick={onOpenSettings}
+        />
       </div>
     </aside>
   );

@@ -5,7 +5,15 @@ import { ToolRail } from "./ToolRail";
 import type { ShellToolMode } from "@lib/store";
 
 // Trace: DESIGN-storybook-toolrail-coverage-2026-02-22
-function ToolRailPreview({ mode, showLabels }: { mode: ShellToolMode; showLabels: boolean }) {
+function ToolRailPreview({
+  mode,
+  showLabels,
+  onOpenSettings,
+}: {
+  mode: ShellToolMode;
+  showLabels: boolean;
+  onOpenSettings: () => void;
+}) {
   const [activeMode, setActiveMode] = useState<ShellToolMode>(mode);
   return (
     <div style={{ display: "flex", minHeight: "100vh" }}>
@@ -13,6 +21,7 @@ function ToolRailPreview({ mode, showLabels }: { mode: ShellToolMode; showLabels
         mode={activeMode}
         showLabels={showLabels}
         onModeChange={(next) => setActiveMode(next)}
+        onOpenSettings={onOpenSettings}
       />
       <main style={{ padding: "1rem", color: "var(--color-text)" }}>
         Active mode: <strong>{activeMode}</strong>
@@ -28,9 +37,16 @@ const meta = {
     mode: "notes",
     showLabels: false,
     onModeChange: fn(),
+    onOpenSettings: fn(),
   },
   render: (args) => {
-    return <ToolRailPreview mode={args.mode} showLabels={args.showLabels} />;
+    return (
+      <ToolRailPreview
+        mode={args.mode}
+        showLabels={args.showLabels}
+        onOpenSettings={args.onOpenSettings}
+      />
+    );
   },
 } satisfies Meta<typeof ToolRail>;
 
@@ -67,5 +83,12 @@ export const ModeSwitchInteraction: Story = {
     await expect(canvas.getByText("search")).toBeInTheDocument();
     await userEvent.click(canvas.getByRole("button", { name: "Notes" }));
     await expect(canvas.getByText("notes")).toBeInTheDocument();
+  },
+};
+
+export const SettingsAction: Story = {
+  play: async ({ canvas, args }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Settings" }));
+    await expect(args.onOpenSettings).toHaveBeenCalled();
   },
 };

@@ -175,6 +175,46 @@ describe("API Client", () => {
 
       expect(invoke).toHaveBeenCalledWith("set_unsaved_changes", { dirty: true });
     });
+
+    it("should get vault settings", async () => {
+      const mockSettings = {
+        name: "Vault",
+        plugins_enabled: false,
+        sync: { enabled: false, peers: [] },
+        editor: { font_size: 14, tab_size: 4 },
+      };
+      vi.mocked(invoke).mockResolvedValue(mockSettings);
+
+      const result = await api.getVaultSettings();
+
+      expect(invoke).toHaveBeenCalledWith("get_vault_settings");
+      expect(result).toEqual(mockSettings);
+    });
+
+    it("should update vault settings", async () => {
+      const patch = { name: "Updated Vault", sync: { enabled: true, peers: [] } };
+      const updated = {
+        name: "Updated Vault",
+        plugins_enabled: false,
+        sync: { enabled: true, peers: [] },
+        editor: { font_size: 14, tab_size: 4 },
+      };
+      vi.mocked(invoke).mockResolvedValue(updated);
+
+      const result = await api.updateVaultSettings(patch);
+
+      expect(invoke).toHaveBeenCalledWith("update_vault_settings", { patch });
+      expect(result).toEqual(updated);
+    });
+
+    it("should reindex vault", async () => {
+      vi.mocked(invoke).mockResolvedValue({ reindexed_count: 3 });
+
+      const result = await api.reindexVault();
+
+      expect(invoke).toHaveBeenCalledWith("reindex_vault");
+      expect(result).toEqual({ reindexed_count: 3 });
+    });
   });
 
   describe("Note Operations", () => {

@@ -14,3 +14,4 @@
 | mermaid-inline-split-001 | component | implemented | - | [mermaid-diagrams-001, editor-modes-001] | [COMP-MERMAID-INLINE-SPLIT-001] |
 | ui-qa-dx-001 | component | implemented | - | [ui-automation-dx-001, mermaid-diagrams-001] | [COMP-UI-QA-DX-001] |
 | storybook-dx-001 | component | implemented | - | [ui-qa-dx-001, frontend-toolchain-001] | [COMP-STORYBOOK-DX-001] |
+| settings-pane-001 | component | planned | - | [tool-rail-context-001, vault-unsaved-changes-001] | [COMP-SETTINGS-PANE-001] |

@@ -9,6 +9,7 @@
 //! SPEC: COMP-GRAPH-001 FR-2, FR-6, FR-7
 //! SPEC: COMP-TAG-EXTRACTION-001 FR-3
 
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use tracing::{info, warn};
@@ -148,6 +149,24 @@ impl VaultManager {
     /// Get the vault configuration.
     pub fn config(&self) -> &VaultConfig {
         &self.config
+    }
+
+    /// Get current vault settings as JSON.
+    pub fn get_vault_settings_value(&self) -> Result<serde_json::Value> {
+        Ok(serde_json::to_value(&self.config)?)
+    }
+
+    /// Apply RFC7396 merge patch to vault settings and persist.
+    pub fn update_vault_settings_patch(
+        &mut self,
+        patch: &serde_json::Value,
+    ) -> Result<serde_json::Value> {
+        let mut settings_value = serde_json::to_value(&self.config)?;
+        apply_json_merge_patch(&mut settings_value, patch);
+        let updated_config: VaultConfig = serde_json::from_value(settings_value)?;
+        updated_config.save(&self.vault_dir().join(CONFIG_FILE))?;
+        self.config = updated_config;
+        self.get_vault_settings_value()
     }
 
     /// Persist expanded/collapsed state for an explorer folder path.
@@ -478,16 +497,20 @@ impl VaultManager {
     /// This scans the vault directory for .md files and updates
     /// the database to match the filesystem state.
     pub fn sync_files_to_db(&mut self) -> Result<()> {
+        self.full_reindex().map(|_| ())
+    }
+
+    /// Perform a full vault reindex from filesystem to DB/search/graph.
+    pub fn full_reindex(&mut self) -> Result<usize> {
         use walkdir::WalkDir;
 
-        info!("syncing files to database");
+        info!("running full vault reindex");
 
-        let mut synced = 0;
+        let mut disk_paths: HashSet<String> = HashSet::new();
         for entry in WalkDir::new(&self.root)
             .follow_links(false)
             .into_iter()
             .filter_entry(|e| {
-                // Skip the .vault directory
                 let path = e.path();
                 !path
                     .components()
@@ -500,32 +523,63 @@ impl VaultManager {
                 continue;
             }
 
-            // Get relative path from vault root
             let relative = path
                 .strip_prefix(&self.root)
                 .map_err(|_| KnotError::InvalidPath(path.to_string_lossy().to_string()))?;
-            let path_str = relative.to_string_lossy();
+            disk_paths.insert(relative.to_string_lossy().to_string());
+        }
 
-            // Read file content
-            let content = std::fs::read_to_string(path)?;
+        let db_paths: HashSet<String> = self
+            .db
+            .list_notes()?
+            .into_iter()
+            .map(|note| note.path)
+            .collect();
+
+        for stale_path in db_paths.difference(&disk_paths) {
+            self.db.delete_note_by_path(stale_path)?;
+            self.search.remove_note(stale_path)?;
+        }
+
+        let mut synced = 0;
+        let mut sorted_paths = disk_paths.into_iter().collect::<Vec<_>>();
+        sorted_paths.sort();
+        for path_str in sorted_paths {
+            let full_path = self.root.join(&path_str);
+            let content = match std::fs::read_to_string(&full_path) {
+                Ok(value) => value,
+                Err(error) => {
+                    warn!(path = %path_str, ?error, "failed to read note during reindex");
+                    continue;
+                }
+            };
             let note = Note::new(&path_str, &content);
 
             // Save to database
             self.db.save_note(&note)?;
+            let stored_note = self
+                .db
+                .get_note_by_path(&path_str, &self.root)?
+                .ok_or_else(|| KnotError::NoteNotFound(path_str.clone()))?;
+
             let tags = crate::markdown::extract_tags(&content);
-            self.sync_tags(note.id(), &tags)?;
+            self.sync_tags(stored_note.id(), &tags)?;
+            let parsed = crate::markdown::parse(&content);
+            crate::graph::save_links(&self.db, stored_note.id(), &parsed.links)?;
+            crate::graph::save_headings(&self.db, stored_note.id(), &parsed.headings)?;
             self.search
                 .index_note(note.path(), note.title(), note.content(), &tags)?;
 
             synced += 1;
         }
 
-        info!(synced, "files synced to database");
+        self.search.commit()?;
+        info!(synced, "full vault reindex completed");
 
         // Rebuild graph after sync
         self.rebuild_graph()?;
 
-        Ok(())
+        Ok(synced)
     }
 
     //endregion
@@ -652,6 +706,33 @@ fn normalize_rel_dir(path: &str) -> Result<String> {
         return Err(KnotError::InvalidPath(path.to_string()));
     }
     Ok(normalized)
+}
+
+fn apply_json_merge_patch(target: &mut serde_json::Value, patch: &serde_json::Value) {
+    match patch {
+        serde_json::Value::Object(patch_object) => {
+            if !target.is_object() {
+                *target = serde_json::Value::Object(serde_json::Map::new());
+            }
+
+            let target_object = target
+                .as_object_mut()
+                .expect("target must be an object after initialization");
+            for (key, patch_value) in patch_object {
+                if patch_value.is_null() {
+                    target_object.remove(key);
+                } else {
+                    apply_json_merge_patch(
+                        target_object
+                            .entry(key.clone())
+                            .or_insert(serde_json::Value::Null),
+                        patch_value,
+                    );
+                }
+            }
+        }
+        _ => *target = patch.clone(),
+    }
 }
 
 #[cfg(test)]
