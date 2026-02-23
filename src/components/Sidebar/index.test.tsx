@@ -123,9 +123,9 @@ describe("Sidebar Explorer M1", () => {
     const folderButton = await screen.findByRole("treeitem", { name: "Programming" });
     fireEvent.contextMenu(folderButton);
 
-    expect(await screen.findByRole("button", { name: "New note here" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "New folder" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Rename folder" })).toBeInTheDocument();
+    expect(await screen.findByRole("menuitem", { name: "New note here" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "New folder" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Rename folder" })).toBeInTheDocument();
   });
 
   it("supports keyboard navigation and folder toggle via arrows", async () => {

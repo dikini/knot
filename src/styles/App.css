@@ -231,7 +231,7 @@
   padding-top: var(--spacing-lg);
 }
 
-.recent-vaults h3 {
+.recent-vaults h2 {
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -275,7 +275,7 @@
 
 .recent-vault-btn .vault-path {
   flex: 1;
-  color: var(--color-text-muted);
+  color: #9f978b;
   font-size: 0.875rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -283,7 +283,7 @@
 }
 
 .recent-vault-btn .vault-date {
-  color: var(--color-text-muted);
+  color: #a59d91;
   font-size: 0.75rem;
   min-width: 80px;
   text-align: right;

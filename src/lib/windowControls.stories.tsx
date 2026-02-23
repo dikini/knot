@@ -58,7 +58,9 @@ export const TauriEventEmit: Story = {
     },
   },
   play: async ({ canvas }) => {
-    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {};
+    (window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__ = {
+      invoke: async () => undefined,
+    };
     await userEvent.click(canvas.getByRole("button", { name: "Signal frontend ready" }));
     await expect(isDesktopTauri()).toBe(true);
     await expect(mocked(emit)).toHaveBeenCalledWith("frontend://ready");

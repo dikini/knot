@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, userEvent } from "storybook/test";
+import { expect, fireEvent, fn, mocked, userEvent, waitFor } from "storybook/test";
 import { Editor } from "./index";
 import { useEditorStore, useVaultStore } from "@lib/store";
+import * as api from "@lib/api";
 import type { NoteData, NoteSummary, VaultInfo } from "@/types/vault";
 
 // Trace: DESIGN-storybook-editor-coverage-2026-02-22
@@ -36,11 +37,19 @@ type EditorStoryArgs = {
   note: NoteData | null;
   editorContent?: string;
   dirty?: boolean;
+  preserveLocalStorage?: boolean;
 };
 
-function EditorStoryHarness({ note, editorContent = "", dirty = false }: EditorStoryArgs) {
+function EditorStoryHarness({
+  note,
+  editorContent = "",
+  dirty = false,
+  preserveLocalStorage = false,
+}: EditorStoryArgs) {
   useEffect(() => {
-    localStorage.clear();
+    if (!preserveLocalStorage) {
+      localStorage.clear();
+    }
     useVaultStore.setState((state) => ({
       ...state,
       vault: note ? demoVault : null,
@@ -54,7 +63,7 @@ function EditorStoryHarness({ note, editorContent = "", dirty = false }: EditorS
       isDirty: dirty,
       cursorPosition: 0,
     });
-  }, [dirty, editorContent, note]);
+  }, [dirty, editorContent, note, preserveLocalStorage]);
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--color-bg-elevated)", padding: "1rem" }}>
@@ -143,6 +152,14 @@ const inlineLinkNote: NoteData = {
   content: "Before [link](https://example.com) and **bold** after.",
 };
 
+const internalLinkNote: NoteData = {
+  ...defaultNote,
+  id: "n10",
+  path: "notes/internal-link.md",
+  title: "Internal Link",
+  content: "# Internal Link\n\nJump to [Roadmap](notes/roadmap-brief.md)",
+};
+
 const meta = {
   title: "Editor/Editor",
   component: EditorStoryHarness,
@@ -153,6 +170,14 @@ const meta = {
   },
   parameters: {
     layout: "fullscreen",
+  },
+  beforeEach: async () => {
+    localStorage.clear();
+    mocked(api.setUnsavedChanges).mockResolvedValue(undefined);
+    mocked(api.saveNote).mockResolvedValue(undefined);
+    mocked(api.getNote).mockResolvedValue(defaultNote);
+    mocked(api.createNote).mockResolvedValue(defaultNote);
+    mocked(api.listNotes).mockResolvedValue(demoNotes);
   },
 } satisfies Meta<typeof EditorStoryHarness>;
 
@@ -176,7 +201,7 @@ export const EditModeDefault: Story = {
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole("tab", { name: "Edit" })).toHaveAttribute("aria-selected", "true");
-    await expect(canvas.getByText("Editor Flow")).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Editor Flow" })).toBeInTheDocument();
   },
 };
 
@@ -189,8 +214,10 @@ export const SourceModeRoundTrip: Story = {
     await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
     const source = canvas.getByLabelText("Source markdown editor");
     await expect(source).toBeInTheDocument();
-    await userEvent.clear(source);
-    await userEvent.type(source, "# Updated{enter}{enter}Storybook source flow");
+    await waitFor(() => {
+      expect(source).toHaveValue(defaultNote.content);
+    });
+    fireEvent.change(source, { target: { value: "# Updated\n\nStorybook source flow" } });
     await expect(source).toHaveValue("# Updated\n\nStorybook source flow");
   },
 };
@@ -201,12 +228,33 @@ export const EditModeBlockMenu: Story = {
     editorContent: defaultNote.content,
   },
   play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("tab", { name: "Edit" }));
     const toggle = canvas.getByRole("button", { name: "Open block menu" });
     await userEvent.click(toggle);
     await expect(canvas.getByRole("menu", { name: "Insert block" })).toBeInTheDocument();
     await expect(canvas.getByRole("menuitem", { name: "Mermaid diagram" })).toBeInTheDocument();
     await userEvent.click(canvas.getByRole("button", { name: "Close block menu" }));
     await expect(canvas.queryByRole("menu", { name: "Insert block" })).not.toBeInTheDocument();
+  },
+};
+
+export const BlockMenuKeyboardNavigation: Story = {
+  args: {
+    note: defaultNote,
+    editorContent: defaultNote.content,
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Open block menu" }));
+    const menu = canvas.getByRole("menu", { name: "Insert block" });
+    await expect(menu).toBeInTheDocument();
+
+    await userEvent.keyboard("{ArrowDown}");
+    await userEvent.keyboard("{End}");
+    await userEvent.keyboard("{Home}");
+    await userEvent.keyboard("{Escape}");
+
+    await expect(canvas.queryByRole("menu", { name: "Insert block" })).not.toBeInTheDocument();
+    await expect(canvas.getByRole("button", { name: "Open block menu" })).toHaveFocus();
   },
 };
 
@@ -282,8 +330,9 @@ export const MermaidInsertInsideInlinePreservesMarks: Story = {
     await userEvent.click(canvas.getByRole("menuitem", { name: "Mermaid diagram" }));
     await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
     const source = canvas.getByLabelText("Source markdown editor");
-    await expect(source).toHaveValue(expect.stringContaining("**bold**"));
-    await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
+    await expect(source).toBeInTheDocument();
+    expect((source as HTMLTextAreaElement).value).toContain("**bold**");
+    expect((source as HTMLTextAreaElement).value).toContain("```mermaid");
   },
 };
 
@@ -298,8 +347,9 @@ export const MermaidInsertInsideEmphasisPreservesMarks: Story = {
     await userEvent.click(canvas.getByRole("menuitem", { name: "Mermaid diagram" }));
     await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
     const source = canvas.getByLabelText("Source markdown editor");
-    await expect(source).toHaveValue(expect.stringContaining("*emphasis*"));
-    await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
+    await expect(source).toBeInTheDocument();
+    expect((source as HTMLTextAreaElement).value).toContain("*emphasis*");
+    expect((source as HTMLTextAreaElement).value).toContain("```mermaid");
   },
 };
 
@@ -314,8 +364,9 @@ export const MermaidInsertInsideCodePreservesMarks: Story = {
     await userEvent.click(canvas.getByRole("menuitem", { name: "Mermaid diagram" }));
     await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
     const source = canvas.getByLabelText("Source markdown editor");
-    await expect(source).toHaveValue(expect.stringContaining("`code`"));
-    await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
+    await expect(source).toBeInTheDocument();
+    expect((source as HTMLTextAreaElement).value).toContain("`code`");
+    expect((source as HTMLTextAreaElement).value).toContain("```mermaid");
   },
 };
 
@@ -330,7 +381,104 @@ export const MermaidInsertInsideLinkPreservesMarks: Story = {
     await userEvent.click(canvas.getByRole("menuitem", { name: "Mermaid diagram" }));
     await userEvent.click(canvas.getByRole("tab", { name: "Source" }));
     const source = canvas.getByLabelText("Source markdown editor");
-    await expect(source).toHaveValue(expect.stringContaining("[link](https://example.com)"));
-    await expect(source).toHaveValue(expect.stringContaining("```mermaid"));
+    await expect(source).toBeInTheDocument();
+    expect((source as HTMLTextAreaElement).value).toContain("[link](https://example.com)");
+    expect((source as HTMLTextAreaElement).value).toContain("```mermaid");
+  },
+};
+
+export const PersistsNoteScopedModeSelection: Story = {
+  args: {
+    preserveLocalStorage: true,
+  },
+  beforeEach: async () => {
+    localStorage.setItem("knot:editor-mode:notes/editor-flow.md", "view");
+  },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("tab", { name: "View" })).toHaveAttribute("aria-selected", "true");
+  },
+};
+
+export const SaveFailureShowsAlert: Story = {
+  args: {
+    note: defaultNote,
+    editorContent: `${defaultNote.content}\n\nUpdated`,
+    dirty: true,
+  },
+  beforeEach: async () => {
+    mocked(api.saveNote).mockRejectedValueOnce(new Error("save failed"));
+  },
+  play: async ({ canvas }) => {
+    const originalAlert = window.alert;
+    const alertSpy = fn();
+    window.alert = alertSpy as unknown as typeof window.alert;
+
+    try {
+      await userEvent.click(canvas.getByRole("button", { name: "Save" }));
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalled();
+      });
+    } finally {
+      window.alert = originalAlert;
+    }
+  },
+};
+
+export const SaveViaKeyboardShortcut: Story = {
+  args: {
+    note: defaultNote,
+    editorContent: `${defaultNote.content}\n\nKeyboard save`,
+    dirty: true,
+  },
+  play: async () => {
+    await userEvent.keyboard("{Control>}s{/Control}");
+    await waitFor(() => {
+      expect(api.saveNote).toHaveBeenCalledWith("notes/editor-flow.md", `${defaultNote.content}\n\nKeyboard save`);
+    });
+  },
+};
+
+export const SaveViaCustomEvent: Story = {
+  args: {
+    note: defaultNote,
+    editorContent: `${defaultNote.content}\n\nEvent save`,
+    dirty: true,
+  },
+  play: async () => {
+    window.dispatchEvent(new Event("editor-save"));
+    await waitFor(() => {
+      expect(api.saveNote).toHaveBeenCalledWith("notes/editor-flow.md", `${defaultNote.content}\n\nEvent save`);
+    });
+  },
+};
+
+export const ViewModeInternalMarkdownLinkLoadsNote: Story = {
+  args: {
+    note: internalLinkNote,
+    editorContent: internalLinkNote.content,
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("tab", { name: "View" }));
+    await userEvent.click(canvas.getByRole("link", { name: "Roadmap" }));
+    await waitFor(() => {
+      expect(api.getNote).toHaveBeenCalledWith("notes/roadmap-brief.md");
+    });
+  },
+};
+
+export const WikilinkEventCreatesMissingNote: Story = {
+  args: {
+    note: defaultNote,
+    editorContent: defaultNote.content,
+  },
+  play: async () => {
+    await window.dispatchEvent(
+      new CustomEvent("wikilink-click", {
+        detail: { target: "Missing Page" },
+      })
+    );
+    await waitFor(() => {
+      expect(api.createNote).toHaveBeenCalledWith("Missing Page.md", "# Missing Page\n\n");
+    });
   },
 };

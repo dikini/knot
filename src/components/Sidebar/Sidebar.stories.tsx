@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, mocked, userEvent, waitFor } from "storybook/test";
+import { expect, fireEvent, fn, mocked, userEvent, waitFor } from "storybook/test";
 import { Sidebar } from "./index";
 import { useEditorStore, useVaultStore } from "@lib/store";
 import * as api from "@lib/api";
@@ -160,6 +160,11 @@ const meta = {
     mocked(api.setFolderExpanded).mockResolvedValue(undefined);
     mocked(api.saveNote).mockResolvedValue(undefined);
     mocked(api.listNotes).mockResolvedValue([]);
+    mocked(api.createDirectory).mockResolvedValue(undefined);
+    mocked(api.renameDirectory).mockResolvedValue(undefined);
+    mocked(api.renameNote).mockResolvedValue(undefined);
+    mocked(api.deleteDirectory).mockResolvedValue(undefined);
+    mocked(api.deleteNote).mockResolvedValue(undefined);
     mocked(api.getNote).mockImplementation(async (path: string) => ({
       id: path,
       path,
@@ -219,8 +224,8 @@ export const KeyboardFolderToggle: Story = {
 
     const tree = canvas.getByRole("tree", { name: "Notes explorer" });
     const folder = canvas.getByRole("treeitem", { name: "english-research" });
-    folder.focus();
-    await userEvent.keyboard("{ArrowLeft}");
+    fireEvent.focus(folder);
+    fireEvent.keyDown(tree, { key: "ArrowLeft" });
     await waitFor(() => {
       expect(api.setFolderExpanded).toHaveBeenCalled();
     });
@@ -274,15 +279,11 @@ export const ExplorerContextMenuCreateNote: Story = {
         expect(canvas.getByRole("tree", { name: "Notes explorer" })).toBeInTheDocument();
       });
       const folder = canvas.getByRole("treeitem", { name: "english-research" });
-      folder.dispatchEvent(
-        new MouseEvent("contextmenu", {
-          bubbles: true,
-          cancelable: true,
-          clientX: 120,
-          clientY: 120,
-        })
-      );
-      await userEvent.click(canvas.getByRole("button", { name: "New note here" }));
+      await userEvent.pointer([{ target: folder, keys: "[MouseRight]" }]);
+      await waitFor(() => {
+        expect(canvas.getByRole("menuitem", { name: "New note here" })).toBeInTheDocument();
+      });
+      await userEvent.click(canvas.getByRole("menuitem", { name: "New note here" }));
       await waitFor(() => {
         expect(api.createNote).toHaveBeenCalledWith(
           "english-research/story-note.md",
@@ -330,5 +331,101 @@ export const ExplorerPanelHasNoSearchBox: Story = {
     });
     await expect(canvas.queryByRole("textbox", { name: "Search notes" })).not.toBeInTheDocument();
     await expect(canvas.queryByPlaceholderText("Search notes...")).not.toBeInTheDocument();
+  },
+};
+
+export const ExplorerToolbarCreateFolderAndToggleAll: Story = {
+  play: async ({ canvas }) => {
+    const originalPrompt = window.prompt;
+    window.prompt = () => "new-folder";
+
+    try {
+      await waitFor(() => {
+        expect(canvas.getByRole("tree", { name: "Notes explorer" })).toBeInTheDocument();
+      });
+
+      await userEvent.click(canvas.getByRole("button", { name: "New Folder" }));
+      await waitFor(() => {
+        expect(api.createDirectory).toHaveBeenCalledWith("new-folder");
+      });
+
+      await userEvent.click(canvas.getByRole("button", { name: "Collapse" }));
+      await waitFor(() => {
+        expect(api.setFolderExpanded).toHaveBeenCalledWith("english-research", false);
+      });
+
+      await userEvent.click(canvas.getByRole("button", { name: "Expand" }));
+      await waitFor(() => {
+        expect(api.setFolderExpanded).toHaveBeenCalledWith("english-research", true);
+      });
+    } finally {
+      window.prompt = originalPrompt;
+    }
+  },
+};
+
+export const ExplorerContextMenuRenameAndDeleteFolder: Story = {
+  play: async ({ canvas }) => {
+    const originalPrompt = window.prompt;
+    const originalConfirm = window.confirm;
+    window.prompt = () => "renamed-research";
+    window.confirm = () => true;
+
+    try {
+      await waitFor(() => {
+        expect(canvas.getByRole("tree", { name: "Notes explorer" })).toBeInTheDocument();
+      });
+
+      const folder = canvas.getByRole("treeitem", { name: "english-research" });
+      fireEvent.contextMenu(folder, { clientX: 120, clientY: 120 });
+      await waitFor(() => {
+        expect(canvas.getByRole("menuitem", { name: "Rename folder" })).toBeInTheDocument();
+      });
+      await userEvent.click(canvas.getByRole("menuitem", { name: "Rename folder" }));
+      await waitFor(() => {
+        expect(api.renameDirectory).toHaveBeenCalledWith("english-research", "renamed-research");
+      });
+
+      fireEvent.contextMenu(folder, { clientX: 120, clientY: 120 });
+      await waitFor(() => {
+        expect(canvas.getByRole("menuitem", { name: "Delete folder" })).toBeInTheDocument();
+      });
+      await userEvent.click(canvas.getByRole("menuitem", { name: "Delete folder" }));
+      await waitFor(() => {
+        expect(api.deleteDirectory).toHaveBeenCalledWith("english-research", true);
+      });
+    } finally {
+      window.prompt = originalPrompt;
+      window.confirm = originalConfirm;
+    }
+  },
+};
+
+export const ExplorerOperationFailureShowsAlert: Story = {
+  beforeEach: async () => {
+    mocked(api.renameDirectory).mockRejectedValueOnce(new Error("rename failed"));
+  },
+  play: async ({ canvas }) => {
+    const originalPrompt = window.prompt;
+    const originalAlert = window.alert;
+    const alertSpy = fn();
+    window.prompt = () => "english-research/rename-fail";
+    window.alert = alertSpy as unknown as typeof window.alert;
+
+    try {
+      await waitFor(() => {
+        expect(canvas.getByRole("tree", { name: "Notes explorer" })).toBeInTheDocument();
+      });
+      const folder = canvas.getByRole("treeitem", { name: "english-research" });
+      fireEvent.contextMenu(folder, { clientX: 120, clientY: 120 });
+      await userEvent.click(canvas.getByRole("menuitem", { name: "Rename folder" }));
+
+      await waitFor(() => {
+        expect(alertSpy).toHaveBeenCalled();
+      });
+    } finally {
+      window.prompt = originalPrompt;
+      window.alert = originalAlert;
+    }
   },
 };

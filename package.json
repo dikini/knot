@@ -11,6 +11,8 @@
     "storybook:build": "storybook build",
     "storybook:smoke": "storybook dev --smoke-test -p 6006 --host 127.0.0.1",
     "storybook:test": "npm run -s storybook:smoke",
+    "storybook:test:vitest": "vitest --project=storybook --run",
+    "storybook:test:a11y": "STORYBOOK_A11Y_STRICT=1 vitest --project=storybook --run",
     "storybook:mcp:smoke": "node scripts/storybook-mcp-smoke.mjs",
     "codex:mcp:setup": "node scripts/setup-codex-storybook-mcp.mjs",
     "tauri": "tauri",
@@ -20,6 +22,9 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "test": "vitest",
+    "coverage": "vitest --project=unit --run --coverage",
+    "coverage:all": "vitest --project=unit --project=storybook --run --coverage",
+    "coverage:check": "npm run -s coverage:all && node scripts/check-coverage-thresholds.mjs --statements 78 --functions 74 --lines 78 --branches 69",
     "test:ci:unit": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:browser": "playwright test --config=playwright.browser.config.ts",
@@ -53,9 +58,11 @@
     "zustand": "^4.4.0"
   },
   "devDependencies": {
+    "@chromatic-com/storybook": "^5.0.1",
     "@playwright/test": "^1.58.2",
     "@storybook/addon-a11y": "^10.2.10",
     "@storybook/addon-mcp": "^0.3.1",
+    "@storybook/addon-vitest": "^10.2.10",
     "@storybook/react-vite": "^10.2.10",
     "@tauri-apps/cli": "^2.0.0",
     "@testing-library/dom": "^10.4.1",
@@ -78,6 +85,8 @@
     "storybook": "^10.2.10",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "playwright": "^1.58.2",
+    "@vitest/browser-playwright": "^4.0.18"
   }
 }

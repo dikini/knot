@@ -323,7 +323,7 @@ export function Sidebar({
     return items;
   }, [explorerRoot]);
 
-  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const itemRefs = useRef<Record<string, HTMLElement | null>>({});
   const focusTreeItem = (itemKey: string) => {
     const element = itemRefs.current[itemKey];
     if (!element) return;
@@ -461,14 +461,78 @@ export function Sidebar({
     await refreshExplorerTree();
   };
 
-  const renderFolder = (folder: ExplorerFolderNode, depth: number) => (
-    <li key={folder.path || "__root"} className="explorer-tree__folder">
-      {folder.path !== "" && (
-        <button
-          type="button"
+  const renderNote = (notePath: string, noteTitle: string, depth: number, isInitiallyFocusable: boolean) => (
+    <li
+      key={notePath}
+      className={`explorer-tree__note-row ${currentNote?.path === notePath ? "explorer-tree__note-row--active" : ""}`}
+      style={{ paddingLeft: `${depth * 12 + 28}px` }}
+      role="treeitem"
+      aria-level={depth + 1}
+      aria-selected={focusedKey === `note:${notePath}`}
+      ref={(el) => {
+        itemRefs.current[`note:${notePath}`] = el;
+      }}
+      tabIndex={
+        focusedKey === `note:${notePath}` || (focusedKey === null && isInitiallyFocusable) ? 0 : -1
+      }
+      onFocus={() => setFocusedKey(`note:${notePath}`)}
+      onClick={() => void handleNoteClick(notePath)}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          targetType: "note",
+          path: notePath,
+        });
+      }}
+    >
+      <span className="explorer-tree__note-title">{noteTitle}</span>
+    </li>
+  );
+
+  const renderFolder = (folder: ExplorerFolderNode, depth: number): JSX.Element | JSX.Element[] => {
+    if (folder.path === "") {
+      return (
+        <>
+          {folder.folders.map((child) => renderFolder(child, depth))}
+          {folder.notes.map((note, index) =>
+            renderNote(note.path, note.display_title, depth, index === 0)
+          )}
+        </>
+      );
+    }
+
+    const noteDepth = depth + 1;
+
+    return (
+      <li
+        key={folder.path}
+        className="explorer-tree__folder"
+        role="treeitem"
+        aria-expanded={folder.expanded}
+        aria-level={depth + 1}
+        aria-selected={focusedKey === `folder:${folder.path}`}
+        aria-label={folder.name}
+        ref={(el) => {
+          itemRefs.current[`folder:${folder.path}`] = el;
+        }}
+        tabIndex={focusedKey === `folder:${folder.path}` || (focusedKey === null && depth === 0) ? 0 : -1}
+        onFocus={() => setFocusedKey(`folder:${folder.path}`)}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            targetType: "folder",
+            path: folder.path,
+          });
+        }}
+      >
+        <div
           className="explorer-tree__folder-row"
           style={{ paddingLeft: `${depth * 12 + 8}px` }}
-          onClick={() => handleFolderToggle(folder.path, !folder.expanded)}
+          onClick={() => void handleFolderToggle(folder.path, !folder.expanded)}
           onContextMenu={(event) => {
             event.preventDefault();
             setContextMenu({
@@ -478,68 +542,22 @@ export function Sidebar({
               path: folder.path,
             });
           }}
-          aria-expanded={folder.expanded}
-          role="treeitem"
-          aria-level={depth + 1}
-          aria-selected={focusedKey === `folder:${folder.path}`}
-          aria-label={folder.name}
-          ref={(el) => {
-            itemRefs.current[`folder:${folder.path}`] = el;
-          }}
-          tabIndex={focusedKey === `folder:${folder.path}` || (focusedKey === null && depth === 0) ? 0 : -1}
-          onFocus={() => setFocusedKey(`folder:${folder.path}`)}
         >
           <span className="explorer-tree__chevron">{folder.expanded ? "▾" : "▸"}</span>
           <span className="explorer-tree__folder-name">{folder.name}</span>
-        </button>
-      )}
-
-      {folder.expanded && (
-        <ul className="explorer-tree__children">
-          {folder.folders.map((child) => renderFolder(child, folder.path === "" ? depth : depth + 1))}
-          {folder.notes.map((note) => (
-            <li key={note.path}>
-              <button
-                type="button"
-                className={`explorer-tree__note-row ${
-                  currentNote?.path === note.path ? "explorer-tree__note-row--active" : ""
-                }`}
-                style={{ paddingLeft: `${(folder.path === "" ? depth : depth + 1) * 12 + 28}px` }}
-                onClick={() => handleNoteClick(note.path)}
-                role="treeitem"
-                aria-level={(folder.path === "" ? depth : depth + 1) + 1}
-                aria-selected={focusedKey === `note:${note.path}`}
-                ref={(el) => {
-                  itemRefs.current[`note:${note.path}`] = el;
-                }}
-                tabIndex={
-                  focusedKey === `note:${note.path}` ||
-                  (focusedKey === null && folder.path === "" && folder.notes[0]?.path === note.path)
-                    ? 0
-                    : -1
-                }
-                onFocus={() => setFocusedKey(`note:${note.path}`)}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  setContextMenu({
-                    x: event.clientX,
-                    y: event.clientY,
-                    targetType: "note",
-                    path: note.path,
-                  });
-                }}
-              >
-                <span className="explorer-tree__note-title">{note.display_title}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
-  );
+        </div>
+        {folder.expanded && (
+          <ul className="explorer-tree__children" role="group">
+            {folder.folders.map((child) => renderFolder(child, noteDepth))}
+            {folder.notes.map((note) => renderNote(note.path, note.display_title, noteDepth, false))}
+          </ul>
+        )}
+      </li>
+    );
+  };
 
   return (
-    <aside className="sidebar">
+    <section className="sidebar" aria-label="Notes sidebar">
       <header className="sidebar__header">
         <VaultSwitcher
           vault={vault}
@@ -628,22 +646,24 @@ export function Sidebar({
         >
           {contextMenu.targetType === "folder" && (
             <>
-              <button type="button" onClick={() => void handleNewNote(contextMenu.path)}>
+              <button type="button" role="menuitem" onClick={() => void handleNewNote(contextMenu.path)}>
                 New note here
               </button>
-              <button type="button" onClick={() => void handleNewFolder(contextMenu.path)}>
+              <button type="button" role="menuitem" onClick={() => void handleNewFolder(contextMenu.path)}>
                 New folder
               </button>
               {contextMenu.path !== "" && (
                 <>
                   <button
                     type="button"
+                    role="menuitem"
                     onClick={() => void handleRenameTarget("folder", contextMenu.path)}
                   >
                     Rename folder
                   </button>
                   <button
                     type="button"
+                    role="menuitem"
                     onClick={() => void handleDeleteTarget("folder", contextMenu.path)}
                   >
                     Delete folder
@@ -654,16 +674,16 @@ export function Sidebar({
           )}
           {contextMenu.targetType === "note" && (
             <>
-              <button type="button" onClick={() => void handleRenameTarget("note", contextMenu.path)}>
+              <button type="button" role="menuitem" onClick={() => void handleRenameTarget("note", contextMenu.path)}>
                 Rename note
               </button>
-              <button type="button" onClick={() => void handleDeleteTarget("note", contextMenu.path)}>
+              <button type="button" role="menuitem" onClick={() => void handleDeleteTarget("note", contextMenu.path)}>
                 Delete note
               </button>
             </>
           )}
         </div>
       )}
-    </aside>
+    </section>
   );
 }

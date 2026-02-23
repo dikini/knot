@@ -223,11 +223,6 @@ export function SearchBox({ onResultSelect }: SearchBoxProps) {
           onKeyDown={handleKeyDown}
           onFocus={handleInputFocus}
           aria-label="Search notes"
-          aria-expanded={showDropdown}
-          aria-controls="search-results"
-          aria-activedescendant={
-            selectedIndex >= 0 ? `search-result-${selectedIndex}` : undefined
-          }
           autoComplete="off"
         />
 
@@ -271,19 +266,21 @@ export function SearchBox({ onResultSelect }: SearchBoxProps) {
       </div>
 
       {showDropdown && (
-        <div
-          id="search-results"
-          className="search-box__dropdown"
-          role="listbox"
-        >
+        <div className="search-box__dropdown" id="search-results">
           {isSearching ? (
-            <div className="search-box__loading">Searching...</div>
+            <div className="search-box__loading" role="status" aria-live="polite">
+              Searching...
+            </div>
           ) : query.trim() === "" ? (
-            <div className="search-box__empty">Type to search</div>
+            <div className="search-box__empty" role="status" aria-live="polite">
+              Type to search
+            </div>
           ) : results.length === 0 ? (
-            <div className="search-box__empty">No notes found</div>
+            <div className="search-box__empty" role="status" aria-live="polite">
+              No notes found
+            </div>
           ) : (
-            <ul className="search-box__results">
+            <ul className="search-box__results" role="listbox" aria-label="Search results">
               {results.map((result, index) => (
                 <li
                   key={result.path}

@@ -586,7 +586,7 @@ function App() {
             {/* Recent vaults list */}
             {recentVaults.length > 0 && (
               <div className="recent-vaults">
-                <h3>Recent Vaults</h3>
+                <h2>Recent Vaults</h2>
                 <ul>
                   {recentVaults.map((recent) => (
                     <li key={recent.path}>

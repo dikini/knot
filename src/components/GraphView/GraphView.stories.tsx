@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { expect, fn, mocked, userEvent, waitFor } from "storybook/test";
+import { expect, fireEvent, fn, mocked, userEvent, waitFor } from "storybook/test";
 import { GraphView } from "./index";
 import { getGraphLayout } from "@lib/api";
 import type { GraphLayout } from "@/types/vault";
@@ -73,7 +73,13 @@ export const VaultScopeDefault: Story = {
     await waitFor(() => {
       expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
     });
-    await userEvent.click(canvas.getByText("Root"));
+    const rootNode = Array.from(document.querySelectorAll<SVGGElement>("g.graph-node")).find((node) =>
+      node.textContent?.includes("Root")
+    );
+    expect(rootNode).not.toBeNull();
+    const rootCircle = rootNode?.querySelector("circle");
+    expect(rootCircle).not.toBeNull();
+    await userEvent.click(rootCircle as Element);
     await expect(args.onNodeClick).toHaveBeenCalledWith("notes/root.md");
   },
 };
@@ -91,7 +97,13 @@ export const HoverHighlightsConnectedEdges: Story = {
     await waitFor(() => {
       expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
     });
-    await userEvent.hover(canvas.getByText("Child A"));
+    const childNode = Array.from(document.querySelectorAll<SVGGElement>("g.graph-node")).find((node) =>
+      node.textContent?.includes("Child A")
+    );
+    expect(childNode).not.toBeNull();
+    const childCircle = childNode?.querySelector("circle");
+    expect(childCircle).not.toBeNull();
+    await userEvent.hover(childCircle as Element);
     await waitFor(() => {
       expect(canvasElement.querySelectorAll(".graph-edge--highlighted").length).toBe(1);
     });
@@ -137,7 +149,7 @@ export const ResetAfterZoom: Story = {
       expect(canvas.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
     });
     const graph = canvas.getByRole("img", { name: "Note link graph" });
-    graph.dispatchEvent(new WheelEvent("wheel", { deltaY: -100, bubbles: true, cancelable: true }));
+    fireEvent.wheel(graph, { deltaY: -100 });
     await waitFor(() => {
       expect(canvas.getByText("110%")).toBeInTheDocument();
     });

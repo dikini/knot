@@ -6,6 +6,12 @@ import "../src/styles/App.css";
 sb.mock(import("../src/lib/api.ts"), { spy: true });
 sb.mock(import("@tauri-apps/api/event"), { spy: true });
 
+const strictA11y =
+  (typeof process !== "undefined" && process.env?.STORYBOOK_A11Y_STRICT === "1") ||
+  (typeof globalThis !== "undefined" &&
+    (Reflect.get(globalThis, "STORYBOOK_A11Y_STRICT") === "1" ||
+      Reflect.get(globalThis, "STORYBOOK_A11Y_STRICT") === 1));
+
 const preview: Preview = {
   parameters: {
     layout: "fullscreen",
@@ -16,7 +22,8 @@ const preview: Preview = {
       },
     },
     a11y: {
-      test: "todo",
+      // Set STORYBOOK_A11Y_STRICT=1 to fail Storybook Vitest runs on a11y violations.
+      test: strictA11y ? "error" : "todo",
     },
   },
   tags: ["autodocs"],

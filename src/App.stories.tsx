@@ -69,6 +69,7 @@ type AppStoryArgs = {
   shell: Partial<ShellState>;
   editorContent: string;
   editorDirty: boolean;
+  preserveLocalStorage?: boolean;
 };
 
 function setupStores(args: AppStoryArgs) {
@@ -98,9 +99,12 @@ const meta: Meta<AppStoryArgs> = {
     shell: {},
     editorContent: "",
     editorDirty: false,
+    preserveLocalStorage: false,
   },
   render: (args) => {
-    localStorage.clear();
+    if (!args.preserveLocalStorage) {
+      localStorage.clear();
+    }
     setupStores(args);
     return <App />;
   },
@@ -118,6 +122,8 @@ const meta: Meta<AppStoryArgs> = {
     mocked(api.addRecentVault).mockResolvedValue(undefined);
     mocked(api.saveNote).mockResolvedValue(undefined);
     mocked(api.setUnsavedChanges).mockResolvedValue(undefined);
+    mocked(api.listNotes).mockResolvedValue(demoNotes);
+    mocked(api.getNote).mockResolvedValue(demoCurrentNote);
   },
   parameters: {
     layout: "fullscreen",
@@ -167,7 +173,7 @@ export const EditorActive: Story = {
     editorDirty: false,
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText("Language Model Evaluation")).toBeInTheDocument();
+    await expect(canvas.getByRole("heading", { name: "Language Model Evaluation" })).toBeInTheDocument();
     await expect(canvas.getByRole("button", { name: "Graph mode" })).toBeInTheDocument();
   },
 };
@@ -244,5 +250,123 @@ export const NoCustomWindowControlButtons: Story = {
     await expect(canvas.queryByRole("button", { name: /minimize/i })).not.toBeInTheDocument();
     await expect(canvas.queryByRole("button", { name: /maximize/i })).not.toBeInTheDocument();
     await expect(canvas.queryByRole("button", { name: /close window/i })).not.toBeInTheDocument();
+  },
+};
+
+export const OpenVaultErrorToast: Story = {
+  args: {
+    vault: null,
+    noteList: [],
+    currentNote: null,
+    shell: {},
+    editorContent: "",
+    editorDirty: false,
+  },
+  beforeEach: async () => {
+    mocked(api.openVaultDialog).mockRejectedValueOnce(new Error("open failed"));
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Open Existing Vault" }));
+    await waitFor(() => {
+      expect(canvas.getByText("open failed")).toBeInTheDocument();
+    });
+  },
+};
+
+export const OpenRecentVaultSuccess: Story = {
+  args: {
+    vault: null,
+    noteList: [],
+    currentNote: null,
+    shell: {},
+    editorContent: "",
+    editorDirty: false,
+  },
+  beforeEach: async () => {
+    const nowSec = Math.floor(Date.now() / 1000);
+    mocked(api.getRecentVaults).mockResolvedValue([
+      { path: "/tmp/today-vault", name: "Today Vault", opened_at: nowSec - 60 },
+      { path: "/tmp/yesterday-vault", name: "Yesterday Vault", opened_at: nowSec - 86400 },
+      { path: "/tmp/older-vault", name: "Older Vault", opened_at: nowSec - 86400 * 8 },
+    ]);
+    mocked(api.openVault).mockResolvedValue({
+      ...demoVault,
+      path: "/tmp/today-vault",
+      name: "Today Vault",
+    });
+  },
+  play: async ({ canvas }) => {
+    await waitFor(() => {
+      expect(canvas.getByText("Today Vault")).toBeInTheDocument();
+    });
+    await expect(canvas.getByText("Yesterday")).toBeInTheDocument();
+    await userEvent.click(canvas.getByText("Today Vault"));
+    await waitFor(() => {
+      expect(canvas.getByText('Opened vault "Today Vault"')).toBeInTheDocument();
+    });
+  },
+};
+
+export const SearchModeSelectResult: Story = {
+  args: {
+    vault: demoVault,
+    noteList: demoNotes,
+    currentNote: demoCurrentNote,
+    shell: { toolMode: "notes", isContextPanelCollapsed: false, showTextLabels: true },
+    editorContent: demoCurrentNote.content,
+    editorDirty: false,
+  },
+  beforeEach: async () => {
+    mocked(api.getNote).mockResolvedValueOnce({
+      ...demoCurrentNote,
+      id: "n2",
+      path: "product-docs/roadmap-brief.md",
+      title: "Roadmap Brief",
+      content: "# Roadmap Brief",
+    });
+  },
+  play: async ({ canvas }) => {
+    await userEvent.keyboard("{Control>}2{/Control}");
+    await waitFor(() => {
+      expect(canvas.getByRole("textbox", { name: "Search notes" })).toBeInTheDocument();
+    });
+    await userEvent.click(canvas.getByRole("button", { name: "Roadmap Brief" }));
+    await waitFor(() => {
+      expect(api.getNote).toHaveBeenCalledWith("product-docs/roadmap-brief.md");
+    });
+  },
+};
+
+export const HydratesPersistedShellAndView: Story = {
+  args: {
+    preserveLocalStorage: true,
+    vault: demoVault,
+    noteList: demoNotes,
+    currentNote: demoCurrentNote,
+    shell: { toolMode: "notes", isContextPanelCollapsed: false, showTextLabels: false },
+    editorContent: demoCurrentNote.content,
+    editorDirty: false,
+  },
+  beforeEach: async () => {
+    localStorage.setItem("knot:view-mode:/tmp/canonical-vault", "graph");
+    localStorage.setItem(
+      "knot:shell:/tmp/canonical-vault",
+      JSON.stringify({
+        toolMode: "graph",
+        isContextPanelCollapsed: true,
+        isInspectorRailOpen: true,
+        contextPanelWidth: 460,
+        densityMode: "adaptive",
+        showTextLabels: true,
+      })
+    );
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await waitFor(() => {
+      expect(canvasElement.querySelector(".app--adaptive")).not.toBeNull();
+    });
+    await expect(canvas.getByRole("button", { name: "Edit note" })).toBeInTheDocument();
+    await expect(canvas.queryByRole("complementary", { name: "Context panel" })).not.toBeInTheDocument();
+    await expect(canvas.getByRole("complementary", { name: "Inspector rail" })).toBeInTheDocument();
   },
 };
