@@ -15,6 +15,7 @@
     "storybook:test:a11y": "STORYBOOK_A11Y_STRICT=1 vitest --project=storybook --run",
     "storybook:mcp:smoke": "node scripts/storybook-mcp-smoke.mjs",
     "knotd:mcp:smoke": "node scripts/knotd-mcp-smoke.mjs",
+    "knotd:daemon:smoke": "node scripts/knotd-daemon-open-new-smoke.mjs",
     "codex:mcp:setup": "node scripts/setup-codex-storybook-mcp.mjs",
     "codex:mcp:setup:knotd": "node scripts/setup-codex-knotd-mcp.mjs",
     "codex:mcp:setup:all": "node scripts/setup-codex-storybook-mcp.mjs && node scripts/setup-codex-knotd-mcp.mjs",
