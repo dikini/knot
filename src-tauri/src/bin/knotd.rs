@@ -116,32 +116,11 @@ struct KnotdStatusPayload {
     error: Option<String>,
 }
 
-fn status_payload(config: &KnotdConfig, result: &Result<(), knot::error::KnotError>) -> KnotdStatusPayload {
-    match result {
-        Ok(()) => KnotdStatusPayload {
-            mode: "status",
-            vault_path: config.vault_path.to_string_lossy().to_string(),
-            create: config.create,
-            ok: true,
-            lock_status: "available",
-            error: None,
-        },
-        Err(err) => {
-            let lock_status = match RuntimeHost::classify_open_error(err) {
-                VaultLockStatus::Contended => "contended",
-                VaultLockStatus::Available => "available",
-                VaultLockStatus::Unknown => "unknown",
-            };
-            KnotdStatusPayload {
-                mode: "status",
-                vault_path: config.vault_path.to_string_lossy().to_string(),
-                create: config.create,
-                ok: false,
-                lock_status,
-                error: Some(err.to_string()),
-            }
-        }
-    }
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ProbeOutcome {
+    ok: bool,
+    lock_status: &'static str,
+    error: Option<String>,
 }
 
 fn classify_lock_status_text(result: &Result<(), knot::error::KnotError>) -> &'static str {
@@ -155,33 +134,53 @@ fn classify_lock_status_text(result: &Result<(), knot::error::KnotError>) -> &'s
     }
 }
 
-fn probe_output_line(config: &KnotdConfig, result: &Result<(), knot::error::KnotError>) -> String {
-    let ok = result.is_ok();
-    let lock_status = classify_lock_status_text(result);
-    let error = result
-        .as_ref()
-        .err()
-        .map(|e| e.to_string())
+fn probe_outcome(result: &Result<(), knot::error::KnotError>) -> ProbeOutcome {
+    ProbeOutcome {
+        ok: result.is_ok(),
+        lock_status: classify_lock_status_text(result),
+        error: result.as_ref().err().map(|e| e.to_string()),
+    }
+}
+
+fn probe_exit_code(outcome: &ProbeOutcome) -> i32 {
+    if outcome.ok { 0 } else { 3 }
+}
+
+fn status_payload(config: &KnotdConfig, outcome: &ProbeOutcome) -> KnotdStatusPayload {
+    KnotdStatusPayload {
+        mode: "status",
+        vault_path: config.vault_path.to_string_lossy().to_string(),
+        create: config.create,
+        ok: outcome.ok,
+        lock_status: outcome.lock_status,
+        error: outcome.error.clone(),
+    }
+}
+
+fn probe_output_line(config: &KnotdConfig, outcome: &ProbeOutcome) -> String {
+    let error = outcome
+        .error
+        .clone()
         .unwrap_or_else(|| "none".to_string())
         .replace(' ', "_");
     format!(
         "mode=probe ok={} vault_path={} create={} lock_status={} error={}",
-        ok,
+        outcome.ok,
         config.vault_path.to_string_lossy(),
         config.create,
-        lock_status,
+        outcome.lock_status,
         error
     )
 }
 
-fn probe_json_payload(config: &KnotdConfig, result: &Result<(), knot::error::KnotError>) -> KnotdStatusPayload {
+fn probe_json_payload(config: &KnotdConfig, outcome: &ProbeOutcome) -> KnotdStatusPayload {
     KnotdStatusPayload {
         mode: "probe",
         vault_path: config.vault_path.to_string_lossy().to_string(),
         create: config.create,
-        ok: result.is_ok(),
-        lock_status: classify_lock_status_text(result),
-        error: result.as_ref().err().map(|e| e.to_string()),
+        ok: outcome.ok,
+        lock_status: outcome.lock_status,
+        error: outcome.error.clone(),
     }
 }
 
@@ -229,9 +228,10 @@ fn main() {
             runtime.open_existing(&config.vault_path).await
         }
     });
+    let outcome = probe_outcome(&init_result);
 
     if config.run_mode == RunMode::Status {
-        let payload = status_payload(&config, &init_result);
+        let payload = status_payload(&config, &outcome);
         match serde_json::to_string_pretty(&payload) {
             Ok(json) => println!("{json}"),
             Err(err) => {
@@ -239,7 +239,7 @@ fn main() {
                 std::process::exit(5);
             }
         }
-        let code = if init_result.is_ok() { 0 } else { 3 };
+        let code = probe_exit_code(&outcome);
         if init_result.is_ok() {
             let _ = rt.block_on(runtime.close());
         }
@@ -247,7 +247,7 @@ fn main() {
     }
 
     if config.run_mode == RunMode::Probe {
-        println!("{}", probe_output_line(&config, &init_result));
+        println!("{}", probe_output_line(&config, &outcome));
         if init_result.is_ok() {
             let _ = rt.block_on(runtime.close());
             std::process::exit(0);
@@ -256,7 +256,7 @@ fn main() {
     }
 
     if config.run_mode == RunMode::ProbeJson {
-        let payload = probe_json_payload(&config, &init_result);
+        let payload = probe_json_payload(&config, &outcome);
         match serde_json::to_string(&payload) {
             Ok(json) => println!("{json}"),
             Err(err) => {
@@ -289,7 +289,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{capabilities_payload, parse_config, probe_json_payload, probe_output_line, status_payload, KnotdConfig, RunMode};
+    use super::{capabilities_payload, parse_config, probe_exit_code, probe_json_payload, probe_outcome, probe_output_line, status_payload, KnotdConfig, RunMode};
     use knot::error::KnotError;
     use std::path::PathBuf;
 
@@ -392,12 +392,10 @@ mod tests {
             create: false,
             run_mode: RunMode::Status,
         };
-        let payload = status_payload(
-            &cfg,
-            &Err(KnotError::Search(
-                "Failed to acquire Lockfile: LockBusy".to_string(),
-            )),
-        );
+        let outcome = probe_outcome(&Err(KnotError::Search(
+            "Failed to acquire Lockfile: LockBusy".to_string(),
+        )));
+        let payload = status_payload(&cfg, &outcome);
         assert_eq!(payload.lock_status, "contended");
         assert!(!payload.ok);
     }
@@ -409,7 +407,8 @@ mod tests {
             create: false,
             run_mode: RunMode::Probe,
         };
-        let line = probe_output_line(&cfg, &Err(KnotError::Search("LockBusy".to_string())));
+        let outcome = probe_outcome(&Err(KnotError::Search("LockBusy".to_string())));
+        let line = probe_output_line(&cfg, &outcome);
         assert!(line.contains("lock_status=contended"), "line: {line}");
     }
 
@@ -420,7 +419,7 @@ mod tests {
             create: true,
             run_mode: RunMode::ProbeJson,
         };
-        let payload = probe_json_payload(&cfg, &Ok(()));
+        let payload = probe_json_payload(&cfg, &probe_outcome(&Ok(())));
         let value = serde_json::to_value(payload).expect("json value");
         assert_eq!(value["mode"], "probe");
         assert_eq!(value["create"], true);
@@ -436,5 +435,13 @@ mod tests {
         assert_eq!(value["mode"], "capabilities");
         assert!(value["run_modes"].to_string().contains("probe-json"));
         assert!(value["flags"].to_string().contains("--print-capabilities"));
+    }
+
+    #[test]
+    fn probe_exit_code_is_consistent() {
+        let ok = probe_outcome(&Ok(()));
+        let fail = probe_outcome(&Err(KnotError::Search("LockBusy".to_string())));
+        assert_eq!(probe_exit_code(&ok), 0);
+        assert_eq!(probe_exit_code(&fail), 3);
     }
 }

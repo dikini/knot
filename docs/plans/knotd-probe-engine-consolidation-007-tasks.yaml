@@ -1,0 +1,19 @@
+plan: PLAN-KNOTD-PROBE-ENGINE-007
+trace: DESIGN-knotd-probe-engine-consolidation
+tasks:
+  - id: KPE-001
+    title: Add shared probe outcome tests
+    status: completed
+    refs: [FR-1, FR-3, FR-5]
+  - id: KPE-002
+    title: Implement consolidated probe outcome engine
+    status: completed
+    refs: [FR-1, FR-2]
+  - id: KPE-003
+    title: Centralize exit mapping and preserve compatibility
+    status: completed
+    refs: [FR-3, FR-4]
+  - id: KPE-004
+    title: Verification run and audit report
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
