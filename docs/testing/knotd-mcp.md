@@ -47,6 +47,34 @@ Smoke checks:
 
 ## Operator Workflows
 
+### Stdio Transport Tap (Codex ⇄ bridge)
+Use a tap shim to prove end-to-end stdio piping and inspect framed MCP traffic.
+
+1. In `~/.codex/config.toml`, point `knot_vault` to the tap script:
+```toml
+[mcp_servers.knot_vault]
+command = "/home/dikini/.nvm/versions/node/v24.0.1/bin/node"
+args = ["/home/dikini/Projects/knot/scripts/mcp-stdio-tap.mjs"]
+startup_timeout_sec = 60
+```
+
+2. Optional tap env tuning (set in shell before starting Codex):
+```bash
+export KNOTD_MCP_TAP_LOG=/tmp/knot-mcp-stdio-tap.log
+export KNOTD_MCP_TAP_PREVIEW_BYTES=1024
+export KNOTD_MCP_TAP_PARSE_FRAMES=1
+```
+
+3. Read the log:
+```bash
+tail -f /tmp/knot-mcp-stdio-tap.log
+```
+
+Log includes:
+- process lifecycle (`tap_start`, `child_spawn`, `child_exit`)
+- byte-level chunk flow (`codex.stdin->bridge.stdin`, `bridge.stdout->codex.stdout`, `bridge.stderr->codex.stderr`)
+- MCP frame parsing with method/id/content-length for both request and response paths
+
 ### Local IPC Daemon Mode (Unix)
 Run `knotd` as a socket daemon (for decoupled runtime ownership):
 ```bash
@@ -56,6 +84,11 @@ Run `knotd` as a socket daemon (for decoupled runtime ownership):
 ```
 
 This mode keeps MCP runtime alive independent of parent stdio process lifetimes.
+
+Codex then uses a stdio bridge:
+- Script: `scripts/knotd-mcp-bridge.mjs`
+- Codex config entry: `mcp_servers.knot_vault` points to node + bridge script
+- Bridge target socket: `.mcp/knotd-mcp.json` `socketPath` or default `/tmp/knotd.sock`
 
 ### Success Path
 1. Run launcher via Codex MCP registration.
