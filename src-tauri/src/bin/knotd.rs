@@ -9,6 +9,7 @@ enum RunMode {
     Serve,
     Status,
     Probe,
+    ProbeJson,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,6 +37,10 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
             }
             "--check" | "--once" => {
                 run_mode = RunMode::Probe;
+                idx += 1;
+            }
+            "--probe-json" => {
+                run_mode = RunMode::ProbeJson;
                 idx += 1;
             }
             "--vault" => {
@@ -137,6 +142,17 @@ fn probe_output_line(config: &KnotdConfig, result: &Result<(), knot::error::Knot
     )
 }
 
+fn probe_json_payload(config: &KnotdConfig, result: &Result<(), knot::error::KnotError>) -> KnotdStatusPayload {
+    KnotdStatusPayload {
+        mode: "probe",
+        vault_path: config.vault_path.to_string_lossy().to_string(),
+        create: config.create,
+        ok: result.is_ok(),
+        lock_status: classify_lock_status_text(result),
+        error: result.as_ref().err().map(|e| e.to_string()),
+    }
+}
+
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     let env_vault = std::env::var("KNOT_VAULT_PATH").ok();
@@ -187,6 +203,22 @@ fn main() {
         std::process::exit(3);
     }
 
+    if config.run_mode == RunMode::ProbeJson {
+        let payload = probe_json_payload(&config, &init_result);
+        match serde_json::to_string(&payload) {
+            Ok(json) => println!("{json}"),
+            Err(err) => {
+                eprintln!("Failed to serialize probe payload: {err}");
+                std::process::exit(5);
+            }
+        }
+        if init_result.is_ok() {
+            let _ = rt.block_on(runtime.close());
+            std::process::exit(0);
+        }
+        std::process::exit(3);
+    }
+
     if let Err(err) = init_result {
         eprintln!(
             "Failed to initialize runtime for vault {}: {}",
@@ -205,7 +237,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_config, probe_output_line, status_payload, KnotdConfig, RunMode};
+    use super::{parse_config, probe_json_payload, probe_output_line, status_payload, KnotdConfig, RunMode};
     use knot::error::KnotError;
     use std::path::PathBuf;
 
@@ -271,6 +303,16 @@ mod tests {
     }
 
     #[test]
+    fn parse_sets_probe_json_mode_when_flag_present() {
+        let cfg = parse_config(
+            &args(&["knotd", "--probe-json", "--vault", "/tmp/probe-json-vault"]),
+            None,
+        )
+        .expect("config");
+        assert_eq!(cfg.run_mode, RunMode::ProbeJson);
+    }
+
+    #[test]
     fn parse_defaults_to_serve_mode() {
         let cfg = parse_config(&args(&["knotd", "--vault", "/tmp/vault"]), None).expect("config");
         assert_eq!(cfg.run_mode, RunMode::Serve);
@@ -311,5 +353,21 @@ mod tests {
         };
         let line = probe_output_line(&cfg, &Err(KnotError::Search("LockBusy".to_string())));
         assert!(line.contains("lock_status=contended"), "line: {line}");
+    }
+
+    #[test]
+    fn probe_json_payload_contains_expected_fields() {
+        let cfg = KnotdConfig {
+            vault_path: PathBuf::from("/tmp/v"),
+            create: true,
+            run_mode: RunMode::ProbeJson,
+        };
+        let payload = probe_json_payload(&cfg, &Ok(()));
+        let value = serde_json::to_value(payload).expect("json value");
+        assert_eq!(value["mode"], "probe");
+        assert_eq!(value["create"], true);
+        assert_eq!(value["ok"], true);
+        assert_eq!(value["lock_status"], "available");
+        assert!(value.get("error").is_some());
     }
 }

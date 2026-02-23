@@ -1,0 +1,19 @@
+plan: PLAN-KNOTD-PROBE-JSON-005
+trace: DESIGN-knotd-probe-json
+tasks:
+  - id: KPJ-001
+    title: Add probe-json parser/payload tests
+    status: completed
+    refs: [FR-1, FR-2, FR-4]
+  - id: KPJ-002
+    title: Implement probe-json mode and JSON output
+    status: completed
+    refs: [FR-1, FR-2, FR-3]
+  - id: KPJ-003
+    title: Handle serialization error exits
+    status: completed
+    refs: [FR-5]
+  - id: KPJ-004
+    title: Verification run and audit report
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
