@@ -8,7 +8,8 @@ import { homedir } from "node:os";
 
 const projectRoot = resolve(process.cwd());
 const codexConfigPath = resolve(homedir(), ".codex/config.toml");
-const launcherPath = resolve(projectRoot, "scripts/knotd-mcp-codex.mjs");
+// Trace: DESIGN-knotd-mcp-ops
+const bridgePath = resolve(projectRoot, "scripts/knotd-mcp-bridge.mjs");
 const nodeCommand = process.execPath;
 const beginMarker = "# >>> knot-vault-mcp >>>";
 const endMarker = "# <<< knot-vault-mcp <<<";
@@ -19,7 +20,7 @@ const blockLines = [
   beginMarker,
   "[mcp_servers.knot_vault]",
   `command = ${tomlString(nodeCommand)}`,
-  `args = [${tomlString(launcherPath)}]`,
+  `args = [${tomlString(bridgePath)}]`,
   "startup_timeout_sec = 60",
   endMarker,
   "",

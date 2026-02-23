@@ -1,5 +1,7 @@
 {
+  "trace": "DESIGN-knotd-mcp-ops",
   "vaultPath": "test-vault/canonical",
+  "socketPath": "/tmp/knotd.sock",
   "createIfMissing": false,
   "startupProbe": "auto",
   "notes": "Optional local override file: .mcp/knotd-mcp.json. Set vaultPath to absolute or project-relative path."
