@@ -6,7 +6,7 @@
 //! SPEC: COMP-VAULT-001 FR-5
 
 use crate::core::VaultManager;
-use crate::runtime::RuntimeHost;
+use crate::runtime::{RuntimeHost, RuntimeMode};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -22,8 +22,17 @@ pub struct AppState {
 impl AppState {
     /// Create a new empty application state.
     pub fn new() -> Self {
+        // TRACE: DESIGN-knotd-ui-daemon-integration
+        let runtime_mode = match std::env::var("KNOT_UI_RUNTIME_MODE")
+            .ok()
+            .as_deref()
+            .map(str::trim)
+        {
+            Some("daemon_ipc") => RuntimeMode::DesktopDaemonCapable,
+            _ => RuntimeMode::DesktopEmbedded,
+        };
         Self {
-            runtime: RuntimeHost::default(),
+            runtime: RuntimeHost::new(runtime_mode),
         }
     }
 
@@ -64,6 +73,31 @@ impl AppState {
 #[cfg(test)]
 mod tests {
     use super::AppState;
+    use crate::runtime::RuntimeMode;
+
+    struct EnvGuard {
+        key: &'static str,
+        original: Option<String>,
+    }
+
+    impl EnvGuard {
+        fn set(key: &'static str, value: &str) -> Self {
+            let original = std::env::var(key).ok();
+            // SPEC-TDD: KUI-001 daemon mode config contract
+            std::env::set_var(key, value);
+            Self { key, original }
+        }
+    }
+
+    impl Drop for EnvGuard {
+        fn drop(&mut self) {
+            if let Some(value) = &self.original {
+                std::env::set_var(self.key, value);
+            } else {
+                std::env::remove_var(self.key);
+            }
+        }
+    }
 
     #[tokio::test]
     async fn bug_vault_unsaved_001_tracks_unsaved_changes_flag() {
@@ -76,6 +110,13 @@ mod tests {
 
         state.set_unsaved_changes(false).await;
         assert!(!state.has_unsaved_changes().await);
+    }
+
+    #[test]
+    fn tdd_kui_001_app_state_uses_daemon_runtime_mode_when_configured() {
+        let _guard = EnvGuard::set("KNOT_UI_RUNTIME_MODE", "daemon_ipc");
+        let state = AppState::new();
+        assert_eq!(state.runtime().mode(), RuntimeMode::DesktopDaemonCapable);
     }
 }
 

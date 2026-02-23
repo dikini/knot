@@ -1,0 +1,38 @@
+trace: DESIGN-knotd-ui-daemon-integration
+plan: PLAN-KNOTD-UI-010
+tasks:
+  - id: KUI-001
+    title: Define daemon mode config contract
+    refs: [FR-2, FR-6]
+    size: S
+    depends_on: []
+  - id: KUI-002
+    title: Implement typed knotd IPC client and error model
+    refs: [FR-3, FR-4, FR-7]
+    size: M
+    depends_on: [KUI-001]
+  - id: KUI-003
+    title: Route command layer to daemon client in enabled mode
+    refs: [FR-1, FR-4, FR-5]
+    size: L
+    depends_on: [KUI-002]
+  - id: KUI-004
+    title: Add DTO compatibility mapping tests
+    refs: [FR-5, FR-9]
+    size: M
+    depends_on: [KUI-003]
+  - id: KUI-005
+    title: Add daemon readiness probe and diagnostics exposure
+    refs: [FR-6, FR-7]
+    size: M
+    depends_on: [KUI-002]
+  - id: KUI-006
+    title: Keep resources/list disabled in integrated mode
+    refs: [FR-8]
+    size: S
+    depends_on: [KUI-003]
+  - id: KUI-007
+    title: Verification matrix and runbook updates for daemon up/down scenarios
+    refs: [FR-1, FR-3, FR-6, FR-9]
+    size: M
+    depends_on: [KUI-003, KUI-004, KUI-005, KUI-006]

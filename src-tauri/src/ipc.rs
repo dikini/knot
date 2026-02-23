@@ -14,7 +14,7 @@ use std::sync::mpsc::Sender;
 use std::thread;
 
 /// Socket path for IPC
-pub const DEFAULT_SOCKET_PATH: &str = "/tmp/botpane.sock";
+pub const DEFAULT_SOCKET_PATH: &str = "/tmp/knotd.sock";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppCommandEnvelope {
@@ -288,9 +288,12 @@ impl IpcClient {
 
     /// Check if server is available
     pub fn ping(&self) -> Result<bool> {
-        match self.send_message(IpcMessage::Ping) {
-            Ok(IpcMessage::Pong) => Ok(true),
-            _ => Ok(false),
+        match self.send_message(IpcMessage::Ping)? {
+            IpcMessage::Pong => Ok(true),
+            other => Err(VaultError::Other(format!(
+                "Unexpected ping response from knotd: {:?}",
+                other
+            ))),
         }
     }
 
@@ -321,8 +324,9 @@ impl IpcClient {
     fn send_message(&self, message: IpcMessage) -> Result<IpcMessage> {
         let mut stream = UnixStream::connect(&self.socket_path).map_err(|e| {
             VaultError::Other(format!(
-                "Failed to connect to BotPane: {}. Is BotPane running?",
-                e
+                "Failed to connect to knotd at {}: {}. Is knotd running?",
+                self.socket_path.display(),
+                e,
             ))
         })?;
 
@@ -471,5 +475,19 @@ mod tests {
         // After init, ipc_client() should return Some
         init_ipc_client(Some(PathBuf::from("/tmp/test_global.sock")));
         assert!(ipc_client().is_some());
+    }
+
+    #[test]
+    fn tdd_kui_002_default_socket_path_targets_knotd() {
+        assert_eq!(DEFAULT_SOCKET_PATH, "/tmp/knotd.sock");
+    }
+
+    #[test]
+    fn tdd_kui_002_transport_error_mentions_knotd() {
+        let missing_socket = format!("/tmp/knotd_missing_{}.sock", std::process::id());
+        let client = IpcClient::new(missing_socket);
+        let err = client.ping().expect_err("expected transport failure");
+        let message = err.to_string().to_lowercase();
+        assert!(message.contains("knotd"), "error should reference knotd: {message}");
     }
 }
