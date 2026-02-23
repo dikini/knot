@@ -9,15 +9,17 @@ import { homedir } from "node:os";
 const projectRoot = resolve(process.cwd());
 const codexConfigPath = resolve(homedir(), ".codex/config.toml");
 const launcherPath = resolve(projectRoot, "scripts/knotd-mcp-codex.mjs");
+const nodeCommand = process.execPath;
 const beginMarker = "# >>> knot-vault-mcp >>>";
 const endMarker = "# <<< knot-vault-mcp <<<";
 const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const tomlString = (value) => JSON.stringify(value);
 
 const blockLines = [
   beginMarker,
   "[mcp_servers.knot_vault]",
-  'command = "node"',
-  `args = ["${launcherPath}"]`,
+  `command = ${tomlString(nodeCommand)}`,
+  `args = [${tomlString(launcherPath)}]`,
   "startup_timeout_sec = 60",
   endMarker,
   "",

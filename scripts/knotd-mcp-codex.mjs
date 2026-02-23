@@ -4,9 +4,11 @@
 
 import { existsSync, readFileSync } from "node:fs";
 import { spawn, spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const projectRoot = process.cwd();
+const scriptPath = fileURLToPath(import.meta.url);
+const projectRoot = resolve(dirname(scriptPath), "..");
 const explicitConfig = process.env.KNOTD_MCP_CONFIG;
 const localConfigPath = explicitConfig
   ? resolve(projectRoot, explicitConfig)
@@ -55,6 +57,25 @@ function resolveKnotdCommand() {
 }
 
 const { cmd, baseArgs } = resolveKnotdCommand();
+const usesCargoFallback =
+  cmd === "cargo" &&
+  Array.isArray(baseArgs) &&
+  baseArgs.length > 0 &&
+  baseArgs[0] === "run";
+
+function resolveProbeMode() {
+  const configured = process.env.KNOTD_MCP_STARTUP_PROBE ?? config.startupProbe ?? "auto";
+  if (configured === true || configured === "always") return "always";
+  if (configured === false || configured === "never" || configured === "off") return "never";
+  return "auto";
+}
+
+function shouldRunProbe() {
+  const probeMode = resolveProbeMode();
+  if (probeMode === "always") return true;
+  if (probeMode === "never") return false;
+  return !usesCargoFallback;
+}
 
 function runProbe() {
   const args = [...baseArgs, "--probe-json", "--vault", resolvedVaultPath];
@@ -89,7 +110,9 @@ function runProbe() {
   }
 }
 
-runProbe();
+if (shouldRunProbe()) {
+  runProbe();
+}
 
 const serveArgs = [...baseArgs, "--vault", resolvedVaultPath];
 if (createIfMissing) serveArgs.push("--create");

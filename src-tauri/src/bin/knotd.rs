@@ -3,10 +3,19 @@ use std::path::PathBuf;
 use knot::mcp::{run_stdio_server, McpServer};
 use knot::runtime::{RuntimeHost, RuntimeMode, VaultLockStatus};
 use serde::Serialize;
+#[cfg(unix)]
+use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+#[cfg(unix)]
+use std::os::unix::net::UnixListener;
+#[cfg(unix)]
+use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RunMode {
     Serve,
+    ServeUnix,
     Status,
     Probe,
     ProbeJson,
@@ -20,11 +29,13 @@ struct KnotdConfig {
     vault_path: PathBuf,
     create: bool,
     run_mode: RunMode,
+    listen_unix_path: Option<PathBuf>,
 }
 
-const CAPABILITIES_FLAGS: [&str; 12] = [
+const CAPABILITIES_FLAGS: [&str; 13] = [
     "--vault",
     "--create",
+    "--listen-unix",
     "--status",
     "--check",
     "--once",
@@ -49,6 +60,7 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
     let mut create = false;
     let mut run_mode = RunMode::Serve;
     let mut cli_vault: Option<PathBuf> = None;
+    let mut listen_unix_path: Option<PathBuf> = None;
 
     let mut idx = 1;
     while idx < args.len() {
@@ -56,6 +68,12 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
             "--create" => {
                 create = true;
                 idx += 1;
+            }
+            "--listen-unix" => {
+                let value = parse_flag_value(args, idx, "--listen-unix")?;
+                listen_unix_path = Some(PathBuf::from(value));
+                run_mode = RunMode::ServeUnix;
+                idx += 2;
             }
             "--status" => {
                 run_mode = RunMode::Status;
@@ -82,9 +100,7 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
                 idx += 1;
             }
             "--vault" => {
-                let value = args
-                    .get(idx + 1)
-                    .ok_or_else(|| "Missing value for --vault".to_string())?;
+                let value = parse_flag_value(args, idx, "--vault")?;
                 cli_vault = Some(PathBuf::from(value));
                 idx += 2;
             }
@@ -102,6 +118,7 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
             vault_path: PathBuf::new(),
             create,
             run_mode,
+            listen_unix_path,
         });
     }
 
@@ -120,7 +137,18 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
         vault_path,
         create,
         run_mode,
+        listen_unix_path,
     })
+}
+
+fn parse_flag_value<'a>(args: &'a [String], idx: usize, flag: &str) -> Result<&'a str, String> {
+    let Some(value) = args.get(idx + 1) else {
+        return Err(format!("Missing value for {flag}"));
+    };
+    if value.starts_with("--") {
+        return Err(format!("Missing value for {flag}"));
+    }
+    Ok(value)
 }
 
 #[derive(Debug, Serialize)]
@@ -224,6 +252,7 @@ fn help_text() -> String {
         "",
         "Usage:",
         "  knotd --vault <path> [--create]              # serve MCP over stdio",
+        "  knotd --listen-unix <socket-path> --vault <path> [--create] # serve MCP over local Unix socket",
         "  knotd --status --vault <path> [--create]     # JSON probe",
         "  knotd --check|--once --vault <path> [--create] # one-line probe",
         "  knotd --probe-json --vault <path> [--create] # JSON one-shot probe",
@@ -332,9 +361,56 @@ fn main() {
     }
 
     let server = McpServer::from_runtime(&runtime);
+    if config.run_mode == RunMode::ServeUnix {
+        #[cfg(unix)]
+        {
+            let socket_path = match config.listen_unix_path.as_deref() {
+                Some(path) => path,
+                None => {
+                    eprintln!("Missing socket path for --listen-unix");
+                    std::process::exit(2);
+                }
+            };
+            if let Err(err) = run_unix_socket_server(&server, socket_path) {
+                eprintln!("knotd MCP Unix socket server error: {err}");
+                std::process::exit(4);
+            }
+            return;
+        }
+
+        #[cfg(not(unix))]
+        {
+            eprintln!("--listen-unix is only supported on Unix platforms");
+            std::process::exit(2);
+        }
+    }
+
     if let Err(err) = run_stdio_server(&server, std::io::stdin(), std::io::stdout()) {
         eprintln!("knotd MCP server I/O error: {err}");
         std::process::exit(4);
+    }
+}
+
+#[cfg(unix)]
+fn run_unix_socket_server(server: &McpServer, socket_path: &Path) -> Result<(), String> {
+    if socket_path.exists() {
+        fs::remove_file(socket_path)
+            .map_err(|err| format!("failed to remove stale socket {}: {err}", socket_path.display()))?;
+    }
+    let listener = UnixListener::bind(socket_path)
+        .map_err(|err| format!("failed to bind socket {}: {err}", socket_path.display()))?;
+    let permissions = fs::Permissions::from_mode(0o600);
+    fs::set_permissions(socket_path, permissions)
+        .map_err(|err| format!("failed to set socket permissions on {}: {err}", socket_path.display()))?;
+
+    loop {
+        let (stream, _addr) = listener
+            .accept()
+            .map_err(|err| format!("socket accept failed: {err}"))?;
+        let reader = stream
+            .try_clone()
+            .map_err(|err| format!("failed to clone socket stream: {err}"))?;
+        run_stdio_server(server, reader, stream).map_err(|err| format!("client I/O failed: {err}"))?;
     }
 }
 
@@ -416,6 +492,36 @@ mod tests {
     }
 
     #[test]
+    fn parse_sets_listen_unix_mode_and_path_when_flag_present() {
+        let cfg = parse_config(
+            &args(&[
+                "knotd",
+                "--listen-unix",
+                "/tmp/knotd.sock",
+                "--vault",
+                "/tmp/socket-vault",
+            ]),
+            None,
+        )
+        .expect("config");
+        assert_eq!(cfg.run_mode, RunMode::ServeUnix);
+        assert_eq!(
+            cfg.listen_unix_path,
+            Some(PathBuf::from("/tmp/knotd.sock"))
+        );
+    }
+
+    #[test]
+    fn parse_fails_when_listen_unix_value_missing() {
+        let err = parse_config(
+            &args(&["knotd", "--listen-unix", "--vault", "/tmp/socket-vault"]),
+            None,
+        )
+        .expect_err("missing value should fail");
+        assert!(err.contains("--listen-unix"), "unexpected error: {err}");
+    }
+
+    #[test]
     fn parse_sets_capabilities_mode_when_flag_present() {
         let cfg = parse_config(&args(&["knotd", "--print-capabilities"]), None).expect("config");
         assert_eq!(cfg.run_mode, RunMode::Capabilities);
@@ -454,6 +560,7 @@ mod tests {
             vault_path: PathBuf::from("/tmp/v"),
             create: false,
             run_mode: RunMode::Status,
+            listen_unix_path: None,
         };
         let outcome = probe_outcome(&Err(KnotError::Search(
             "Failed to acquire Lockfile: LockBusy".to_string(),
@@ -469,6 +576,7 @@ mod tests {
             vault_path: PathBuf::from("/tmp/v"),
             create: false,
             run_mode: RunMode::Probe,
+            listen_unix_path: None,
         };
         let outcome = probe_outcome(&Err(KnotError::Search("LockBusy".to_string())));
         let line = probe_output_line(&cfg, &outcome);
@@ -481,6 +589,7 @@ mod tests {
             vault_path: PathBuf::from("/tmp/v"),
             create: true,
             run_mode: RunMode::ProbeJson,
+            listen_unix_path: None,
         };
         let payload = probe_json_payload(&cfg, &probe_outcome(&Ok(())));
         let value = serde_json::to_value(payload).expect("json value");
@@ -498,6 +607,7 @@ mod tests {
         assert_eq!(value["mode"], "capabilities");
         assert!(value["run_modes"].to_string().contains("probe-json"));
         assert!(value["flags"].to_string().contains("--print-capabilities"));
+        assert!(value["flags"].to_string().contains("--listen-unix"));
     }
 
     #[test]
@@ -506,6 +616,7 @@ mod tests {
         assert!(text.contains("--probe-json"));
         assert!(text.contains("--print-capabilities"));
         assert!(text.contains("--version"));
+        assert!(text.contains("--listen-unix"));
     }
 
     #[test]

@@ -1,0 +1,23 @@
+plan: PLAN-KNOTD-IPC-009
+trace: DESIGN-knotd-local-ipc
+tasks:
+  - id: KIP-001
+    title: Add failing parser tests for listen-unix mode
+    status: completed
+    refs: [FR-1, FR-3, FR-6]
+  - id: KIP-002
+    title: Implement run-mode parse and config wiring for listen-unix
+    status: completed
+    refs: [FR-1, FR-2, FR-3]
+  - id: KIP-003
+    title: Implement Unix socket serve loop with 0600 permissions
+    status: completed
+    refs: [FR-4]
+  - id: KIP-004
+    title: Add non-Unix fail-fast branch and help updates
+    status: completed
+    refs: [FR-5]
+  - id: KIP-005
+    title: Verify and audit
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6]
