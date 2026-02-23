@@ -156,7 +156,7 @@ if [[ "$RUN_DAEMON_SMOKE" -eq 1 ]]; then
 
   SOCKET_PATH="${KNOTD_SOCKET_PATH:-/tmp/knotd.sock}"
   if [[ -S "${SOCKET_PATH}" ]]; then
-    run_step "knotd daemon socket smoke (open/new/close over MCP)" npm run -s knotd:daemon:smoke
+    run_step "knotd MCP triage (daemon smoke + startup traces)" npm run -s knotd:triage
   else
     if [[ "$REQUIRE_DAEMON_SMOKE" -eq 1 ]]; then
       echo "Daemon smoke required but socket not found: ${SOCKET_PATH}" >&2

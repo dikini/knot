@@ -42,3 +42,6 @@ jobs:
       - name: Native launch smoke (bounded)
         run: TAURI_SMOKE_CMD="xvfb-run -a npm run tauri dev -- --no-watch" npm run -s test:e2e:tauri -- --launch-smoke --timeout=420
 
+      # Trace: DESIGN-daemon-ui-ipc-cutover
+      - name: Native daemon-IPC launch smoke (bounded)
+        run: TAURI_DAEMON_SMOKE_CMD="xvfb-run -a npm run tauri dev -- --no-watch" npm run -s test:e2e:tauri:daemon -- --launch-smoke --timeout=420

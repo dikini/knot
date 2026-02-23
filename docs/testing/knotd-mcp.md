@@ -2,6 +2,7 @@
 
 Trace: `DESIGN-knotd-mcp-ops`
 Spec: `docs/specs/component/knotd-mcp-ops-008.md`
+Related trace: `BUG-knotd-mcp-startup-handshake-timeout`
 
 ## Purpose
 Document deterministic startup and recovery for `knot_vault` MCP using `knotd`.
@@ -44,6 +45,51 @@ Smoke checks:
 - `--status`
 - `--help`
 - `--version`
+
+## Startup Handshake Trace
+Use timestamped traces to identify the exact stage where startup hangs/fails.
+
+Direct socket path:
+```bash
+npm run -s knotd:mcp:startup-trace
+```
+
+Bridge/stdin-stdout path (Codex-like):
+```bash
+npm run -s knotd:mcp:startup-trace:bridge
+```
+
+Both commands report:
+- `transport_connected`
+- `initialize:send/ok`
+- `tools/list:send/ok`
+- `tools/call:first:send/ok`
+
+If a run fails, use the final timeline step as the failure stage.
+
+## One-Command Triage
+Run all diagnostics in sequence:
+```bash
+npm run -s knotd:triage
+```
+
+Matrix includes:
+- daemon open/new/close smoke
+- startup trace over socket
+- startup trace over bridge
+
+Socket override:
+```bash
+KNOTD_SOCKET_PATH=/tmp/knotd.sock KNOTD_MCP_SOCKET_PATH=/tmp/knotd.sock npm run -s knotd:triage
+```
+
+## CI Coverage
+GitHub workflow for daemon diagnostics:
+- `.github/workflows/knotd-daemon-diagnostics.yml`
+
+This workflow runs:
+- `ui:daemon:smoke`
+- `knotd:triage` against a background daemon socket
 
 ## Operator Workflows
 

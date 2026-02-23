@@ -9,6 +9,7 @@ import { join } from "node:path";
 
 const socketPath = process.env.KNOTD_SOCKET_PATH || "/tmp/knotd.sock";
 const requestTimeoutMs = Number(process.env.KNOTD_SMOKE_TIMEOUT_MS || 15000);
+const totalTimeoutMs = Number(process.env.KNOTD_SMOKE_TOTAL_TIMEOUT_MS || 60000);
 
 function assert(condition, message) {
   if (!condition) {
@@ -60,6 +61,22 @@ function parseToolResult(result) {
 }
 
 async function main() {
+  const watchdog = setTimeout(() => {
+    console.error(
+      JSON.stringify(
+        {
+          ok: false,
+          step: "watchdog-timeout",
+          socketPath,
+          error: `total timeout exceeded: ${totalTimeoutMs}ms`,
+        },
+        null,
+        2
+      )
+    );
+    process.exit(1);
+  }, totalTimeoutMs);
+
   const socket = net.createConnection(socketPath);
   socket.setTimeout(requestTimeoutMs);
 
@@ -110,9 +127,15 @@ async function main() {
   );
 
   await new Promise((resolve, reject) => {
+    const connectTimeout = setTimeout(
+      () => reject(new Error(`Connect timed out: ${socketPath}`)),
+      requestTimeoutMs
+    );
     socket.once("connect", resolve);
     socket.once("error", reject);
     socket.once("timeout", () => reject(new Error(`Socket timeout: ${socketPath}`)));
+    socket.once("connect", () => clearTimeout(connectTimeout));
+    socket.once("error", () => clearTimeout(connectTimeout));
   });
 
   let originalWasOpen = false;
@@ -223,6 +246,7 @@ async function main() {
     );
     process.exitCode = 1;
   } finally {
+    clearTimeout(watchdog);
     socket.end();
   }
 }

@@ -1,0 +1,75 @@
+name: Knotd Daemon Diagnostics
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  daemon-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Trace: DESIGN-daemon-ui-ipc-cutover
+      - name: UI daemon smoke (unit-level)
+        run: npm run -s ui:daemon:smoke
+
+      # Trace: BUG-knotd-mcp-startup-handshake-timeout
+      - name: Build knotd daemon
+        run: cargo build --manifest-path src-tauri/Cargo.toml --bin knotd
+
+      # Trace: BUG-knotd-mcp-startup-handshake-timeout
+      - name: Start knotd daemon
+        run: |
+          SOCKET="/tmp/knotd-ci.sock"
+          VAULT="$GITHUB_WORKSPACE/test-vault/canonical"
+          src-tauri/target/debug/knotd --listen-unix "$SOCKET" --vault "$VAULT" > /tmp/knotd-ci.log 2>&1 &
+          echo $! > /tmp/knotd-ci.pid
+          for _ in $(seq 1 80); do
+            if [ -S "$SOCKET" ]; then
+              echo "knotd socket ready: $SOCKET"
+              exit 0
+            fi
+            sleep 0.25
+          done
+          echo "knotd socket did not become ready" >&2
+          tail -n 200 /tmp/knotd-ci.log || true
+          exit 1
+
+      # Trace: BUG-knotd-mcp-startup-handshake-timeout
+      - name: Run knotd triage matrix
+        env:
+          KNOTD_SOCKET_PATH: /tmp/knotd-ci.sock
+          KNOTD_MCP_SOCKET_PATH: /tmp/knotd-ci.sock
+        run: npm run -s knotd:triage
+
+      - name: Stop knotd daemon
+        if: always()
+        run: |
+          if [ -f /tmp/knotd-ci.pid ]; then
+            kill "$(cat /tmp/knotd-ci.pid)" || true
+          fi
+
+      - name: Upload daemon diagnostics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: knotd-daemon-diagnostics
+          path: |
+            /tmp/knotd-ci.log
+            /tmp/knot-mcp-stdio-tap.log
+          if-no-files-found: ignore

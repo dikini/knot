@@ -1,6 +1,7 @@
 # Tauri Native Smoke Checklist
 
 Trace: `DESIGN-ui-automation-dx-001`
+Related trace: `DESIGN-daemon-ui-ipc-cutover`
 
 ## Purpose
 Provide a minimal native-runtime smoke flow for Tauri integration confidence without duplicating full browser-lane UI coverage.
@@ -14,6 +15,17 @@ npm run test:e2e:tauri
 Run a bounded native launch check:
 ```bash
 npm run test:e2e:tauri -- --launch-smoke --timeout=300
+```
+
+## Automated Daemon-IPC Launch Smoke (Optional)
+Run a bounded native launch where UI is forced to `knotd` IPC mode:
+```bash
+npm run test:e2e:tauri:daemon -- --launch-smoke --timeout=300
+```
+
+Headless Linux example:
+```bash
+TAURI_DAEMON_SMOKE_CMD="xvfb-run -a npm run tauri dev -- --no-watch" npm run -s test:e2e:tauri:daemon -- --launch-smoke --timeout=420
 ```
 
 CI cadence workflow:
