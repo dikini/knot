@@ -9,6 +9,7 @@ use crate::runtime::RuntimeHost;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
 use std::io::{self, BufRead, BufReader, Read, Write};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -17,6 +18,7 @@ const PROTOCOL_VERSION: &str = "2024-11-05";
 
 pub struct McpServer {
     vault: Arc<Mutex<Option<VaultManager>>>,
+    runtime: Option<RuntimeHost>,
     server_name: &'static str,
     server_version: &'static str,
 }
@@ -25,6 +27,7 @@ impl McpServer {
     pub fn new(vault: VaultManager) -> Self {
         Self {
             vault: Arc::new(Mutex::new(Some(vault))),
+            runtime: None,
             server_name: "knot-mcp",
             server_version: env!("CARGO_PKG_VERSION"),
         }
@@ -33,6 +36,7 @@ impl McpServer {
     pub fn from_runtime(runtime: &RuntimeHost) -> Self {
         Self {
             vault: runtime.vault().clone(),
+            runtime: Some(runtime.clone()),
             server_name: "knot-mcp",
             server_version: env!("CARGO_PKG_VERSION"),
         }
@@ -58,6 +62,17 @@ impl McpServer {
             .as_mut()
             .ok_or((-32000, "No vault is open".to_string()))?;
         f(vault)
+    }
+
+    fn with_runtime<T, F>(&self, f: F) -> Result<T, (i32, String)>
+    where
+        F: FnOnce(&RuntimeHost) -> Result<T, (i32, String)>,
+    {
+        let runtime = self
+            .runtime
+            .as_ref()
+            .ok_or((-32000, "Runtime host is not available in this server mode".to_string()))?;
+        f(runtime)
     }
 
     pub fn handle_request(&self, request: &Value) -> Option<Value> {
@@ -225,6 +240,143 @@ impl McpServer {
                             "path": { "type": "string" }
                         }
                     }
+                },
+                {
+                    "name": "list_notes",
+                    "description": "List notes as UI note summaries.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "save_note",
+                    "description": "Save a note by path and content.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" },
+                            "content": { "type": "string" }
+                        },
+                        "required": ["path", "content"]
+                    }
+                },
+                {
+                    "name": "rename_note",
+                    "description": "Rename/move note.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "old_path": { "type": "string" },
+                            "new_path": { "type": "string" }
+                        },
+                        "required": ["old_path", "new_path"]
+                    }
+                },
+                {
+                    "name": "search_suggestions",
+                    "description": "Search suggestions by title.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+                        },
+                        "required": ["query"]
+                    }
+                },
+                {
+                    "name": "get_graph_layout",
+                    "description": "Get graph layout payload for UI.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "width": { "type": "number" },
+                            "height": { "type": "number" }
+                        },
+                        "required": ["width", "height"]
+                    }
+                },
+                {
+                    "name": "set_folder_expanded",
+                    "description": "Persist explorer folder expansion state.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "path": { "type": "string" },
+                            "expanded": { "type": "boolean" }
+                        },
+                        "required": ["path", "expanded"]
+                    }
+                },
+                {
+                    "name": "get_vault_info",
+                    "description": "Get currently open vault info payload.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "is_vault_open",
+                    "description": "Return whether vault is open.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "get_recent_notes",
+                    "description": "Get recent notes payload.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "limit": { "type": "integer", "minimum": 1, "maximum": 500 }
+                        }
+                    }
+                },
+                {
+                    "name": "sync_external_changes",
+                    "description": "Run watcher sync and return changed count.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "get_vault_settings",
+                    "description": "Read vault settings JSON.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "update_vault_settings",
+                    "description": "Apply settings merge patch JSON.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": { "patch": {} },
+                        "required": ["patch"]
+                    }
+                },
+                {
+                    "name": "reindex_vault",
+                    "description": "Run full reindex and return count.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "create_vault",
+                    "description": "Create and open vault at path (runtime-backed mode).",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": { "path": { "type": "string" } },
+                        "required": ["path"]
+                    }
+                },
+                {
+                    "name": "open_vault",
+                    "description": "Open vault at path (runtime-backed mode).",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": { "path": { "type": "string" } },
+                        "required": ["path"]
+                    }
+                },
+                {
+                    "name": "close_vault",
+                    "description": "Close currently open vault (runtime-backed mode).",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "get_explorer_tree",
+                    "description": "Get explorer tree payload.",
+                    "inputSchema": { "type": "object", "properties": {} }
                 }
             ]
         })
@@ -283,21 +435,48 @@ impl McpServer {
                     .and_then(Value::as_str)
                     .ok_or((-32602, "Missing argument: path".to_string()))?;
 
-                let note = self.with_vault(|vault| {
-                    vault
+                let payload = self.with_vault(|vault| {
+                    let note = vault
                         .get_note(path)
-                        .map_err(|e| (-32000, e.to_response_string()))
-                })?;
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    let note_headings = note.headings();
+                    let backlinks = vault
+                        .graph()
+                        .backlinks(path)
+                        .into_iter()
+                        .map(|(source, context)| {
+                            let source_title = vault
+                                .get_note(&source)
+                                .map(|source_note| source_note.title().to_string())
+                                .unwrap_or_else(|_| {
+                                    std::path::PathBuf::from(&source)
+                                        .file_stem()
+                                        .map(|v| v.to_string_lossy().to_string())
+                                        .unwrap_or(source.clone())
+                                });
+                            json!({
+                                "source_path": source,
+                                "source_title": source_title,
+                                "context": context
+                            })
+                        })
+                        .collect::<Vec<_>>();
 
-                let payload = json!({
-                    "id": note.id(),
-                    "path": note.path(),
-                    "title": note.title(),
-                    "created_at": note.created_at(),
-                    "modified_at": note.modified_at(),
-                    "word_count": note.word_count(),
-                    "content": note.content(),
-                });
+                    Ok(json!({
+                        "id": note.id(),
+                        "path": note.path(),
+                        "title": note.title(),
+                        "content": note.content(),
+                        "created_at": note.created_at(),
+                        "modified_at": note.modified_at(),
+                        "word_count": note.word_count(),
+                        "headings": note_headings
+                            .iter()
+                            .map(|h| json!({"level": h.level as u8, "text": h.text, "position": 0}))
+                            .collect::<Vec<_>>(),
+                        "backlinks": backlinks
+                    }))
+                })?;
 
                 Ok(json!({
                     "content": [
@@ -384,8 +563,29 @@ impl McpServer {
                     Ok(())
                 })?;
 
+                let payload = self.with_vault(|vault| {
+                    let note = vault
+                        .get_note(path)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(json!({
+                        "id": note.id(),
+                        "path": note.path(),
+                        "title": note.title(),
+                        "content": note.content(),
+                        "created_at": note.created_at(),
+                        "modified_at": note.modified_at(),
+                        "word_count": note.word_count(),
+                        "headings": note
+                            .headings()
+                            .into_iter()
+                            .map(|h| json!({"level": h.level as u8, "text": h.text, "position": 0}))
+                            .collect::<Vec<_>>(),
+                        "backlinks": []
+                    }))
+                })?;
+
                 Ok(json!({
-                    "content": [{ "type": "text", "text": format!("Created note: {path}") }],
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
                     "isError": false
                 }))
             }
@@ -550,6 +750,329 @@ impl McpServer {
                         "type": "text",
                         "text": serde_json::to_string_pretty(&entries).unwrap_or_else(|_| "[]".to_string())
                     }],
+                    "isError": false
+                }))
+            }
+            "list_notes" => {
+                let payload = self.with_vault(|vault| {
+                    let notes = vault
+                        .list_notes()
+                        .map_err(|e| (-32000, e.to_response_string()))?
+                        .into_iter()
+                        .map(|n| {
+                            json!({
+                                "id": n.id,
+                                "path": n.path,
+                                "title": n.title,
+                                "created_at": n.created_at,
+                                "modified_at": n.modified_at,
+                                "word_count": n.word_count
+                            })
+                        })
+                        .collect::<Vec<_>>();
+                    Ok(notes)
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "[]".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "save_note" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+                let content = arguments
+                    .get("content")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: content".to_string()))?;
+                self.with_vault_mut(|vault| {
+                    vault
+                        .save_note(path, content)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(())
+                })?;
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
+            }
+            "rename_note" => {
+                let old_path = arguments
+                    .get("old_path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: old_path".to_string()))?;
+                let new_path = arguments
+                    .get("new_path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: new_path".to_string()))?;
+                self.with_vault_mut(|vault| {
+                    vault
+                        .rename_note(old_path, new_path)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(())
+                })?;
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
+            }
+            "search_suggestions" => {
+                let query = arguments
+                    .get("query")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: query".to_string()))?;
+                let limit = arguments.get("limit").and_then(Value::as_u64).unwrap_or(10) as usize;
+                let suggestions = self.with_vault(|vault| {
+                    let results = vault
+                        .search(query, limit)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(results.into_iter().map(|r| r.title).collect::<Vec<_>>())
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&suggestions).unwrap_or_else(|_| "[]".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "get_graph_layout" => {
+                let width = arguments
+                    .get("width")
+                    .and_then(Value::as_f64)
+                    .ok_or((-32602, "Missing argument: width".to_string()))?;
+                let height = arguments
+                    .get("height")
+                    .and_then(Value::as_f64)
+                    .ok_or((-32602, "Missing argument: height".to_string()))?;
+                let payload = self.with_vault(|vault| {
+                    let layout = vault.graph_layout(width, height);
+                    let nodes = layout
+                        .nodes
+                        .into_iter()
+                        .map(|n| json!({"id": n.id, "label": n.label, "x": n.x, "y": n.y}))
+                        .collect::<Vec<_>>();
+                    let edges = layout
+                        .edges
+                        .into_iter()
+                        .map(|e| json!({"source": e.source, "target": e.target}))
+                        .collect::<Vec<_>>();
+                    Ok(json!({ "nodes": nodes, "edges": edges }))
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "set_folder_expanded" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+                let expanded = arguments
+                    .get("expanded")
+                    .and_then(Value::as_bool)
+                    .ok_or((-32602, "Missing argument: expanded".to_string()))?;
+                self.with_vault_mut(|vault| {
+                    vault
+                        .set_folder_expanded(path, expanded)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(())
+                })?;
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
+            }
+            "get_vault_info" => {
+                let payload = self.with_vault(|vault| {
+                    let path = vault.root_path().to_string_lossy().to_string();
+                    let name = vault
+                        .root_path()
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "Vault".to_string());
+                    let note_count = vault.note_count().map_err(|e| (-32000, e.to_response_string()))?;
+                    let last_modified = std::fs::metadata(vault.root_path())
+                        .and_then(|m| m.modified())
+                        .ok()
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs() as i64)
+                        .unwrap_or_else(|| chrono::Utc::now().timestamp());
+                    Ok(json!({"path": path, "name": name, "note_count": note_count, "last_modified": last_modified}))
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "is_vault_open" => {
+                let is_open = self.with_runtime(|runtime| Ok(runtime.vault().blocking_lock().is_some()))?;
+                Ok(json!({ "content": [{ "type": "text", "text": serde_json::to_string(&is_open).unwrap_or_else(|_| "false".to_string()) }], "isError": false }))
+            }
+            "get_recent_notes" => {
+                let limit = arguments.get("limit").and_then(Value::as_u64).unwrap_or(20) as usize;
+                let payload = self.with_vault(|vault| {
+                    let mut notes = vault
+                        .list_notes()
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    notes.sort_by(|a, b| b.modified_at.cmp(&a.modified_at));
+                    notes.truncate(limit);
+                    Ok(notes
+                        .into_iter()
+                        .map(|n| json!({
+                            "id": n.id,
+                            "path": n.path,
+                            "title": n.title,
+                            "created_at": n.created_at,
+                            "modified_at": n.modified_at,
+                            "word_count": n.word_count
+                        }))
+                        .collect::<Vec<_>>())
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "[]".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "sync_external_changes" => {
+                let changed = self.with_vault_mut(|vault| {
+                    vault
+                        .sync_external_changes()
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string(&json!({"changed_count": changed})).unwrap_or_else(|_| "{\"changed_count\":0}".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "get_vault_settings" => {
+                let payload = self.with_vault(|vault| {
+                    vault
+                        .get_vault_settings_value()
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "update_vault_settings" => {
+                let patch = arguments.get("patch").cloned().ok_or((-32602, "Missing argument: patch".to_string()))?;
+                let payload = self.with_vault_mut(|vault| {
+                    vault
+                        .update_vault_settings_patch(&patch)
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "reindex_vault" => {
+                let count = self.with_vault_mut(|vault| {
+                    vault
+                        .full_reindex()
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string(&json!({"reindexed_count": count})).unwrap_or_else(|_| "{\"reindexed_count\":0}".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "create_vault" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+                let target = PathBuf::from(path);
+                self.with_runtime(|runtime| {
+                    if runtime.vault().blocking_lock().is_some() {
+                        futures::executor::block_on(runtime.close())
+                            .map_err(|e| (-32000, e.to_response_string()))?;
+                    }
+                    futures::executor::block_on(runtime.create_new(&target))
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
+                let info = self.with_vault(|vault| {
+                    let path = vault.root_path().to_string_lossy().to_string();
+                    let name = vault
+                        .root_path()
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "Vault".to_string());
+                    let note_count = vault.note_count().map_err(|e| (-32000, e.to_response_string()))?;
+                    let last_modified = std::fs::metadata(vault.root_path())
+                        .and_then(|m| m.modified())
+                        .ok()
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs() as i64)
+                        .unwrap_or_else(|| chrono::Utc::now().timestamp());
+                    Ok(json!({"path": path, "name": name, "note_count": note_count, "last_modified": last_modified}))
+                })?;
+                Ok(json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&info).unwrap_or_else(|_| "{}".to_string()) }], "isError": false }))
+            }
+            "open_vault" => {
+                let path = arguments
+                    .get("path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: path".to_string()))?;
+                let target = PathBuf::from(path);
+                self.with_runtime(|runtime| {
+                    if runtime.vault().blocking_lock().is_some() {
+                        futures::executor::block_on(runtime.close())
+                            .map_err(|e| (-32000, e.to_response_string()))?;
+                    }
+                    futures::executor::block_on(runtime.open_existing(&target))
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
+                let info = self.with_vault(|vault| {
+                    let path = vault.root_path().to_string_lossy().to_string();
+                    let name = vault
+                        .root_path()
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "Vault".to_string());
+                    let note_count = vault.note_count().map_err(|e| (-32000, e.to_response_string()))?;
+                    let last_modified = std::fs::metadata(vault.root_path())
+                        .and_then(|m| m.modified())
+                        .ok()
+                        .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
+                        .map(|d| d.as_secs() as i64)
+                        .unwrap_or_else(|| chrono::Utc::now().timestamp());
+                    Ok(json!({"path": path, "name": name, "note_count": note_count, "last_modified": last_modified}))
+                })?;
+                Ok(json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&info).unwrap_or_else(|_| "{}".to_string()) }], "isError": false }))
+            }
+            "close_vault" => {
+                self.with_runtime(|runtime| {
+                    futures::executor::block_on(runtime.close())
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
+            }
+            "get_explorer_tree" => {
+                let payload = self.with_vault(|vault| {
+                    let mut notes = vault
+                        .list_notes()
+                        .map_err(|e| (-32000, e.to_response_string()))?
+                        .into_iter()
+                        .map(|n| json!({
+                            "path": n.path,
+                            "title": n.title,
+                            "display_title": n.title,
+                            "modified_at": n.modified_at,
+                            "word_count": n.word_count
+                        }))
+                        .collect::<Vec<_>>();
+                    notes.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
+                    let root_name = vault
+                        .root_path()
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| "Vault".to_string());
+                    Ok(json!({
+                        "root": {
+                            "path": "",
+                            "name": root_name,
+                            "expanded": true,
+                            "folders": [],
+                            "notes": notes
+                        },
+                        "hidden_policy": "hide-dotfiles"
+                    }))
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
                     "isError": false
                 }))
             }

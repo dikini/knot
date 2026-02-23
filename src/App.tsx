@@ -34,6 +34,8 @@ const TOOL_PANEL_POLICY: Record<ShellToolMode, ToolPanelPolicy> = {
   search: "panel-required",
   graph: "panel-optional",
 };
+const STARTUP_VAULT_ATTACH_MAX_ATTEMPTS = 20;
+const STARTUP_VAULT_ATTACH_RETRY_MS = 500;
 
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
@@ -118,20 +120,46 @@ function App() {
 
   // Load recent vaults and check for existing vault on mount
   useEffect(() => {
+    let cancelled = false;
+
     // Load recent vaults
     api.getRecentVaults().then(setRecentVaults).catch(console.error);
 
-    // Check if there's already a vault open
-    api.isVaultOpen().then((isOpen) => {
-      if (isOpen) {
-        api.getVaultInfo().then((info) => {
+    const tryAttachOpenVault = async (attempt: number) => {
+      try {
+        const isOpen = await api.isVaultOpen();
+        if (cancelled) return;
+
+        if (isOpen) {
+          const info = await api.getVaultInfo();
+          if (cancelled) return;
           if (info) {
             setVault(info);
-            loadNotes();
+            await loadNotes();
+            return;
           }
-        });
+        }
+      } catch (err) {
+        if (attempt >= STARTUP_VAULT_ATTACH_MAX_ATTEMPTS) {
+          console.error("startup vault attach failed", err);
+          return;
+        }
       }
-    });
+
+      if (attempt >= STARTUP_VAULT_ATTACH_MAX_ATTEMPTS || cancelled) {
+        return;
+      }
+
+      window.setTimeout(() => {
+        void tryAttachOpenVault(attempt + 1);
+      }, STARTUP_VAULT_ATTACH_RETRY_MS);
+    };
+
+    void tryAttachOpenVault(1);
+
+    return () => {
+      cancelled = true;
+    };
   }, [setVault, loadNotes]);
 
   // Poll for external file changes when vault is open
@@ -331,6 +359,9 @@ function App() {
 
   const handleCreateVault = async () => {
     try {
+      const canProceed = await resolveUnsavedBeforeVaultSwitch();
+      if (!canProceed) return;
+
       const info = await api.createVaultDialog();
       setVault(info);
       await api.addRecentVault(info.path);

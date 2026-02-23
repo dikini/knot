@@ -16,6 +16,7 @@ pub mod error;
 pub mod event_log;
 pub mod graph;
 pub mod ipc;
+pub mod knotd_client;
 pub mod markdown;
 pub mod mcp;
 pub mod note;

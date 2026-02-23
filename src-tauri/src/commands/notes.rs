@@ -15,6 +15,7 @@ use walkdir::WalkDir;
 use crate::state::response::{
     Backlink, ExplorerFolderNode, ExplorerNoteNode, ExplorerTree, Heading, NoteData, NoteSummary,
 };
+use crate::knotd_client;
 use crate::state::AppState;
 
 #[derive(Debug, Clone, Serialize)]
@@ -28,6 +29,11 @@ struct TreeChangedEventPayload {
 #[tauri::command]
 #[instrument(skip(state))]
 pub async fn list_notes(state: State<'_, AppState>) -> Result<Vec<NoteSummary>, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed("list_notes", serde_json::json!({}))
+            .map_err(|e| e.to_response_string());
+    }
+
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
@@ -47,6 +53,11 @@ pub async fn list_notes(state: State<'_, AppState>) -> Result<Vec<NoteSummary>, 
 #[tauri::command]
 #[instrument(skip(state))]
 pub async fn get_note(path: String, state: State<'_, AppState>) -> Result<NoteData, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed("get_note", serde_json::json!({ "path": path }))
+            .map_err(|e| e.to_response_string());
+    }
+
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
@@ -106,6 +117,23 @@ pub async fn save_note(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        knotd_client::call_tool_typed::<serde_json::Value>(
+            "save_note",
+            serde_json::json!({ "path": path, "content": content }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "save-note",
+                changed_count: 1,
+            },
+        );
+        return Ok(());
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
@@ -138,6 +166,23 @@ pub async fn delete_note(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        knotd_client::call_tool_typed::<serde_json::Value>(
+            "delete_note",
+            serde_json::json!({ "path": path }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "delete-note",
+                changed_count: 1,
+            },
+        );
+        return Ok(());
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
@@ -171,6 +216,23 @@ pub async fn rename_note(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        knotd_client::call_tool_typed::<serde_json::Value>(
+            "rename_note",
+            serde_json::json!({ "old_path": old_path, "new_path": new_path }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "rename-note",
+                changed_count: 1,
+            },
+        );
+        return Ok(());
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
@@ -204,6 +266,23 @@ pub async fn create_note(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<NoteData, String> {
+    if state.is_daemon_mode() {
+        let payload = knotd_client::call_tool_typed(
+            "create_note",
+            serde_json::json!({ "path": path, "content": content.unwrap_or_default() }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "create-note",
+                changed_count: 1,
+            },
+        );
+        return Ok(payload);
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
@@ -267,6 +346,14 @@ pub async fn get_graph_layout(
     height: f64,
     state: State<'_, AppState>,
 ) -> Result<crate::state::response::GraphLayout, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed(
+            "get_graph_layout",
+            serde_json::json!({ "width": width, "height": height }),
+        )
+        .map_err(|e| e.to_response_string());
+    }
+
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
@@ -304,6 +391,48 @@ pub async fn get_graph_layout(
 #[tauri::command]
 #[instrument(skip(state))]
 pub async fn get_explorer_tree(state: State<'_, AppState>) -> Result<ExplorerTree, String> {
+    if state.is_daemon_mode() {
+        let notes: Vec<NoteSummary> = knotd_client::call_tool_typed("list_notes", serde_json::json!({}))
+            .map_err(|e| e.to_response_string())?;
+        let settings: serde_json::Value =
+            knotd_client::call_tool_typed("get_vault_settings", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+        let vault_info: crate::state::response::VaultInfo =
+            knotd_client::call_tool_typed("get_vault_info", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+
+        let expanded_folders = settings
+            .get("explorer")
+            .and_then(|v| v.get("expanded_folders"))
+            .and_then(serde_json::Value::as_array)
+            .map(|a| {
+                a.iter()
+                    .filter_map(serde_json::Value::as_str)
+                    .map(ToString::to_string)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        let expansion_state_initialized = settings
+            .get("explorer")
+            .and_then(|v| v.get("expansion_state_initialized"))
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false);
+
+        let root_path = PathBuf::from(vault_info.path);
+        let folders = scan_visible_folders(&root_path)?;
+        let root = build_explorer_tree(
+            &root_path,
+            notes,
+            folders,
+            &expanded_folders,
+            expansion_state_initialized,
+        );
+        return Ok(ExplorerTree {
+            root,
+            hidden_policy: "hide-dotfiles".to_string(),
+        });
+    }
+
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
@@ -341,6 +470,23 @@ pub async fn set_folder_expanded(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        knotd_client::call_tool_typed::<serde_json::Value>(
+            "set_folder_expanded",
+            serde_json::json!({ "path": path, "expanded": expanded }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "set-folder-expanded",
+                changed_count: 1,
+            },
+        );
+        return Ok(());
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
@@ -371,6 +517,23 @@ pub async fn create_directory(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        knotd_client::call_tool_typed::<serde_json::Value>(
+            "create_directory",
+            serde_json::json!({ "path": path }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "create-directory",
+                changed_count: 1,
+            },
+        );
+        return Ok(());
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
@@ -402,6 +565,23 @@ pub async fn delete_directory(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        knotd_client::call_tool_typed::<serde_json::Value>(
+            "remove_directory",
+            serde_json::json!({ "path": path, "recursive": recursive }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "delete-directory",
+                changed_count: 1,
+            },
+        );
+        return Ok(());
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {
@@ -433,6 +613,23 @@ pub async fn rename_directory(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        knotd_client::call_tool_typed::<serde_json::Value>(
+            "rename_directory",
+            serde_json::json!({ "old_path": old_path, "new_path": new_path }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "rename-directory",
+                changed_count: 1,
+            },
+        );
+        return Ok(());
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     match vault_guard.as_mut() {

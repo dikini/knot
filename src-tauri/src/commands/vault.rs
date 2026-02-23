@@ -10,6 +10,7 @@ use tracing::{info, instrument};
 use crate::commands::emit_event;
 use crate::core::VaultManager;
 use crate::error::KnotError;
+use crate::knotd_client;
 use crate::recent_vaults::{RecentVault, RecentVaults};
 use crate::state::response::{NoteSummary, VaultInfo};
 use crate::state::AppState;
@@ -38,6 +39,16 @@ pub fn greet(name: &str) -> String {
 #[instrument(skip(state))]
 pub async fn create_vault(path: String, state: State<'_, AppState>) -> Result<VaultInfo, String> {
     info!(path, "creating vault");
+    if state.is_daemon_mode() {
+        let has_open_vault: bool =
+            knotd_client::call_tool_typed("is_vault_open", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+        ensure_can_replace_open_vault(has_open_vault, state.has_unsaved_changes().await)?;
+        let info = knotd_client::call_tool_typed("create_vault", serde_json::json!({ "path": path }))
+            .map_err(|e| e.to_response_string())?;
+        state.set_unsaved_changes(false).await;
+        return Ok(info);
+    }
 
     let mut vault_guard = state.vault().lock().await;
 
@@ -64,6 +75,19 @@ pub async fn create_vault(path: String, state: State<'_, AppState>) -> Result<Va
 #[instrument(skip(state))]
 pub async fn open_vault(path: String, state: State<'_, AppState>) -> Result<VaultInfo, String> {
     info!(path, "opening vault");
+    if state.is_daemon_mode() {
+        let has_open_vault: bool =
+            knotd_client::call_tool_typed("is_vault_open", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+        ensure_can_replace_open_vault(
+            has_open_vault,
+            state.has_unsaved_changes().await,
+        )?;
+        let info = knotd_client::call_tool_typed("open_vault", serde_json::json!({ "path": path }))
+            .map_err(|e| e.to_response_string())?;
+        state.set_unsaved_changes(false).await;
+        return Ok(info);
+    }
 
     ensure_can_replace_open_vault(state.is_vault_open().await, state.has_unsaved_changes().await)?;
 
@@ -137,6 +161,19 @@ pub async fn create_vault_dialog(
         }
     }
 
+    if state.is_daemon_mode() {
+        let has_open_vault: bool =
+            knotd_client::call_tool_typed("is_vault_open", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+        ensure_can_replace_open_vault(has_open_vault, state.has_unsaved_changes().await)?;
+        let info: VaultInfo =
+            knotd_client::call_tool_typed("create_vault", serde_json::json!({ "path": path_str }))
+                .map_err(|e| e.to_response_string())?;
+        state.set_unsaved_changes(false).await;
+        info!(path = info.path, "vault created from dialog via daemon");
+        return Ok(info);
+    }
+
     // Close any existing vault
     let mut vault_guard = state.vault().lock().await;
     if vault_guard.is_some() {
@@ -191,6 +228,24 @@ pub async fn open_vault_dialog(
         ));
     }
 
+    if state.is_daemon_mode() {
+        let has_open_vault: bool =
+            knotd_client::call_tool_typed("is_vault_open", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+        ensure_can_replace_open_vault(
+            has_open_vault,
+            state.has_unsaved_changes().await,
+        )?;
+        let info = knotd_client::call_tool_typed(
+            "open_vault",
+            serde_json::json!({ "path": path_str }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        state.set_unsaved_changes(false).await;
+        info!(path = path_str, "vault opened from dialog via daemon");
+        return Ok(info);
+    }
+
     ensure_can_replace_open_vault(state.is_vault_open().await, state.has_unsaved_changes().await)?;
 
     // Close any existing vault
@@ -217,6 +272,12 @@ pub async fn open_vault_dialog(
 #[instrument(skip(state))]
 pub async fn close_vault(state: State<'_, AppState>) -> Result<(), String> {
     info!("closing vault");
+    if state.is_daemon_mode() {
+        knotd_client::call_tool_typed::<serde_json::Value>("close_vault", serde_json::json!({}))
+            .map_err(|e| e.to_response_string())?;
+        state.set_unsaved_changes(false).await;
+        return Ok(());
+    }
 
     let mut vault_guard = state.vault().lock().await;
 
@@ -244,6 +305,11 @@ pub async fn set_unsaved_changes(dirty: bool, state: State<'_, AppState>) -> Res
 #[tauri::command]
 #[instrument(skip(state))]
 pub async fn get_vault_info(state: State<'_, AppState>) -> Result<VaultInfo, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed("get_vault_info", serde_json::json!({}))
+            .map_err(|e| e.to_response_string());
+    }
+
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
@@ -256,6 +322,10 @@ pub async fn get_vault_info(state: State<'_, AppState>) -> Result<VaultInfo, Str
 /// Check if a vault is currently open.
 #[tauri::command]
 pub async fn is_vault_open(state: State<'_, AppState>) -> Result<bool, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed("is_vault_open", serde_json::json!({}))
+            .map_err(|e| e.to_response_string());
+    }
     Ok(state.is_vault_open().await)
 }
 
@@ -294,6 +364,14 @@ pub async fn get_recent_notes(
     limit: usize,
     state: State<'_, AppState>,
 ) -> Result<Vec<NoteSummary>, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed(
+            "get_recent_notes",
+            serde_json::json!({ "limit": limit }),
+        )
+        .map_err(|e| e.to_response_string());
+    }
+
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
@@ -355,6 +433,27 @@ pub async fn sync_external_changes(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        let changed: serde_json::Value =
+            knotd_client::call_tool_typed("sync_external_changes", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+        let changed_count = changed
+            .get("changed_count")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0) as usize;
+        if changed_count > 0 {
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "watcher-sync",
+                    changed_count,
+                },
+            );
+        }
+        return Ok(());
+    }
+
     let mut vault_guard = state.vault().lock().await;
 
     if let Some(ref mut vault) = vault_guard.as_mut() {
@@ -380,6 +479,11 @@ pub async fn sync_external_changes(
 #[tauri::command]
 #[instrument(skip(state))]
 pub async fn get_vault_settings(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed("get_vault_settings", serde_json::json!({}))
+            .map_err(|e| e.to_response_string());
+    }
+
     let vault_guard = state.vault().lock().await;
     match vault_guard.as_ref() {
         Some(vault) => vault
@@ -396,6 +500,14 @@ pub async fn update_vault_settings(
     patch: serde_json::Value,
     state: State<'_, AppState>,
 ) -> Result<serde_json::Value, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed(
+            "update_vault_settings",
+            serde_json::json!({ "patch": patch }),
+        )
+        .map_err(|e| e.to_response_string());
+    }
+
     let mut vault_guard = state.vault().lock().await;
     match vault_guard.as_mut() {
         Some(vault) => vault
@@ -412,6 +524,25 @@ pub async fn reindex_vault(
     window: Window,
     state: State<'_, AppState>,
 ) -> Result<ReindexVaultResult, String> {
+    if state.is_daemon_mode() {
+        let payload: serde_json::Value =
+            knotd_client::call_tool_typed("reindex_vault", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+        let reindexed_count = payload
+            .get("reindexed_count")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(0) as usize;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "manual-reindex",
+                changed_count: reindexed_count,
+            },
+        );
+        return Ok(ReindexVaultResult { reindexed_count });
+    }
+
     let mut vault_guard = state.vault().lock().await;
     match vault_guard.as_mut() {
         Some(vault) => {
@@ -436,6 +567,23 @@ pub async fn reindex_vault(
 #[tauri::command]
 #[instrument(skip(state))]
 pub async fn add_recent_vault(path: String, state: State<'_, AppState>) -> Result<(), String> {
+    if state.is_daemon_mode() {
+        let name = PathBuf::from(&path)
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_else(|| "Vault".to_string());
+        let config_dir = dirs::config_dir()
+            .ok_or_else(|| "Could not determine config directory".to_string())?
+            .join("knot");
+        let mut recent = RecentVaults::load(&config_dir)
+            .map_err(|e| format!("Failed to load recent vaults: {}", e))?;
+        recent.add(path, name);
+        recent
+            .save()
+            .map_err(|e| format!("Failed to save recent vaults: {}", e))?;
+        return Ok(());
+    }
+
     let vault_guard = state.vault().lock().await;
 
     // Get vault name from the open vault, or extract from path

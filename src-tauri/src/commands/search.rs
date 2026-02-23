@@ -5,6 +5,7 @@
 use tauri::State;
 use tracing::instrument;
 
+use crate::knotd_client;
 use crate::state::response::SearchResult;
 use crate::state::AppState;
 
@@ -17,6 +18,18 @@ pub async fn search_notes(
     limit: Option<usize>,
     state: State<'_, AppState>,
 ) -> Result<Vec<SearchResult>, String> {
+    if state.is_daemon_mode() {
+        let payload = knotd_client::call_tool_typed::<Vec<SearchResult>>(
+            "search_notes",
+            serde_json::json!({
+                "query": query,
+                "limit": limit.unwrap_or(20)
+            }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        return Ok(payload);
+    }
+
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
@@ -51,6 +64,18 @@ pub async fn search_suggestions(
     limit: Option<usize>,
     state: State<'_, AppState>,
 ) -> Result<Vec<String>, String> {
+    if state.is_daemon_mode() {
+        let payload = knotd_client::call_tool_typed::<Vec<String>>(
+            "search_suggestions",
+            serde_json::json!({
+                "query": query,
+                "limit": limit.unwrap_or(10)
+            }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        return Ok(payload);
+    }
+
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {

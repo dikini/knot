@@ -46,6 +46,10 @@ impl AppState {
         &self.runtime
     }
 
+    pub fn is_daemon_mode(&self) -> bool {
+        matches!(self.runtime.mode(), RuntimeMode::DesktopDaemonCapable)
+    }
+
     /// SPEC: COMP-VAULT-001 FR-5
     /// Check if a vault is currently open.
     pub async fn is_vault_open(&self) -> bool {
@@ -125,10 +129,10 @@ mod tests {
 /// These are serializable structs that are returned from commands
 /// to the frontend.
 pub mod response {
-    use serde::Serialize;
+    use serde::{Deserialize, Serialize};
 
     /// Information about an open vault.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct VaultInfo {
         pub path: String,
         pub name: String,
@@ -137,7 +141,7 @@ pub mod response {
     }
 
     /// Summary of a note for list views.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct NoteSummary {
         pub id: String,
         pub path: String,
@@ -148,7 +152,7 @@ pub mod response {
     }
 
     /// Full note data.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct NoteData {
         pub id: String,
         pub path: String,
@@ -162,7 +166,7 @@ pub mod response {
     }
 
     /// A heading extracted from a note.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Heading {
         pub level: u8,
         pub text: String,
@@ -170,7 +174,7 @@ pub mod response {
     }
 
     /// A backlink to a note.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Backlink {
         pub source_path: String,
         pub source_title: String,
@@ -178,7 +182,7 @@ pub mod response {
     }
 
     /// Search result.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct SearchResult {
         pub path: String,
         pub title: String,
@@ -187,13 +191,13 @@ pub mod response {
     }
 
     /// Graph layout response.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct GraphLayout {
         pub nodes: Vec<GraphNode>,
         pub edges: Vec<GraphEdge>,
     }
 
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct GraphNode {
         pub id: String,
         pub label: String,
@@ -201,21 +205,21 @@ pub mod response {
         pub y: f64,
     }
 
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct GraphEdge {
         pub source: String,
         pub target: String,
     }
 
     /// Explorer tree payload for notes pane navigation.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct ExplorerTree {
         pub root: ExplorerFolderNode,
         pub hidden_policy: String,
     }
 
     /// Folder node in explorer tree.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct ExplorerFolderNode {
         pub path: String,
         pub name: String,
@@ -225,7 +229,7 @@ pub mod response {
     }
 
     /// Note leaf in explorer tree.
-    #[derive(Debug, Clone, Serialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct ExplorerNoteNode {
         pub path: String,
         pub title: String,
