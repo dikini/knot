@@ -11,6 +11,8 @@ use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::UnixListener;
 #[cfg(unix)]
 use std::path::Path;
+#[cfg(unix)]
+use std::sync::Arc;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum RunMode {
@@ -371,7 +373,7 @@ fn main() {
                     std::process::exit(2);
                 }
             };
-            if let Err(err) = run_unix_socket_server(&server, socket_path) {
+            if let Err(err) = run_unix_socket_server(server, socket_path) {
                 eprintln!("knotd MCP Unix socket server error: {err}");
                 std::process::exit(4);
             }
@@ -392,7 +394,10 @@ fn main() {
 }
 
 #[cfg(unix)]
-fn run_unix_socket_server(server: &McpServer, socket_path: &Path) -> Result<(), String> {
+fn run_unix_socket_server(server: McpServer, socket_path: &Path) -> Result<(), String> {
+    // TRACE: BUG-knotd-mcp-startup-handshake-timeout
+    let shared_server = Arc::new(server);
+
     if socket_path.exists() {
         fs::remove_file(socket_path)
             .map_err(|err| format!("failed to remove stale socket {}: {err}", socket_path.display()))?;
@@ -407,10 +412,21 @@ fn run_unix_socket_server(server: &McpServer, socket_path: &Path) -> Result<(), 
         let (stream, _addr) = listener
             .accept()
             .map_err(|err| format!("socket accept failed: {err}"))?;
-        let reader = stream
-            .try_clone()
-            .map_err(|err| format!("failed to clone socket stream: {err}"))?;
-        run_stdio_server(server, reader, stream).map_err(|err| format!("client I/O failed: {err}"))?;
+        let server = Arc::clone(&shared_server);
+
+        std::thread::spawn(move || {
+            let reader = match stream.try_clone() {
+                Ok(reader) => reader,
+                Err(err) => {
+                    eprintln!("knotd failed to clone socket stream: {err}");
+                    return;
+                }
+            };
+
+            if let Err(err) = run_stdio_server(&server, reader, stream) {
+                eprintln!("knotd client I/O failed: {err}");
+            }
+        });
     }
 }
 

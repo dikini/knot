@@ -8,17 +8,30 @@ use crate::core::VaultManager;
 use crate::runtime::RuntimeHost;
 use serde_json::{json, Value};
 use std::collections::BTreeSet;
+use std::fs::OpenOptions;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex as StdMutex};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use tokio::sync::Mutex;
 
 const JSONRPC_VERSION: &str = "2.0";
 const PROTOCOL_VERSION: &str = "2024-11-05";
 
+fn default_write_log_path() -> PathBuf {
+    std::env::var("KNOTD_WRITE_LOG_PATH")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| PathBuf::from("/tmp/knotd-write.log"))
+}
+
 pub struct McpServer {
     vault: Arc<Mutex<Option<VaultManager>>>,
     runtime: Option<RuntimeHost>,
+    // TRACE: DESIGN-daemon-ui-ipc-cutover
+    write_executor: Arc<StdMutex<()>>,
+    write_op_seq: Arc<AtomicU64>,
+    write_log_path: PathBuf,
     server_name: &'static str,
     server_version: &'static str,
 }
@@ -28,6 +41,9 @@ impl McpServer {
         Self {
             vault: Arc::new(Mutex::new(Some(vault))),
             runtime: None,
+            write_executor: Arc::new(StdMutex::new(())),
+            write_op_seq: Arc::new(AtomicU64::new(0)),
+            write_log_path: default_write_log_path(),
             server_name: "knot-mcp",
             server_version: env!("CARGO_PKG_VERSION"),
         }
@@ -37,8 +53,79 @@ impl McpServer {
         Self {
             vault: runtime.vault().clone(),
             runtime: Some(runtime.clone()),
+            write_executor: Arc::new(StdMutex::new(())),
+            write_op_seq: Arc::new(AtomicU64::new(0)),
+            write_log_path: default_write_log_path(),
             server_name: "knot-mcp",
             server_version: env!("CARGO_PKG_VERSION"),
+        }
+    }
+
+    fn is_mutating_tool(name: &str) -> bool {
+        matches!(
+            name,
+            "create_note"
+                | "delete_note"
+                | "replace_note"
+                | "create_directory"
+                | "remove_directory"
+                | "rename_directory"
+                | "save_note"
+                | "rename_note"
+                | "set_folder_expanded"
+                | "sync_external_changes"
+                | "update_vault_settings"
+                | "reindex_vault"
+                | "create_vault"
+                | "open_vault"
+                | "close_vault"
+        )
+    }
+
+    fn args_summary(arguments: &Value) -> Value {
+        let mut out = serde_json::Map::new();
+        let Some(obj) = arguments.as_object() else {
+            return Value::Object(out);
+        };
+
+        for key in [
+            "path",
+            "old_path",
+            "new_path",
+            "from_path",
+            "to_path",
+            "recursive",
+            "expanded",
+            "limit",
+        ] {
+            if let Some(v) = obj.get(key) {
+                out.insert(key.to_string(), v.clone());
+            }
+        }
+
+        if let Some(content) = obj.get("content").and_then(Value::as_str) {
+            out.insert("content_len".to_string(), json!(content.len()));
+        }
+        if let Some(patch) = obj.get("patch").and_then(Value::as_object) {
+            let mut keys = patch.keys().cloned().collect::<Vec<_>>();
+            keys.sort();
+            out.insert("patch_keys".to_string(), json!(keys));
+        }
+
+        let mut arg_keys = obj.keys().cloned().collect::<Vec<_>>();
+        arg_keys.sort();
+        out.insert("arg_keys".to_string(), json!(arg_keys));
+        Value::Object(out)
+    }
+
+    fn log_write_event(&self, event: &Value) {
+        if let Ok(mut file) = OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.write_log_path)
+        {
+            let _ = serde_json::to_writer(&mut file, event);
+            let _ = file.write_all(b"\n");
         }
     }
 
@@ -393,6 +480,64 @@ impl McpServer {
             .cloned()
             .unwrap_or_else(|| json!({}));
 
+        if !Self::is_mutating_tool(name) {
+            return self.execute_tool_call(name, &arguments);
+        }
+
+        // TRACE: DESIGN-daemon-ui-ipc-cutover
+        let op_id = self.write_op_seq.fetch_add(1, Ordering::SeqCst) + 1;
+        let requested_at_ms = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_millis() as u64)
+            .unwrap_or(0);
+        let args_summary = Self::args_summary(&arguments);
+        self.log_write_event(&json!({
+            "kind": "write_op",
+            "phase": "start",
+            "op_id": op_id,
+            "tool": name,
+            "requested_at_ms": requested_at_ms,
+            "args": args_summary,
+        }));
+
+        let lock_wait_started = Instant::now();
+        let _guard = self
+            .write_executor
+            .lock()
+            .map_err(|_| (-32000, "Write executor is poisoned".to_string()))?;
+        let lock_wait_ms = lock_wait_started.elapsed().as_millis() as u64;
+
+        let started = Instant::now();
+        let result = self.execute_tool_call(name, &arguments);
+        let duration_ms = started.elapsed().as_millis() as u64;
+
+        match &result {
+            Ok(_) => self.log_write_event(&json!({
+                "kind": "write_op",
+                "phase": "end",
+                "op_id": op_id,
+                "tool": name,
+                "ok": true,
+                "lock_wait_ms": lock_wait_ms,
+                "duration_ms": duration_ms,
+            })),
+            Err((code, message)) => self.log_write_event(&json!({
+                "kind": "write_op",
+                "phase": "end",
+                "op_id": op_id,
+                "tool": name,
+                "ok": false,
+                "lock_wait_ms": lock_wait_ms,
+                "duration_ms": duration_ms,
+                "error_code": code,
+                "error_message": message,
+            })),
+        }
+
+        result
+    }
+
+    fn execute_tool_call(&self, name: &str, arguments: &Value) -> Result<Value, (i32, String)> {
         match name {
             "search_notes" => {
                 let query = arguments
