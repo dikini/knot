@@ -1,11 +1,11 @@
 /**
  * Sidebar Component Styles
+ * Trace: DESIGN-context-panel-sidebar-edge-alignment-2026-02-23
  */
 
 .sidebar {
-  width: var(--sidebar-width);
+  width: 100%;
   background-color: transparent;
-  border-right: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
