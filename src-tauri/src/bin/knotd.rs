@@ -10,6 +10,7 @@ enum RunMode {
     Status,
     Probe,
     ProbeJson,
+    Capabilities,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,6 +18,25 @@ struct KnotdConfig {
     vault_path: PathBuf,
     create: bool,
     run_mode: RunMode,
+}
+
+const CAPABILITIES_FLAGS: [&str; 8] = [
+    "--vault",
+    "--create",
+    "--status",
+    "--check",
+    "--once",
+    "--probe-json",
+    "--print-capabilities",
+    "KNOT_VAULT_PATH",
+];
+
+#[derive(Debug, Serialize)]
+struct KnotdCapabilitiesPayload {
+    mode: &'static str,
+    runtime_mode: &'static str,
+    run_modes: Vec<&'static str>,
+    flags: Vec<&'static str>,
 }
 
 fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfig, String> {
@@ -43,6 +63,10 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
                 run_mode = RunMode::ProbeJson;
                 idx += 1;
             }
+            "--print-capabilities" => {
+                run_mode = RunMode::Capabilities;
+                idx += 1;
+            }
             "--vault" => {
                 let value = args
                     .get(idx + 1)
@@ -54,6 +78,14 @@ fn parse_config(args: &[String], env_vault: Option<String>) -> Result<KnotdConfi
                 idx += 1;
             }
         }
+    }
+
+    if run_mode == RunMode::Capabilities {
+        return Ok(KnotdConfig {
+            vault_path: PathBuf::new(),
+            create,
+            run_mode,
+        });
     }
 
     let vault_path = if let Some(path) = cli_vault {
@@ -153,6 +185,15 @@ fn probe_json_payload(config: &KnotdConfig, result: &Result<(), knot::error::Kno
     }
 }
 
+fn capabilities_payload() -> KnotdCapabilitiesPayload {
+    KnotdCapabilitiesPayload {
+        mode: "capabilities",
+        runtime_mode: "desktop-daemon-capable",
+        run_modes: vec!["serve", "status", "probe", "probe-json", "capabilities"],
+        flags: CAPABILITIES_FLAGS.to_vec(),
+    }
+}
+
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
     let env_vault = std::env::var("KNOT_VAULT_PATH").ok();
@@ -163,6 +204,17 @@ fn main() {
             std::process::exit(2);
         }
     };
+
+    if config.run_mode == RunMode::Capabilities {
+        match serde_json::to_string_pretty(&capabilities_payload()) {
+            Ok(json) => println!("{json}"),
+            Err(err) => {
+                eprintln!("Failed to serialize capabilities payload: {err}");
+                std::process::exit(5);
+            }
+        }
+        std::process::exit(0);
+    }
 
     let runtime = RuntimeHost::new(RuntimeMode::DesktopDaemonCapable);
     let rt = tokio::runtime::Builder::new_current_thread()
@@ -237,7 +289,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_config, probe_json_payload, probe_output_line, status_payload, KnotdConfig, RunMode};
+    use super::{capabilities_payload, parse_config, probe_json_payload, probe_output_line, status_payload, KnotdConfig, RunMode};
     use knot::error::KnotError;
     use std::path::PathBuf;
 
@@ -313,6 +365,12 @@ mod tests {
     }
 
     #[test]
+    fn parse_sets_capabilities_mode_when_flag_present() {
+        let cfg = parse_config(&args(&["knotd", "--print-capabilities"]), None).expect("config");
+        assert_eq!(cfg.run_mode, RunMode::Capabilities);
+    }
+
+    #[test]
     fn parse_defaults_to_serve_mode() {
         let cfg = parse_config(&args(&["knotd", "--vault", "/tmp/vault"]), None).expect("config");
         assert_eq!(cfg.run_mode, RunMode::Serve);
@@ -369,5 +427,14 @@ mod tests {
         assert_eq!(value["ok"], true);
         assert_eq!(value["lock_status"], "available");
         assert!(value.get("error").is_some());
+    }
+
+    #[test]
+    fn capabilities_payload_lists_probe_modes_and_flags() {
+        let payload = capabilities_payload();
+        let value = serde_json::to_value(payload).expect("json value");
+        assert_eq!(value["mode"], "capabilities");
+        assert!(value["run_modes"].to_string().contains("probe-json"));
+        assert!(value["flags"].to_string().contains("--print-capabilities"));
     }
 }

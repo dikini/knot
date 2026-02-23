@@ -1,0 +1,19 @@
+plan: PLAN-KNOTD-CAPABILITIES-006
+trace: DESIGN-knotd-capabilities-print
+tasks:
+  - id: KCP-001
+    title: Add print-capabilities parse tests
+    status: completed
+    refs: [FR-1, FR-5]
+  - id: KCP-002
+    title: Implement capabilities JSON output mode
+    status: completed
+    refs: [FR-1, FR-2, FR-3]
+  - id: KCP-003
+    title: Handle serialization failure exits
+    status: completed
+    refs: [FR-4]
+  - id: KCP-004
+    title: Verification run and audit report
+    status: completed
+    refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
