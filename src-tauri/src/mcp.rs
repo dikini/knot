@@ -67,11 +67,11 @@ impl McpServer {
 
         match method {
             "initialize" => {
+                // TRACE: DESIGN-knotd-mcp-ops
                 let result = json!({
                     "protocolVersion": PROTOCOL_VERSION,
                     "capabilities": {
-                        "tools": { "listChanged": false },
-                        "resources": { "subscribe": false, "listChanged": false }
+                        "tools": { "listChanged": false }
                     },
                     "serverInfo": {
                         "name": self.server_name,
@@ -84,13 +84,6 @@ impl McpServer {
             "tools/list" => id.map(|request_id| self.ok_response(request_id, self.tools_list())),
             "tools/call" => {
                 let response = self.tools_call(&params);
-                id.map(|request_id| match response {
-                    Ok(result) => self.ok_response(request_id, result),
-                    Err((code, message)) => self.error_response(request_id, code, &message),
-                })
-            }
-            "resources/list" => {
-                let response = self.resources_list();
                 id.map(|request_id| match response {
                     Ok(result) => self.ok_response(request_id, result),
                     Err((code, message)) => self.error_response(request_id, code, &message),
@@ -564,27 +557,6 @@ impl McpServer {
         }
     }
 
-    fn resources_list(&self) -> Result<Value, (i32, String)> {
-        let resources = self.with_vault(|vault| {
-            let resources = vault
-                .list_notes()
-                .map_err(|e| (-32000, e.to_response_string()))?
-                .into_iter()
-                .map(|note| {
-                    json!({
-                        "uri": note_uri(&note.path),
-                        "name": note.title,
-                        "description": note.path,
-                        "mimeType": "text/markdown",
-                    })
-                })
-                .collect::<Vec<_>>();
-            Ok(resources)
-        })?;
-
-        Ok(json!({ "resources": resources }))
-    }
-
     fn resources_read(&self, params: &Value) -> Result<Value, (i32, String)> {
         let uri = params
             .get("uri")
@@ -862,7 +834,11 @@ mod tests {
             json!(PROTOCOL_VERSION)
         );
         assert!(response["result"]["capabilities"]["tools"].is_object());
-        assert!(response["result"]["capabilities"]["resources"].is_object());
+        assert!(
+            response["result"]["capabilities"]
+                .get("resources")
+                .is_none()
+        );
     }
 
     #[test]
@@ -997,7 +973,7 @@ mod tests {
     }
 
     #[test]
-    fn resources_list_and_read_round_trip() {
+    fn resources_list_is_disabled_and_resources_read_still_works() {
         let server = setup_server();
 
         let list_response = server
@@ -1009,12 +985,9 @@ mod tests {
             }))
             .expect("resources/list response");
 
-        let resources = list_response["result"]["resources"]
-            .as_array()
-            .expect("resources array");
-        assert!(!resources.is_empty());
+        assert_eq!(list_response["error"]["code"], json!(-32601));
 
-        let uri = resources[0]["uri"].as_str().expect("uri");
+        let uri = note_uri("programming/rust.md");
         let read_response = server
             .handle_request(&json!({
                 "jsonrpc": "2.0",
