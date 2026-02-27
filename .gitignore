@@ -41,6 +41,7 @@ test-results/
 # Generated vault runtime metadata/index files for local fixtures
 test-vault/**/.vault/
 playwright-report/
+.mcp/knotd-mcp.json
 .mcp/storybook-mcp.json
 storybook-static/
 

@@ -6,7 +6,7 @@ Change-Type: design-update
 - Spec: `docs/specs/component/knotd-mcp-ops-008.md`
 - Trace: `DESIGN-knotd-mcp-ops`
 - Created: `2026-02-23`
-- Updated: `2026-02-23`
+- Updated: `2026-02-27`
 
 ## Tasks
 | ID | Task | Size | Depends | Refs |
@@ -16,8 +16,13 @@ Change-Type: design-update
 | KOP-003 | Add knotd ops smoke script and checks for help/version/probe/status/capabilities | M | KOP-001 | FR-4, FR-5 |
 | KOP-004 | Update docs with operational playbooks and config instructions | S | KOP-002,KOP-003 | FR-6 |
 | KOP-005 | Verification run and audit report | S | KOP-001,KOP-002,KOP-003,KOP-004 | FR-1, FR-2, FR-3, FR-4, FR-5, FR-6 |
+| KOP-006 | Add targeted tooling test for repo-local MCP socket override and ignore policy | S | - | FR-7, FR-8 |
+| KOP-007 | Add local `.mcp/knotd-mcp.json` override for dev daemon socket and ignore it in Git | S | KOP-006 | FR-7, FR-8 |
+| KOP-008 | Run targeted verification and record audit for local MCP override workflow | S | KOP-007 | AC-4, AC-5 |
 
 ## Verification Commands
 - `npm run -s knotd:mcp:smoke`
 - `cargo test --manifest-path src-tauri/Cargo.toml --bin knotd -- --nocapture`
 - `cargo check --manifest-path src-tauri/Cargo.toml --bin knotd`
+- `npm test -- --run src/tooling/knotdMcpConfig.test.ts`
+- `git check-ignore -v .mcp/knotd-mcp.json`

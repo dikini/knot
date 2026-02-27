@@ -21,3 +21,15 @@ tasks:
     title: Verify and audit
     status: completed
     refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6]
+  - id: KOP-006
+    title: Add targeted tooling test for repo-local MCP socket override and ignore policy
+    status: completed
+    refs: [FR-7, FR-8]
+  - id: KOP-007
+    title: Add local MCP override file and gitignore entry for dev daemon socket alignment
+    status: completed
+    refs: [FR-7, FR-8]
+  - id: KOP-008
+    title: Verify local MCP override workflow and record audit
+    status: completed
+    refs: [AC-4, AC-5]
