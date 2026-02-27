@@ -53,6 +53,8 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-STORYBOOK-DX-001 | storybook-dx | designed | component/storybook-dx-001.md | [CONF, REL, COMP, CAP] | implemented (verified with Storybook build + MCP smoke) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
 | COMP-KNOTD-UI-010 | knotd-ui-daemon | designed | component/knotd-ui-daemon-010.md | [REL, CONF, CAP] | draft |
+| COMP-KNOTD-DEV-LIFECYCLE-011 | knotd-dev-lifecycle | designed | component/knotd-dev-lifecycle-011.md | [REL, CONF, CAP] | draft |
+| COMP-REACTIVE-ESSAY-001 | reactive-essay-runtime | designed | component/reactive-essay-runtime-001.md | [REL, CONS, CAP, OBS, CONF] | draft (speculative; planning deferred) |
 
 ## Interfaces
 
@@ -175,3 +177,4 @@ docs/specs/
 | 2026-02-22 | Complete Storybook DX implementation and mark Storybook workflows/docs as operational | COMP-STORYBOOK-DX-001 |
 | 2026-02-23 | Draft settings pane and manual vault reindex design/specification | COMP-SETTINGS-PANE-001 |
 | 2026-02-23 | Draft UI daemon integration spec/plan for knotd-backed command routing | COMP-KNOTD-UI-010 |
+| 2026-02-23 | Draft speculative reactive essay runtime design with typed sensor streams and incremental fixed-point reconciliation (planning deferred) | COMP-REACTIVE-ESSAY-001 |

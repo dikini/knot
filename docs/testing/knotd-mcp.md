@@ -136,6 +136,45 @@ Codex then uses a stdio bridge:
 - Codex config entry: `mcp_servers.knot_vault` points to node + bridge script
 - Bridge target socket: `.mcp/knotd-mcp.json` `socketPath` or default `/tmp/knotd.sock`
 
+### Aggressive Local Dev Cycle
+Use the repo-managed lifecycle helpers when repeatedly restarting daemon + UI during development:
+
+```bash
+npm run dev:daemon:up
+```
+
+This creates repo-local runtime state in `.run/knotd-dev/`, starts `knotd`, starts the Tauri UI in daemon mode, and sends `SIGHUP` to any running `scripts/knotd-mcp-bridge.mjs` process so it reconnects to the refreshed socket.
+
+Stop the repo-managed daemon + UI pair:
+
+```bash
+npm run dev:daemon:down
+```
+
+Restart cycle:
+
+```bash
+npm run dev:daemon:restart
+```
+
+Runtime defaults:
+- socket: `.run/knotd-dev/knotd.sock`
+- vault: `test-vault/canonical`
+- logs: `.run/knotd-dev/knotd.log`, `.run/knotd-dev/ui.log`
+
+Override vault or runtime dir:
+
+```bash
+KNOT_DEV_VAULT_PATH=/absolute/path/to/vault npm run dev:daemon:up
+KNOT_DEV_RUN_DIR=/tmp/knot-dev-run npm run dev:daemon:up
+```
+
+Bridge recovery behavior:
+- The bridge no longer exits immediately when `knotd` disconnects.
+- It retries with bounded backoff.
+- After repeated failures it waits for `SIGHUP` instead of spinning.
+- `dev:daemon:up` sends that signal automatically when the bridge is already running.
+
 ### Success Path
 1. Run launcher via Codex MCP registration.
 2. Verify probe success and normal MCP startup.
