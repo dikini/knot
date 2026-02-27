@@ -33,3 +33,15 @@ tasks:
     title: Verify local MCP override workflow and record audit
     status: completed
     refs: [AC-4, AC-5]
+  - id: KOP-009
+    title: Extend ignore-policy verification to cover .run dev-daemon artifacts
+    status: completed
+    refs: [FR-9]
+  - id: KOP-010
+    title: Ignore .run, stop the dev daemon, and remove runtime artifacts
+    status: completed
+    refs: [FR-9]
+  - id: KOP-011
+    title: Verify .run ignore behavior and record cleanup audit
+    status: completed
+    refs: [AC-6]

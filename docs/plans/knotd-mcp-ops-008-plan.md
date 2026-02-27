@@ -19,6 +19,9 @@ Change-Type: design-update
 | KOP-006 | Add targeted tooling test for repo-local MCP socket override and ignore policy | S | - | FR-7, FR-8 |
 | KOP-007 | Add local `.mcp/knotd-mcp.json` override for dev daemon socket and ignore it in Git | S | KOP-006 | FR-7, FR-8 |
 | KOP-008 | Run targeted verification and record audit for local MCP override workflow | S | KOP-007 | AC-4, AC-5 |
+| KOP-009 | Extend ignore-policy verification to cover `.run/` dev-daemon artifacts | S | - | FR-9 |
+| KOP-010 | Ignore `.run/`, stop the dev daemon, and remove stale runtime artifacts | S | KOP-009 | FR-9 |
+| KOP-011 | Verify `.run/` ignore behavior and record cleanup audit | S | KOP-010 | AC-6 |
 
 ## Verification Commands
 - `npm run -s knotd:mcp:smoke`
@@ -26,3 +29,4 @@ Change-Type: design-update
 - `cargo check --manifest-path src-tauri/Cargo.toml --bin knotd`
 - `npm test -- --run src/tooling/knotdMcpConfig.test.ts`
 - `git check-ignore -v .mcp/knotd-mcp.json`
+- `git check-ignore -v .run/knotd-dev/knotd.log`

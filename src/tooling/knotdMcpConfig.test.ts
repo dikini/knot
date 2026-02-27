@@ -23,4 +23,10 @@ describe("knotd MCP local config", () => {
 
     expect(gitignore).toContain(".mcp/knotd-mcp.json");
   });
+
+  it("keeps dev runtime artifacts out of git", () => {
+    const gitignore = readFileSync(gitignorePath, "utf8");
+
+    expect(gitignore).toContain(".run/");
+  });
 });

@@ -22,6 +22,7 @@ Operationalize knotd-backed MCP startup with deterministic preflight checks and 
 - FR-6: Docs MUST describe success, lock contention, and recovery operator workflows.
 - FR-7: Repository-local MCP bridge overrides MUST support a checked-in developer workflow where `npm run dev:daemon:up` and Codex MCP can target the same Unix socket without editing `~/.codex/config.toml`.
 - FR-8: Repository MUST ignore `.mcp/knotd-mcp.json` so local socket-path overrides remain untracked.
+- FR-9: Repository MUST ignore `.run/` so dev-daemon pid, log, and socket artifacts remain untracked.
 
 ## Acceptance Criteria
 - AC-1: `~/.codex/config.toml` managed block for `knot_vault` points to launcher script.
@@ -29,6 +30,7 @@ Operationalize knotd-backed MCP startup with deterministic preflight checks and 
 - AC-3: `knotd --help` and `knotd --version` checks pass in smoke script.
 - AC-4: A local `.mcp/knotd-mcp.json` can point `knot_vault` at `.run/knotd-dev/knotd.sock`, matching the default `npm run dev:daemon:up` runtime socket.
 - AC-5: `.gitignore` ignores `.mcp/knotd-mcp.json`.
+- AC-6: `.gitignore` ignores `.run/`.
 
 ## Verification Strategy
 - `npm run -s knotd:mcp:smoke`
@@ -36,6 +38,8 @@ Operationalize knotd-backed MCP startup with deterministic preflight checks and 
 - `cargo check --manifest-path src-tauri/Cargo.toml --bin knotd`
 - `npm test -- --run src/tooling/knotdMcpConfig.test.ts`
 - `git check-ignore -v .mcp/knotd-mcp.json`
+- `git check-ignore -v .run/knotd-dev/knotd.log`
 
 ## Revision History
 - `2026-02-27`: Added repo-local MCP socket override and git-ignore requirements for the dev daemon workflow.
+- `2026-02-27`: Added `.run/` ignore requirement for dev-daemon runtime artifacts.
