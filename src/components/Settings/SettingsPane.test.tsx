@@ -26,6 +26,86 @@ function createKeymapSettings(
 }
 
 describe("SettingsPane keymap settings", () => {
+  it("renders the Layout section with graph readability floor control", () => {
+    render(
+      <SettingsPane
+        section="layout"
+        onSectionChange={vi.fn()}
+        showTextLabels={false}
+        onShowTextLabelsChange={vi.fn()}
+        densityMode="comfortable"
+        onDensityModeChange={vi.fn()}
+        contextPanelWidth={320}
+        onContextPanelWidthChange={vi.fn()}
+        editorSurfaceMode="sepia"
+        onEditorSurfaceModeChange={vi.fn()}
+        graphReadabilityFloorPercent={70}
+        onGraphReadabilityFloorPercentChange={vi.fn()}
+        onApplyAppKeymapSettings={vi.fn()}
+        vaultSettings={null}
+        isVaultSettingsLoading={false}
+        onRefreshVaultSettings={vi.fn()}
+        onUpdateVaultSettings={vi.fn()}
+        onReindexVault={vi.fn()}
+        isReindexing={false}
+        reindexStatus={null}
+        appKeymapSettings={createKeymapSettings()}
+        appKeymapErrors={{}}
+        isAppKeymapSettingsLoading={false}
+        onAppKeymapChange={vi.fn()}
+        onResetAppKeymapField={vi.fn()}
+        onResetAllAppKeymaps={vi.fn()}
+      />
+    );
+
+    expect(screen.getByLabelText("Graph readability floor")).toHaveValue(70);
+    expect(screen.getByRole("button", { name: "Apply graph fit" })).toBeInTheDocument();
+  });
+
+  it("updates the graph readability floor through the dedicated layout control", () => {
+    const onGraphReadabilityFloorPercentChange = vi.fn();
+    const onApplyAppKeymapSettings = vi.fn();
+
+    render(
+      <SettingsPane
+        section="layout"
+        onSectionChange={vi.fn()}
+        showTextLabels={false}
+        onShowTextLabelsChange={vi.fn()}
+        densityMode="comfortable"
+        onDensityModeChange={vi.fn()}
+        contextPanelWidth={320}
+        onContextPanelWidthChange={vi.fn()}
+        editorSurfaceMode="sepia"
+        onEditorSurfaceModeChange={vi.fn()}
+        graphReadabilityFloorPercent={70}
+        onGraphReadabilityFloorPercentChange={onGraphReadabilityFloorPercentChange}
+        onApplyAppKeymapSettings={onApplyAppKeymapSettings}
+        vaultSettings={null}
+        isVaultSettingsLoading={false}
+        onRefreshVaultSettings={vi.fn()}
+        onUpdateVaultSettings={vi.fn()}
+        onReindexVault={vi.fn()}
+        isReindexing={false}
+        reindexStatus={null}
+        appKeymapSettings={createKeymapSettings()}
+        appKeymapErrors={{}}
+        isAppKeymapSettingsLoading={false}
+        onAppKeymapChange={vi.fn()}
+        onResetAppKeymapField={vi.fn()}
+        onResetAllAppKeymaps={vi.fn()}
+      />
+    );
+
+    fireEvent.change(screen.getByLabelText("Graph readability floor"), {
+      target: { value: "85" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Apply graph fit" }));
+
+    expect(onGraphReadabilityFloorPercentChange).toHaveBeenCalledWith(85);
+    expect(onApplyAppKeymapSettings).toHaveBeenCalled();
+  });
+
   it("renders the General keymaps section with save note field and reset action", () => {
     render(
       <SettingsPane
@@ -39,6 +119,8 @@ describe("SettingsPane keymap settings", () => {
         onContextPanelWidthChange={vi.fn()}
         editorSurfaceMode="sepia"
         onEditorSurfaceModeChange={vi.fn()}
+        graphReadabilityFloorPercent={70}
+        onGraphReadabilityFloorPercentChange={vi.fn()}
         vaultSettings={null}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
@@ -77,6 +159,8 @@ describe("SettingsPane keymap settings", () => {
         onContextPanelWidthChange={vi.fn()}
         editorSurfaceMode="sepia"
         onEditorSurfaceModeChange={vi.fn()}
+        graphReadabilityFloorPercent={70}
+        onGraphReadabilityFloorPercentChange={vi.fn()}
         vaultSettings={null}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
@@ -113,6 +197,8 @@ describe("SettingsPane keymap settings", () => {
         onContextPanelWidthChange={vi.fn()}
         editorSurfaceMode="sepia"
         onEditorSurfaceModeChange={vi.fn()}
+        graphReadabilityFloorPercent={70}
+        onGraphReadabilityFloorPercentChange={vi.fn()}
         vaultSettings={null}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
@@ -149,6 +235,8 @@ describe("SettingsPane keymap settings", () => {
         onContextPanelWidthChange={vi.fn()}
         editorSurfaceMode="sepia"
         onEditorSurfaceModeChange={vi.fn()}
+        graphReadabilityFloorPercent={70}
+        onGraphReadabilityFloorPercentChange={vi.fn()}
         vaultSettings={null}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}

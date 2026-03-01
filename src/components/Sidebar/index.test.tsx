@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { Sidebar } from "./index";
 
 vi.mock("@components/VaultSwitcher", () => ({
@@ -56,6 +56,15 @@ const mockRenameNoteApi = vi.fn();
 const mockListen = vi.fn();
 let treeEventHandler: (() => void) | null = null;
 
+const createDataTransfer = (): DataTransfer =>
+  ({
+    effectAllowed: "all",
+    dropEffect: "move",
+    setData: vi.fn(),
+    getData: vi.fn(),
+    clearData: vi.fn(),
+  }) as unknown as DataTransfer;
+
 vi.mock("@tauri-apps/api/event", () => ({
   listen: (...args: unknown[]) => mockListen(...args),
 }));
@@ -101,6 +110,18 @@ describe("Sidebar Explorer M1", () => {
               },
             ],
           },
+          {
+            path: "Archive",
+            name: "Archive",
+            expanded: false,
+            folders: [],
+            notes: [
+              {
+                path: "Archive/ideas.md",
+                display_title: "ideas",
+              },
+            ],
+          },
         ],
         notes: [],
       },
@@ -117,6 +138,10 @@ describe("Sidebar Explorer M1", () => {
       backlinks: [],
     });
     mockRenameNoteApi.mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("renders top explorer action icons", async () => {
@@ -327,6 +352,109 @@ describe("Sidebar Explorer M1", () => {
     );
   });
 
+  it("moves a note when dropped onto a folder row", async () => {
+    mockVaultStoreState.currentNote = {
+      id: "note-1",
+      path: "Programming/daily.md",
+      title: "daily",
+      content: "# Daily",
+      created_at: 1,
+      modified_at: 1,
+      word_count: 1,
+      headings: [],
+      backlinks: [],
+    };
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const draggedNote = (await screen.findByText("daily")).closest("li");
+    const targetFolder = await screen.findByRole("treeitem", { name: "Archive" });
+    expect(draggedNote).not.toBeNull();
+
+    const dataTransfer = createDataTransfer();
+    fireEvent.dragStart(draggedNote!, { dataTransfer });
+    fireEvent.dragEnter(targetFolder, { dataTransfer });
+    fireEvent.dragOver(targetFolder, { dataTransfer });
+    fireEvent.drop(targetFolder, { dataTransfer });
+
+    await waitFor(() => {
+      expect(mockRenameNoteApi).toHaveBeenCalledWith(
+        "Programming/daily.md",
+        "Archive/daily.md"
+      );
+    });
+    expect(mockSetCurrentNote).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "Archive/daily.md", title: "daily" })
+    );
+  });
+
+  it("moves a note into the target note parent folder when dropped onto a note row", async () => {
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const draggedNote = (await screen.findByText("daily")).closest("li");
+    const archiveFolder = await screen.findByRole("treeitem", { name: "Archive" });
+    fireEvent.click(archiveFolder.querySelector(".explorer-tree__folder-row") ?? archiveFolder);
+    const targetNote = (await screen.findByText("ideas")).closest("li");
+    expect(draggedNote).not.toBeNull();
+    expect(targetNote).not.toBeNull();
+
+    const dataTransfer = createDataTransfer();
+    fireEvent.dragStart(draggedNote!, { dataTransfer });
+    fireEvent.dragEnter(targetNote!, { dataTransfer });
+    fireEvent.dragOver(targetNote!, { dataTransfer });
+    fireEvent.drop(targetNote!, { dataTransfer });
+
+    await waitFor(() => {
+      expect(mockRenameNoteApi).toHaveBeenCalledWith(
+        "Programming/daily.md",
+        "Archive/daily.md"
+      );
+    });
+  });
+
+  it("ignores drag-drop moves into the current parent folder", async () => {
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const draggedNote = (await screen.findByText("daily")).closest("li");
+    const targetFolder = await screen.findByRole("treeitem", { name: "Programming" });
+    expect(draggedNote).not.toBeNull();
+
+    const dataTransfer = createDataTransfer();
+    fireEvent.dragStart(draggedNote!, { dataTransfer });
+    fireEvent.dragEnter(targetFolder, { dataTransfer });
+    fireEvent.dragOver(targetFolder, { dataTransfer });
+    fireEvent.drop(targetFolder, { dataTransfer });
+
+    await waitFor(() => {
+      expect(mockRenameNoteApi).not.toHaveBeenCalled();
+    });
+    expect(mockSetCurrentNote).not.toHaveBeenCalled();
+  });
+
   it("supports keyboard navigation and folder toggle via arrows", async () => {
     // BUG-COMP-FRONTEND-001: wrap keyboard-triggered state updates in act for stable React 18 tests.
     mockSetFolderExpanded.mockResolvedValue(undefined);
@@ -370,8 +498,69 @@ describe("Sidebar Explorer M1", () => {
 
     treeEventHandler?.();
 
-    await waitFor(() => {
-      expect(mockGetExplorerTree.mock.calls.length).toBeGreaterThanOrEqual(2);
+    await waitFor(
+      () => {
+        expect(mockGetExplorerTree.mock.calls.length).toBeGreaterThanOrEqual(2);
+      },
+      { timeout: 1000 }
+    );
+  });
+
+  it("auto-expands a collapsed folder after a short drag hover delay", async () => {
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const draggedNote = (await screen.findByText("daily")).closest("li");
+    const targetFolder = await screen.findByRole("treeitem", { name: "Archive" });
+    expect(draggedNote).not.toBeNull();
+    expect(targetFolder).toHaveAttribute("aria-expanded", "false");
+
+    vi.useFakeTimers();
+    const dataTransfer = createDataTransfer();
+    fireEvent.dragStart(draggedNote!, { dataTransfer });
+    fireEvent.dragEnter(targetFolder, { dataTransfer });
+
+    await act(async () => {
+      vi.advanceTimersByTime(600);
+      await Promise.resolve();
     });
+
+    expect(mockSetFolderExpanded).toHaveBeenCalledWith("Archive", true);
+  });
+
+  it("does not auto-expand a collapsed folder when drag leaves before the delay", async () => {
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const draggedNote = (await screen.findByText("daily")).closest("li");
+    const targetFolder = await screen.findByRole("treeitem", { name: "Archive" });
+    expect(draggedNote).not.toBeNull();
+
+    vi.useFakeTimers();
+    const dataTransfer = createDataTransfer();
+    fireEvent.dragStart(draggedNote!, { dataTransfer });
+    fireEvent.dragEnter(targetFolder, { dataTransfer });
+    fireEvent.dragLeave(targetFolder, { dataTransfer });
+
+    await act(async () => {
+      vi.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+
+    expect(mockSetFolderExpanded).not.toHaveBeenCalledWith("Archive", true);
   });
 });

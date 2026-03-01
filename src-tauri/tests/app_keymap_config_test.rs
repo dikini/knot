@@ -1,6 +1,6 @@
 use knot::app_config::{
     default_app_keymap_settings, load_app_keymap_settings, save_app_keymap_settings,
-    validate_app_keymap_settings, AppKeymapSettings,
+    validate_app_keymap_settings, AppKeymapSettings, GraphUiSettings,
 };
 use tempfile::TempDir;
 
@@ -21,6 +21,9 @@ fn app_keymap_settings_roundtrip_through_app_toml() {
                 clear_paragraph: "Alt-0".to_string(),
             },
         },
+        graph: GraphUiSettings {
+            readability_floor_percent: 85,
+        },
     };
 
     save_app_keymap_settings(temp_dir.path(), &settings).expect("save settings");
@@ -33,6 +36,7 @@ fn app_keymap_settings_roundtrip_through_app_toml() {
     assert_eq!(loaded.keymaps.editor.undo, "Alt-z");
     assert_eq!(loaded.keymaps.editor.redo, "Alt-Shift-z");
     assert_eq!(loaded.keymaps.editor.clear_paragraph, "Alt-0");
+    assert_eq!(loaded.graph.readability_floor_percent, 85);
 }
 
 #[test]
@@ -60,6 +64,7 @@ fn app_keymap_settings_validation_rejects_duplicate_shortcuts() {
                 clear_paragraph: "Mod-Alt-0".to_string(),
             },
         },
+        graph: GraphUiSettings::default(),
     };
 
     let result = validate_app_keymap_settings(&duplicate);

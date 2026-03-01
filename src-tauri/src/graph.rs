@@ -372,9 +372,13 @@ impl LinkGraph {
             .map(|(i, _)| {
                 let angle = 2.0 * std::f64::consts::PI * i as f64 / n as f64;
                 let radius = k * (n as f64).sqrt() * 0.3;
+                let jitter = (k * 0.22).min(42.0);
+                let radial_offset = ((((i * 37) % 19) as f64) / 18.0 - 0.5) * jitter;
+                let tangential_offset = ((((i * 53 + 7) % 23) as f64) / 22.0 - 0.5) * jitter;
+                let radial = radius + radial_offset;
                 [
-                    width / 2.0 + radius * angle.cos(),
-                    height / 2.0 + radius * angle.sin(),
+                    width / 2.0 + radial * angle.cos() - tangential_offset * angle.sin(),
+                    height / 2.0 + radial * angle.sin() + tangential_offset * angle.cos(),
                 ]
             })
             .collect();
@@ -1027,7 +1031,7 @@ mod tests {
     #[test]
     fn layout_empty_graph() {
         let g = LinkGraph::new();
-        let layout = g.compute_layout(800.0, 600.0);
+        let layout = g.compute_layout(1100.0, 360.0);
         assert!(layout.nodes.is_empty());
         assert!(layout.edges.is_empty());
     }
@@ -1170,6 +1174,47 @@ mod tests {
         assert!(
             max_distance < 400.0,
             "nodes spread too far from center (max_distance={max_distance})"
+        );
+    }
+
+    #[test]
+    fn layout_chain_graph_preserves_vertical_spread() {
+        let mut g = LinkGraph::new();
+
+        for i in 0..7 {
+            let source = format!("chain-{i}.md");
+            let target = format!("chain-{}.md", i + 1);
+            g.update_note(
+                &source,
+                &[Link {
+                    target,
+                    display: "chain".into(),
+                    link_type: LinkKind::Wiki,
+                }],
+            );
+        }
+        g.ensure_node("chain-7.md");
+
+        let layout = g.compute_layout(800.0, 600.0);
+        let min_x = layout.nodes.iter().map(|node| node.x).fold(f64::INFINITY, f64::min);
+        let max_x = layout
+            .nodes
+            .iter()
+            .map(|node| node.x)
+            .fold(f64::NEG_INFINITY, f64::max);
+        let min_y = layout.nodes.iter().map(|node| node.y).fold(f64::INFINITY, f64::min);
+        let max_y = layout
+            .nodes
+            .iter()
+            .map(|node| node.y)
+            .fold(f64::NEG_INFINITY, f64::max);
+
+        let span_x = (max_x - min_x).max(1.0);
+        let span_y = max_y - min_y;
+
+        assert!(
+            span_y / span_x > 0.6,
+            "chain layout flattened into horizontal ribbon (span_x={span_x}, span_y={span_y})"
         );
     }
 

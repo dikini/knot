@@ -18,6 +18,7 @@ Change-Type: design-update
 | KUI-005 | Add startup/readiness probe wiring and settings diagnostics exposure | M | KUI-002 | FR-6, FR-7 |
 | KUI-006 | Ensure MCP behavior remains tools-first and resources/list disabled in integrated path | S | KUI-003 | FR-8 |
 | KUI-007 | Add verification tests and runbook updates (daemon up/down scenarios) | M | KUI-003,KUI-004,KUI-005,KUI-006 | FR-1, FR-3, FR-6, FR-9 |
+| KUI-008 | Normalize void mutation tool payloads to JSON values and cover daemon decode compatibility | S | KUI-004 | FR-5, FR-5.1, FR-9 |
 
 ## Milestones
 - M1: Daemon mode contract + IPC client scaffold (`KUI-001`, `KUI-002`)
@@ -39,7 +40,8 @@ Change-Type: design-update
 | FR-2 | KUI-001 |
 | FR-3 | KUI-002, KUI-007 |
 | FR-4 | KUI-002, KUI-003 |
-| FR-5 | KUI-003, KUI-004 |
+| FR-5 | KUI-003, KUI-004, KUI-008 |
+| FR-5.1 | KUI-008 |
 | FR-6 | KUI-001, KUI-005, KUI-007 |
 | FR-7 | KUI-002, KUI-005 |
 | FR-8 | KUI-006 |

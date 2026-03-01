@@ -1,51 +1,29 @@
-# Verification Report: Task List UI 003
+# Verification: Task List Checkbox UI
 
 ## Metadata
 - Spec: `docs/specs/component/task-list-ui-003.md`
 - Plan: `docs/plans/task-list-ui-003-plan.md`
-- Tasks: `docs/plans/task-list-ui-003-tasks.yaml`
 - Date: `2026-03-01`
 - Scope: `component`
+
+## Summary
+- Compliance: `100%`
 - Result: `pass`
 
-## Compliance Summary
+## Requirement Coverage
+| Requirement | Evidence | Status |
+| --- | --- | --- |
+| TL-001 | `src/editor/render.ts`, `src/components/Editor/index.tsx`, `src/editor/render.test.ts`, `src/components/Editor/index.test.tsx` | ✅ |
+| TL-002 | `src/editor/plugins/task-list.ts`, `src/editor/plugins/task-list.test.ts` | ✅ |
+| TL-003 | `src/editor/render.ts`, `src/editor/plugins/task-list.test.ts`, `src/components/Editor/index.test.tsx` | ✅ |
 
-| Requirement | Implementation | Tests | Status |
-| --- | --- | --- | --- |
-| TL-001 view mode renders task lists as checkbox UI | `src/editor/render.ts`, `src/components/Editor/Editor.css` | `src/editor/render.test.ts`, `src/components/Editor/index.test.tsx` | ✅ Full |
-| TL-002 edit mode renders checkbox UI and toggles through ProseMirror transactions | `src/editor/plugins/task-list.ts`, `src/editor/plugins/index.ts` | `src/editor/plugins/task-list.test.ts` | ✅ Full |
-| TL-003 undo/redo and markdown persistence remain correct | `src/editor/plugins/task-list.ts`, existing markdown serializer in `src/editor/markdown-next.ts` | `src/editor/plugins/task-list.test.ts`, `src/editor/markdown.test.ts` | ✅ Full |
-
-Compliance: `100% (3/3 requirements fully implemented and tested)`
-
-## Verification Evidence
-
+## Verification Commands
 ```bash
-npx vitest --run src/editor/render.test.ts src/editor/plugins/task-list.test.ts src/components/Editor/index.test.tsx src/editor/markdown.test.ts
-```
-
-Result:
-- `4` test files passed
-- `75` tests passed
-- Verified view-mode checkbox rendering, edit-mode checkbox UI, transaction-based toggling, undo/redo, and markdown task-marker persistence
-
-```bash
+npm test -- --run src/editor/render.test.ts src/editor/plugins/task-list.test.ts src/components/Editor/index.test.tsx
 npm run typecheck
 ```
 
-Result:
-- `tsc --noEmit` passed
-
-```bash
-npm run -s qa:docsync -- --against=HEAD~1
-```
-
-Result:
-- `[ui-doc-sync] passed`
-
-## Gaps
-- None for TL-001..TL-003 in this workstream.
-
 ## Notes
-- The default `qa:docsync` base ref was unavailable in this worktree, so verification used `--against=HEAD~1`.
-- Scope remained limited to task-list rendering/toggling paths and required documentation artifacts.
+- View-mode task list checkboxes now carry stable task indices and toggle the underlying markdown state instead of remaining disabled.
+- Edit-mode transaction-based toggling remains covered by the existing ProseMirror node-view tests.
+- The canonical vault runtime notes were also updated to replace plain-text cross references with wiki-links, and `knot/issues.md` was marked complete in the active vault.

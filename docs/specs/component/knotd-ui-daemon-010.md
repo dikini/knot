@@ -24,6 +24,7 @@ Move desktop UI backend operations from in-process `VaultManager` ownership to a
 - FR-3: When daemon-backed mode is enabled and `knotd` is unreachable, commands MUST fail with actionable, user-facing errors (no silent in-process fallback).
 - FR-4: A typed IPC client MUST expose operations needed by current UI flows: vault status/open/close intent handling, note CRUD, directory ops, search, tags, graph neighbors.
 - FR-5: Command responses in daemon-backed mode MUST preserve existing Tauri command DTO shapes used by frontend components.
+- FR-5.1: Mutation tools invoked through the daemon IPC client MUST return JSON-decodable payloads even when the logical command result is `void`/unit.
 - FR-6: UI startup path MUST include a non-blocking readiness probe for daemon connectivity and expose status for settings/diagnostics UX.
 - FR-7: Observability MUST include structured logs identifying execution mode (`in_process` vs `daemon_ipc`), command name, and transport failure class.
 - FR-8: Resources enumeration MUST remain disabled for UI/MCP startup efficiency; tool-based retrieval remains primary interface.
@@ -35,6 +36,7 @@ Move desktop UI backend operations from in-process `VaultManager` ownership to a
 - AC-3: With daemon mode enabled and `knotd` down, representative commands fail fast with actionable errors.
 - AC-4: Existing frontend contracts remain unchanged (`npm run typecheck` passes without frontend API edits for command response shapes).
 - AC-5: Backend tests for daemon client adapter and command-level mapping pass.
+- AC-5.1: Daemon-backed delete/replace/directory mutation flows do not surface JSON decode errors on successful completion.
 - AC-6: `resources/list` remains unavailable while tool calls continue working in MCP path.
 
 ## Design Decisions

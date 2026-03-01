@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type DragEvent, type ReactElement } from "react";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import { IconButton } from "@components/IconButton";
 import { VaultSwitcher } from "@components/VaultSwitcher";
@@ -28,12 +28,20 @@ export function Sidebar({
   onOpenRecent,
   onCloseVault,
 }: SidebarProps) {
+  const AUTO_EXPAND_DELAY_MS = 500;
   const { vault, noteList, currentNote, loadNote, saveCurrentNote, isLoading, setCurrentNote } =
     useVaultStore();
   const { isDirty, content } = useEditorStore();
   const [explorerRoot, setExplorerRoot] = useState<ExplorerFolderNode | null>(null);
   const [isExplorerLoading, setIsExplorerLoading] = useState(false);
   const [focusedKey, setFocusedKey] = useState<string | null>(null);
+  const [draggedNotePath, setDraggedNotePath] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{
+    path: string;
+    type: "folder" | "note";
+  } | null>(null);
+  const autoExpandTimerRef = useRef<number | null>(null);
+  const autoExpandPathRef = useRef<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -60,6 +68,10 @@ export function Sidebar({
     }
     void refreshExplorerTree();
   }, [vault, noteList, refreshExplorerTree]);
+
+  useEffect(() => () => {
+    clearAutoExpandTimer();
+  }, []);
 
   // SPEC: COMP-EXPLORER-TREE-001 FR-10, FR-11
   useEffect(() => {
@@ -125,6 +137,14 @@ export function Sidebar({
     await loadNote(path);
   };
 
+  const clearAutoExpandTimer = () => {
+    if (autoExpandTimerRef.current !== null) {
+      window.clearTimeout(autoExpandTimerRef.current);
+      autoExpandTimerRef.current = null;
+    }
+    autoExpandPathRef.current = null;
+  };
+
   const withOptimisticTree = async (
     transform: (root: ExplorerFolderNode) => ExplorerFolderNode,
     action: () => Promise<void>
@@ -159,6 +179,8 @@ export function Sidebar({
   const ensureMarkdownExtension = (value: string) => (value.endsWith(".md") ? value : `${value}.md`);
   const joinNotePath = (parentPath: string, fileName: string) =>
     parentPath ? `${parentPath}/${fileName}` : fileName;
+  const resolveDropParentPath = (targetType: "folder" | "note", targetPath: string) =>
+    targetType === "folder" ? targetPath : splitNotePath(targetPath).parentPath;
   const syncActiveNotePath = (oldPath: string, newPath: string) => {
     if (currentNote?.path !== oldPath) return;
 
@@ -487,6 +509,12 @@ export function Sidebar({
     );
   };
 
+  const moveNoteToParentPath = async (targetPath: string, nextParentPath: string) => {
+    const { parentPath, fileName } = splitNotePath(targetPath);
+    if (parentPath === nextParentPath) return;
+    await handleRenameNotePath(targetPath, joinNotePath(nextParentPath, fileName));
+  };
+
   // SPEC: COMP-AUTHORING-FLOWS-001 FR-2, FR-4
   const handleRenameFile = async (targetPath: string) => {
     const { parentPath, fileName } = splitNotePath(targetPath);
@@ -505,9 +533,60 @@ export function Sidebar({
 
   // SPEC: COMP-AUTHORING-FLOWS-001 FR-3, FR-4
   const handleMoveNote = async (targetPath: string) => {
-    const { parentPath, fileName } = splitNotePath(targetPath);
+    const { parentPath } = splitNotePath(targetPath);
     const nextParentPath = normalizeRelPath(prompt("Destination folder:", parentPath) ?? "");
-    await handleRenameNotePath(targetPath, joinNotePath(nextParentPath, fileName));
+    await moveNoteToParentPath(targetPath, nextParentPath);
+  };
+
+  const handleNoteDragStart = (event: DragEvent<HTMLElement>, notePath: string) => {
+    event.stopPropagation();
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", notePath);
+    clearAutoExpandTimer();
+    setDraggedNotePath(notePath);
+    setDropTarget(null);
+  };
+
+  const scheduleAutoExpand = (folder: ExplorerFolderNode) => {
+    if (folder.expanded || autoExpandPathRef.current === folder.path) return;
+    clearAutoExpandTimer();
+    autoExpandPathRef.current = folder.path;
+    autoExpandTimerRef.current = window.setTimeout(() => {
+      autoExpandTimerRef.current = null;
+      autoExpandPathRef.current = null;
+      void handleFolderToggle(folder.path, true);
+    }, AUTO_EXPAND_DELAY_MS);
+  };
+
+  const handleDragEnterTarget = (targetType: "folder" | "note", targetPath: string) => {
+    if (!draggedNotePath || draggedNotePath === targetPath) return;
+    setDropTarget({ path: targetPath, type: targetType });
+  };
+
+  const handleDragLeaveTarget = (targetType: "folder" | "note", targetPath: string) => {
+    if (targetType === "folder" && autoExpandPathRef.current === targetPath) {
+      clearAutoExpandTimer();
+    }
+    setDropTarget((current) =>
+      current?.path === targetPath && current.type === targetType ? null : current
+    );
+  };
+
+  const handleDropOnTarget = async (
+    event: DragEvent<HTMLElement>,
+    targetType: "folder" | "note",
+    targetPath: string
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const notePath = draggedNotePath || event.dataTransfer.getData("text/plain");
+    clearAutoExpandTimer();
+    setDropTarget(null);
+    setDraggedNotePath(null);
+    if (!notePath) return;
+
+    await moveNoteToParentPath(notePath, resolveDropParentPath(targetType, targetPath));
   };
 
   const handleExpandCollapseAll = async (expanded: boolean) => {
@@ -521,11 +600,14 @@ export function Sidebar({
   const renderNote = (notePath: string, noteTitle: string, depth: number, isInitiallyFocusable: boolean) => (
     <li
       key={notePath}
-      className={`explorer-tree__note-row ${currentNote?.path === notePath ? "explorer-tree__note-row--active" : ""}`}
+      className={`explorer-tree__note-row ${currentNote?.path === notePath ? "explorer-tree__note-row--active" : ""} ${
+        dropTarget?.type === "note" && dropTarget.path === notePath ? "explorer-tree__note-row--drop-target" : ""
+      }`}
       style={{ paddingLeft: `${depth * 12 + 28}px` }}
       role="treeitem"
       aria-level={depth + 1}
       aria-selected={focusedKey === `note:${notePath}`}
+      draggable
       ref={(el) => {
         itemRefs.current[`note:${notePath}`] = el;
       }}
@@ -534,6 +616,24 @@ export function Sidebar({
       }
       onFocus={() => setFocusedKey(`note:${notePath}`)}
       onClick={() => void handleNoteClick(notePath)}
+      onDragStart={(event) => handleNoteDragStart(event, notePath)}
+      onDragEnd={() => {
+        clearAutoExpandTimer();
+        setDraggedNotePath(null);
+        setDropTarget(null);
+      }}
+      onDragEnter={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        handleDragEnterTarget("note", notePath);
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = "move";
+      }}
+      onDragLeave={() => handleDragLeaveTarget("note", notePath)}
+      onDrop={(event) => void handleDropOnTarget(event, "note", notePath)}
       onContextMenu={(event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -566,7 +666,11 @@ export function Sidebar({
     return (
       <li
         key={folder.path}
-        className="explorer-tree__folder"
+        className={`explorer-tree__folder ${
+          dropTarget?.type === "folder" && dropTarget.path === folder.path
+            ? "explorer-tree__folder--drop-target"
+            : ""
+        }`}
         role="treeitem"
         aria-expanded={folder.expanded}
         aria-level={depth + 1}
@@ -577,6 +681,20 @@ export function Sidebar({
         }}
         tabIndex={focusedKey === `folder:${folder.path}` || (focusedKey === null && depth === 0) ? 0 : -1}
         onFocus={() => setFocusedKey(`folder:${folder.path}`)}
+        onDragEnter={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          handleDragEnterTarget("folder", folder.path);
+          scheduleAutoExpand(folder);
+        }}
+        onDragOver={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          event.dataTransfer.dropEffect = "move";
+          scheduleAutoExpand(folder);
+        }}
+        onDragLeave={() => handleDragLeaveTarget("folder", folder.path)}
+        onDrop={(event) => void handleDropOnTarget(event, "folder", folder.path)}
         onContextMenu={(event) => {
           event.preventDefault();
           event.stopPropagation();

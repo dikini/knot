@@ -1,4 +1,6 @@
 # Implementation Plan: Note Selection UI
+Change-Type: bug-fix
+Trace: BUG-note-selection-stale-delete
 
 ## Metadata
 - Spec: `docs/specs/component/note-selection-001.md`
@@ -19,6 +21,7 @@
 | NS-004 | Add visual selection highlight | S | NS-003 | FR-2 |
 | NS-005 | Add unsaved changes dialog | M | NS-003 | FR-3 |
 | NS-006 | Add editor placeholder | M | NS-003 | FR-4 |
+| NS-007 | Reconcile deleted active note on note reload | S | NS-003 | FR-6 |
 
 ## Task Details
 
@@ -98,6 +101,18 @@ if (!currentNote) {
 }
 ```
 
+### NS-007: Reconcile deleted active note on note reload
+Location: `src/lib/store.ts`
+
+After `listNotes()` resolves, compare the refreshed inventory against `currentNote.path`.
+
+If the current note path is missing:
+```typescript
+set({ noteList: notes, currentNote: null, isLoading: false });
+```
+
+Otherwise preserve the active selection.
+
 ## Verification
 
 ```bash
@@ -110,3 +125,4 @@ Test scenarios:
 2. Selected note highlighted
 3. Edit note, try switch → prompt appears
 4. No note selected → placeholder shown
+5. Delete selected note → selection clears and placeholder shows

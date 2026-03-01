@@ -33,6 +33,7 @@ Wire the sidebar note list to the editor. When a user clicks a note in the sideb
 - Has `loadNote(path)` action
 - Has `currentNote` state
 - Not connected to sidebar clicks
+- Does not yet reconcile `currentNote` when note inventory changes
 
 ## Contract
 
@@ -64,6 +65,12 @@ Wire the sidebar note list to the editor. When a user clicks a note in the sideb
 
 - Arrow keys to navigate list
 - Enter to open selected note
+
+**FR-6**: Clear selection when the active note disappears
+
+- Given: A note is currently selected in the editor
+- When: The selected note is deleted and the note list refreshes
+- Then: `currentNote` is cleared and the editor shows the empty placeholder
 
 ### Interface (TypeScript)
 
@@ -97,6 +104,10 @@ loadNote: (path: string) => Promise<void>; // Already exists
 - Don't Save: Discard changes, switch
 - Cancel: Stay on current note
 
+**Given** the currently selected note has been deleted
+**When** the note list reload completes
+**Then** the deleted note is no longer selected and no stale note remains visible in the editor
+
 ## Design Decisions
 
 | Decision                    | Rationale              | Trade-off           |
@@ -104,6 +115,7 @@ loadNote: (path: string) => Promise<void>; // Already exists
 | Track selectedPath in store | Single source of truth | Slightly more state |
 | Prompt for unsaved changes  | Prevent data loss      | Interrupts flow     |
 | Sidebar handles click       | Natural UX             | Tight coupling      |
+| Reconcile selection in store on note reload | Covers delete flows and external changes consistently | Adds store-side coupling to note inventory |
 
 ## Acceptance Criteria
 
@@ -111,6 +123,7 @@ loadNote: (path: string) => Promise<void>; // Already exists
 - [ ] Selected note visually highlighted
 - [ ] Unsaved changes prompt before switching
 - [ ] Editor shows placeholder when no note selected
+- [ ] Deleting the selected note clears `currentNote`
 - [ ] Works with content loading (P1.1)
 
 ## Related

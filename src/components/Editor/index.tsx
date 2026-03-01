@@ -9,7 +9,7 @@ import {
   redoHistory,
   undoHistory,
 } from "@editor/commands";
-import { renderMarkdownToHtml, renderMermaidDiagrams } from "@editor/render";
+import { renderMarkdownToHtml, renderMermaidDiagrams, toggleTaskListItemInMarkdown } from "@editor/render";
 import {
   emptyMetadataDraft,
   parseNoteDocument,
@@ -758,6 +758,31 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       const targetElement = event.target as HTMLElement | null;
       if (!targetElement) return;
 
+      const checkbox = targetElement.closest<HTMLInputElement>("input[data-task-checkbox='true']");
+      if (checkbox) {
+        const taskItem = checkbox.closest<HTMLElement>("li[data-task-index]");
+        const taskIndex = Number(taskItem?.dataset.taskIndex);
+        if (Number.isInteger(taskIndex) && taskIndex >= 0) {
+          const nextBody = toggleTaskListItemInMarkdown(parsedDocument.body, taskIndex);
+          if (nextBody) {
+            const serialized = serializeNoteDocument({
+              body: nextBody,
+              managed: metadataDraftRef.current,
+              extraYaml: extraMetadataYamlRef.current,
+            });
+            setContent(serialized);
+            useEditorStore.setState((previous) => ({
+              ...previous,
+              content: serialized,
+              isDirty: true,
+            }));
+            markDirty(true);
+          }
+        }
+        event.preventDefault();
+        return;
+      }
+
       const anchor = targetElement.closest("a") as HTMLAnchorElement | null;
       if (!anchor) return;
 
@@ -778,7 +803,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
         void loadNote(href);
       }
     },
-    [followOrCreateWikilinkTarget, loadNote]
+    [followOrCreateWikilinkTarget, loadNote, markDirty, parsedDocument.body, setContent]
   );
 
   if (!currentNote) {

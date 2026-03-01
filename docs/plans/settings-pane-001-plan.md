@@ -6,7 +6,7 @@ Spec: `docs/specs/component/settings-pane-001.md`
 Generated: `2026-02-23`
 
 ## Summary
-- Total tasks: 8
+- Total tasks: 10
 - Approach: sequential
 - Size: 5 small, 3 medium, 0 large
 - Goal: add sectioned settings UI in right rail, expose current config, and implement explicit full vault reindex action.
@@ -22,11 +22,13 @@ Generated: `2026-02-23`
 | SP-005 | Add frontend API methods for vault settings get/update and full reindex | S | SP-004 | FR-4, FR-7, FR-8 |
 | SP-006 | Implement settings pane sections, editing controls, and bottom-pinned rail settings icon | S | SP-005 | FR-1, FR-2, FR-3, FR-6 |
 | SP-007 | Wire frontend persistence and backend patch updates for configurable settings | S | SP-006 | FR-7, FR-8 |
-| SP-008 | Verify tests/typecheck/lint/storybook and publish compliance audit | S | SP-007 | FR-1..FR-8 |
+| SP-008 | Verify tests/typecheck/lint/storybook and publish compliance audit | S | SP-010 | FR-1..FR-9 |
+| SP-009 | Add failing tests and API coverage for TOML-backed graph readability floor setting | S | SP-007 | FR-8, FR-9 |
+| SP-010 | Implement settings UI and app-config persistence for graph readability floor | S | SP-009 | FR-8, FR-9 |
 
 ## Dependency DAG
 ```text
-SP-001 -> SP-002 -> SP-003 -> SP-004 -> SP-005 -> SP-006 -> SP-007 -> SP-008
+SP-001 -> SP-002 -> SP-003 -> SP-004 -> SP-005 -> SP-006 -> SP-007 -> SP-009 -> SP-010 -> SP-008
 ```
 
 ## Concern Coverage

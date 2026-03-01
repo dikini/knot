@@ -141,6 +141,9 @@ vi.mock("@lib/api", () => ({
         clear_paragraph: "Mod-Alt-0",
       },
     },
+    graph: {
+      readability_floor_percent: 70,
+    },
   }),
   updateAppKeymapSettings: vi.fn().mockResolvedValue({
     keymaps: {
@@ -155,6 +158,9 @@ vi.mock("@lib/api", () => ({
         redo: "Mod-Shift-z, Mod-y",
         clear_paragraph: "Mod-Alt-0",
       },
+    },
+    graph: {
+      readability_floor_percent: 70,
     },
   }),
 }));
@@ -474,6 +480,9 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
           redo: "Mod-Shift-z, Mod-y",
           clear_paragraph: "Mod-Alt-0",
         },
+      },
+      graph: {
+        readability_floor_percent: 70,
       },
     });
 

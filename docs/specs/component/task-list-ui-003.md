@@ -15,7 +15,7 @@ Render markdown task lists as checkbox UI in both view and edit modes without br
 ## Contract
 
 ### Functional Requirements
-**TL-001**: View mode must render markdown task list items (`- [ ]`, `- [x]`) as checkbox UI while preserving note navigation behavior and markdown fidelity.
+**TL-001**: View mode must render markdown task list items (`- [ ]`, `- [x]`) as checkbox UI and allow toggling them by updating the in-memory note markdown while preserving note navigation behavior and markdown fidelity.
 
 **TL-002**: Edit mode must render task list items as checkbox UI and toggle checked state only through ProseMirror transactions so history, selection, and change notifications remain correct.
 
@@ -25,6 +25,10 @@ Render markdown task lists as checkbox UI in both view and edit modes without br
 **Given** a note containing markdown task list items
 **When** the note is opened in view mode
 **Then** each task item is shown with a checkbox affordance instead of plain bullet text.
+
+**Given** a task list item in view mode
+**When** the user toggles its checkbox
+**Then** the rendered note updates the corresponding task marker in note markdown and marks the note dirty for save.
 
 **Given** a task list item in edit mode
 **When** the user toggles its checkbox
@@ -42,13 +46,13 @@ Render markdown task lists as checkbox UI in both view and edit modes without br
 | Toggle with `setNodeMarkup` on the list item node | Preserves history and editor transaction semantics | Requires careful position resolution from DOM events |
 
 ## Acceptance Criteria
-- [x] View mode renders task list items as checkbox UI.
+- [x] View mode renders task list items as checkbox UI and toggles the underlying markdown task markers.
 - [x] Edit mode renders task list items as checkbox UI and toggles through ProseMirror transactions.
 - [x] Undo/redo restores checkbox state correctly after toggles.
 - [x] Serialized markdown preserves `- [ ]` and `- [x]` task markers after toggles.
 
 ## Verification Strategy
-- Renderer tests for checkbox HTML output in view mode.
+- Renderer tests for checkbox HTML output and task-target metadata in view mode.
 - Editor plugin tests for transaction-based checkbox toggling and history behavior.
-- Editor component tests for edit/view mode checkbox UI wiring.
+- Editor component tests for edit/view mode checkbox UI wiring and view-mode markdown persistence.
 - Targeted Vitest runs plus `npm run typecheck`.

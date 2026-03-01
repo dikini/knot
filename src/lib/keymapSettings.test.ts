@@ -59,6 +59,9 @@ describe("app keymap settings", () => {
             clear_paragraph: "Mod-Alt-0",
           },
         },
+        graph: {
+          readability_floor_percent: 70,
+        },
       });
 
     expect(result.ok).toBe(false);
@@ -82,6 +85,9 @@ describe("app keymap settings", () => {
             redo: "Mod-Shift-z",
             clear_paragraph: "Mod-Alt-0",
           },
+        },
+        graph: {
+          readability_floor_percent: 70,
         },
       });
 

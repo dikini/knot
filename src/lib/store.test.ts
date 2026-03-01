@@ -299,6 +299,46 @@ describe("Vault Store", () => {
       expect(state.isLoading).toBe(false);
     });
 
+    it("clears currentNote when the refreshed note list no longer contains it", async () => {
+      const staleNote = {
+        id: "1",
+        path: "deleted-note.md",
+        title: "Deleted Note",
+        content: "# Deleted",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 2,
+        headings: [],
+        backlinks: [],
+      };
+      const remainingNotes = [
+        {
+          id: "2",
+          path: "remaining-note.md",
+          title: "Remaining Note",
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 3,
+        },
+      ];
+
+      vi.mocked(api.listNotes).mockResolvedValue(remainingNotes);
+
+      useVaultStore.getState().setVault({
+        path: "/test",
+        name: "Test",
+        note_count: 5,
+        last_modified: 0,
+      });
+      useVaultStore.getState().setCurrentNote(staleNote);
+
+      await useVaultStore.getState().loadNotes();
+
+      const state = useVaultStore.getState();
+      expect(state.noteList).toEqual(remainingNotes);
+      expect(state.currentNote).toBeNull();
+    });
+
     it("should load note successfully", async () => {
       const mockNote = {
         id: "1",

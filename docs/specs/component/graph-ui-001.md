@@ -4,10 +4,11 @@
 - ID: `COMP-GRAPH-UI-001`
 - Scope: `component`
 - Status: `implemented`
+- Status: `implemented`
 - Parent: `COMP-FRONTEND-001`, `COMP-GRAPH-001`
 - Concerns: [CAP, REL]
 - Created: `2026-02-19`
-- Updated: `2026-02-19`
+- Updated: `2026-03-01`
 
 ## Purpose
 Provide an interactive graph visualization for note links in the frontend, backed by `get_graph_layout` from the Rust graph service.
@@ -22,7 +23,7 @@ Provide an interactive graph visualization for note links in the frontend, backe
 
 **FR-1**: Graph view component
 - Render graph with SVG.
-- Show nodes as circles and labels.
+- Show nodes as note-title text with a rectangular hit target.
 - Show edges as lines between linked notes.
 - Handle loading, error, and empty states.
 
@@ -46,7 +47,21 @@ Provide an interactive graph visualization for note links in the frontend, backe
 **FR-5**: Visual styling
 - Selected node has distinct visual style.
 - Hovered node and connected edges have distinct visual style.
+- Text-first nodes expose a subtle rectangular background in active/debug states so the hit target remains visible while debugging layout and selection.
 - Graph overlays show controls and basic stats.
+
+**FR-6**: Label readability
+- Labels MUST remain readable in dense local clusters.
+- Labels for nodes near the viewport edge MUST avoid clipping against the graph bounds.
+- Full node identity MUST remain available even when crowded labels use compact placement.
+
+**FR-7**: Canonical scale, fit floor, and overflow
+- Graph rendering MUST define a canonical `100%` scale based on fixed label text size and pill padding.
+- Pill collision handling MUST prioritize non-overlap at canonical scale over forcing all nodes into the visible viewport.
+- Initial graph framing MUST auto-fit to the visible viewport only when the required fit zoom is at or above the configured readability floor.
+- If a graph cannot fit above the readability floor, the graph surface MAY extend beyond the visible viewport and MUST expose visible overflow cues such as scrollbars.
+- Reset MUST recompute framing from the latest persisted readability-floor setting.
+- Changing the readability-floor setting MUST NOT mutate the current manual pan/zoom state until the next graph open or reset.
 
 ### Interface (TypeScript)
 
@@ -94,6 +109,8 @@ type MainViewMode = "editor" | "graph";
 | Backend-computed layout | Keeps frontend simple and deterministic | Less dynamic client-side layout |
 | Parent-level view toggle | Keeps GraphView focused on rendering/interactions | Adds App-level state coordination |
 | Per-vault toggle persistence | Better UX across vault switches | Local storage key management |
+| Canonical graph scale with fit floor | Makes readability and collision rules explicit | Some graphs will intentionally overflow the panel |
+| Scrollable overflow instead of forced fit | Honest visibility cues when graphs exceed readable fit | Adds scrollbar chrome to graph viewport |
 
 ## Acceptance Criteria
 
@@ -104,6 +121,15 @@ type MainViewMode = "editor" | "graph";
 - [x] View preference persists per vault
 - [x] Hover/selection visual states are applied
 - [x] Automated tests cover component and parent integration behavior
+- [x] Dense label clusters stagger or reposition labels so adjacent node titles remain legible.
+- [x] Edge-adjacent node labels avoid clipping beyond the visible graph pane.
+- [x] Dense or compact label placement still exposes the full note identity via accessible label text or tooltip metadata.
+- [x] Graph nodes render without circular markers and instead use a text-first rectangular hit target.
+- [x] Hovered and selected text nodes show a subtle debug-visible background while preserving clickability and label legibility.
+- [ ] Graph framing uses a canonical `100%` text/pill scale and a readability floor when choosing initial fit.
+- [ ] Pill targets do not overlap in dense layouts at canonical scale, even when that requires graph overflow.
+- [ ] Graph viewport exposes overflow cues when content exceeds the visible panel instead of hiding overflow.
+- [ ] Updating the readability-floor setting leaves the current manual graph view unchanged and only affects next open/reset framing.
 
 ## Related
 

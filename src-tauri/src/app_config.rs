@@ -10,6 +10,9 @@ const APP_CONFIG_FILE: &str = "app-config.toml";
 pub struct AppKeymapSettings {
     #[serde(default)]
     pub keymaps: ManagedKeymapSections,
+
+    #[serde(default)]
+    pub graph: GraphUiSettings,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -46,6 +49,12 @@ pub struct EditorKeymapSettings {
 
     #[serde(default = "default_clear_paragraph_shortcut")]
     pub clear_paragraph: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GraphUiSettings {
+    #[serde(default = "default_graph_readability_floor_percent")]
+    pub readability_floor_percent: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,9 +99,18 @@ impl Default for EditorKeymapSettings {
     }
 }
 
+impl Default for GraphUiSettings {
+    fn default() -> Self {
+        Self {
+            readability_floor_percent: default_graph_readability_floor_percent(),
+        }
+    }
+}
+
 pub fn default_app_keymap_settings() -> AppKeymapSettings {
     AppKeymapSettings {
         keymaps: ManagedKeymapSections::default(),
+        graph: GraphUiSettings::default(),
     }
 }
 
@@ -152,6 +170,13 @@ pub fn validate_app_keymap_settings(settings: &AppKeymapSettings) -> Result<()> 
         }
     }
 
+    if !(40..=100).contains(&settings.graph.readability_floor_percent) {
+        errors.push(ShortcutValidationError {
+            field: "graph.readability_floor_percent".to_string(),
+            message: "Graph readability floor must be between 40 and 100".to_string(),
+        });
+    }
+
     if errors.is_empty() {
         Ok(())
     } else {
@@ -194,6 +219,10 @@ fn default_switch_graph_shortcut() -> String {
 
 fn default_clear_paragraph_shortcut() -> String {
     "Mod-Alt-0".to_string()
+}
+
+fn default_graph_readability_floor_percent() -> u32 {
+    70
 }
 
 fn normalize_shortcut_list(raw: &str) -> std::result::Result<Vec<String>, String> {
@@ -302,7 +331,7 @@ fn normalize_key(raw: &str) -> std::result::Result<String, String> {
 mod tests {
     use super::{
         default_app_keymap_settings, load_app_keymap_settings, save_app_keymap_settings,
-        validate_app_keymap_settings, AppKeymapSettings, EditorKeymapSettings,
+        validate_app_keymap_settings, AppKeymapSettings, EditorKeymapSettings, GraphUiSettings,
         GeneralKeymapSettings, ManagedKeymapSections,
     };
     use tempfile::TempDir;
@@ -324,6 +353,9 @@ mod tests {
                     clear_paragraph: "Alt-0".to_string(),
                 },
             },
+            graph: GraphUiSettings {
+                readability_floor_percent: 85,
+            },
         };
 
         save_app_keymap_settings(temp_dir.path(), &settings).expect("save settings");
@@ -342,6 +374,12 @@ mod tests {
     }
 
     #[test]
+    fn app_keymap_settings_include_default_graph_readability_floor() {
+        let defaults = default_app_keymap_settings();
+        assert_eq!(defaults.graph.readability_floor_percent, 70);
+    }
+
+    #[test]
     fn app_keymap_settings_validation_rejects_duplicate_shortcuts() {
         let duplicate = AppKeymapSettings {
             keymaps: ManagedKeymapSections {
@@ -357,6 +395,7 @@ mod tests {
                     clear_paragraph: "Mod-Alt-0".to_string(),
                 },
             },
+            graph: GraphUiSettings::default(),
         };
 
         let result = validate_app_keymap_settings(&duplicate);

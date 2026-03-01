@@ -176,6 +176,12 @@
   background: rgba(128, 114, 94, 0.18);
 }
 
+.explorer-tree__folder--drop-target > .explorer-tree__folder-row,
+.explorer-tree__note-row--drop-target {
+  background: rgba(128, 114, 94, 0.28);
+  outline: 1px solid rgba(128, 114, 94, 0.5);
+}
+
 .explorer-tree__chevron {
   width: 14px;
   color: var(--color-text-muted);

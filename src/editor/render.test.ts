@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { renderMarkdownToHtml } from "./render";
+import { renderMarkdownToHtml, toggleTaskListItemInMarkdown } from "./render";
 
 describe("renderMarkdownToHtml", () => {
   it("renders markdown task lists as checkbox UI", () => {
@@ -15,8 +15,18 @@ describe("renderMarkdownToHtml", () => {
     expect(taskList).not.toBeNull();
     expect(checkboxes).toHaveLength(2);
     expect(checkboxes[0]?.checked).toBe(true);
-    expect(checkboxes[0]?.disabled).toBe(true);
+    expect(checkboxes[0]?.disabled).toBe(false);
     expect(checkboxes[1]?.checked).toBe(false);
+    expect(container.querySelector('li[data-task-index="0"]')).not.toBeNull();
+    expect(container.querySelector('li[data-task-index="1"]')).not.toBeNull();
+  });
+
+  it("toggles the targeted task item back into markdown", () => {
+    const markdown = "- [x] Done\n- [ ] Todo";
+
+    expect(toggleTaskListItemInMarkdown(markdown, 1)).toBe("- [x] Done\n\n- [x] Todo");
+    expect(toggleTaskListItemInMarkdown(markdown, 0)).toBe("- [ ] Done\n\n- [ ] Todo");
+    expect(toggleTaskListItemInMarkdown(markdown, 2)).toBeNull();
   });
 
   it("renders inline math with KaTeX markup", () => {

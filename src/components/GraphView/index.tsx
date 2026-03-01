@@ -32,6 +32,7 @@ export interface GraphViewProps {
   scope?: "vault" | "node";
   centerNodeId?: string | null;
   nodeScopeDepth?: number;
+  readabilityFloorPercent?: number;
 }
 
 function stripMarkdownExtension(path: string): string {
@@ -72,6 +73,263 @@ function resolveNodeIdFromNodes(
   return byBasename?.id ?? null;
 }
 
+type LabelPlacement = "above" | "below" | "left" | "right";
+
+interface LabelLayout {
+  dx: number;
+  dy: number;
+  placement: LabelPlacement;
+  textAnchor: "start" | "middle" | "end";
+}
+
+interface LabelTargetBox {
+  height: number;
+  rx: number;
+  ry: number;
+  width: number;
+  x: number;
+  y: number;
+}
+
+interface NodeVisual {
+  label: string;
+  labelLayout: LabelLayout;
+  node: GraphNode;
+  targetBox: LabelTargetBox;
+}
+
+interface PositionedNodeVisual extends NodeVisual {
+  originX: number;
+  originY: number;
+}
+
+interface SurfaceLayout {
+  height: number;
+  visuals: Map<string, PositionedNodeVisual>;
+  width: number;
+}
+
+function estimateLabelTargetBox(label: string, layout: LabelLayout): LabelTargetBox {
+  const textWidth = Math.max(44, label.length * 7.2);
+  const horizontalPadding = 10;
+  const width = textWidth + horizontalPadding * 2;
+  const height = 24;
+  let x = layout.dx - width / 2;
+
+  if (layout.textAnchor === "start") {
+    x = layout.dx - horizontalPadding;
+  } else if (layout.textAnchor === "end") {
+    x = layout.dx - (textWidth + horizontalPadding);
+  }
+
+  return {
+    x,
+    y: layout.dy - height / 2,
+    width,
+    height,
+    rx: 8,
+    ry: 8,
+  };
+}
+
+function getRectBoundaryPoint(
+  centerX: number,
+  centerY: number,
+  box: LabelTargetBox,
+  targetX: number,
+  targetY: number
+): { x: number; y: number } {
+  const rectCenterX = centerX + box.x + box.width / 2;
+  const rectCenterY = centerY + box.y + box.height / 2;
+  const dx = targetX - rectCenterX;
+  const dy = targetY - rectCenterY;
+  const halfWidth = box.width / 2;
+  const halfHeight = box.height / 2;
+
+  if (Math.abs(dx) < 0.001 && Math.abs(dy) < 0.001) {
+    return { x: rectCenterX, y: rectCenterY };
+  }
+
+  const scale = 1 / Math.max(Math.abs(dx) / halfWidth, Math.abs(dy) / halfHeight, 1);
+  return {
+    x: rectCenterX + dx * scale,
+    y: rectCenterY + dy * scale,
+  };
+}
+
+function getAbsoluteTargetBox(visual: PositionedNodeVisual): LabelTargetBox {
+  return {
+    ...visual.targetBox,
+    x: visual.originX + visual.targetBox.x,
+    y: visual.originY + visual.targetBox.y,
+  };
+}
+
+function resolveSurfaceLayout(
+  visuals: Map<string, NodeVisual>,
+  padding: number = 48
+): SurfaceLayout {
+  const positioned = Array.from(visuals.values()).map<PositionedNodeVisual>((visual) => ({
+    ...visual,
+    originX: visual.node.x,
+    originY: visual.node.y,
+  }));
+
+  for (let iteration = 0; iteration < 48; iteration += 1) {
+    let moved = false;
+
+    for (let i = 0; i < positioned.length; i += 1) {
+      for (let j = i + 1; j < positioned.length; j += 1) {
+        const left = positioned[i];
+        const right = positioned[j];
+        const leftBox = getAbsoluteTargetBox(left);
+        const rightBox = getAbsoluteTargetBox(right);
+        const overlapX =
+          Math.min(leftBox.x + leftBox.width, rightBox.x + rightBox.width) -
+          Math.max(leftBox.x, rightBox.x);
+        const overlapY =
+          Math.min(leftBox.y + leftBox.height, rightBox.y + rightBox.height) -
+          Math.max(leftBox.y, rightBox.y);
+
+        if (overlapX <= 0 || overlapY <= 0) {
+          continue;
+        }
+
+        moved = true;
+        const leftCenterX = leftBox.x + leftBox.width / 2;
+        const rightCenterX = rightBox.x + rightBox.width / 2;
+        const leftCenterY = leftBox.y + leftBox.height / 2;
+        const rightCenterY = rightBox.y + rightBox.height / 2;
+
+        if (overlapX <= overlapY) {
+          const push = overlapX / 2 + 8;
+          const direction = leftCenterX <= rightCenterX ? -1 : 1;
+          left.originX += direction * push;
+          right.originX -= direction * push;
+        } else {
+          const push = overlapY / 2 + 8;
+          const direction = leftCenterY <= rightCenterY ? -1 : 1;
+          left.originY += direction * push;
+          right.originY -= direction * push;
+        }
+      }
+    }
+
+    if (!moved) {
+      break;
+    }
+  }
+
+  const minX = positioned
+    .map((visual) => getAbsoluteTargetBox(visual).x)
+    .reduce((current, value) => Math.min(current, value), Number.POSITIVE_INFINITY);
+  const minY = positioned
+    .map((visual) => getAbsoluteTargetBox(visual).y)
+    .reduce((current, value) => Math.min(current, value), Number.POSITIVE_INFINITY);
+  const shiftX = Number.isFinite(minX) ? padding - minX : 0;
+  const shiftY = Number.isFinite(minY) ? padding - minY : 0;
+
+  for (const visual of positioned) {
+    visual.originX += shiftX;
+    visual.originY += shiftY;
+  }
+
+  const maxX = positioned
+    .map((visual) => {
+      const box = getAbsoluteTargetBox(visual);
+      return box.x + box.width;
+    })
+    .reduce((current, value) => Math.max(current, value), 0);
+  const maxY = positioned
+    .map((visual) => {
+      const box = getAbsoluteTargetBox(visual);
+      return box.y + box.height;
+    })
+    .reduce((current, value) => Math.max(current, value), 0);
+
+  return {
+    width: maxX + padding,
+    height: maxY + padding,
+    visuals: new Map(positioned.map((visual) => [visual.node.id, visual])),
+  };
+}
+
+function computeInitialZoom(
+  surfaceWidth: number,
+  surfaceHeight: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  readabilityFloorPercent: number
+): number {
+  const fitZoom = Math.min(viewportWidth / surfaceWidth, viewportHeight / surfaceHeight, 1);
+  const floor = Math.max(0.4, Math.min(1, readabilityFloorPercent / 100));
+  return fitZoom < floor ? floor : fitZoom;
+}
+
+function computeLabelLayouts(nodes: GraphNode[], width: number): Map<string, LabelLayout> {
+  const layouts = new Map<string, LabelLayout>();
+  const edgeThreshold = 120;
+  const rowThreshold = 56;
+
+  const rowGroups = nodes.reduce<Array<GraphNode[]>>((groups, node) => {
+    const existing = groups.find((group) => Math.abs(group[0]!.y - node.y) <= rowThreshold);
+    if (existing) {
+      existing.push(node);
+    } else {
+      groups.push([node]);
+    }
+    return groups;
+  }, []);
+
+  for (const group of rowGroups) {
+    group.sort((left, right) => left.x - right.x);
+    const crowded = group.length >= 3;
+
+    for (const [index, node] of group.entries()) {
+      if (node.x > width - edgeThreshold) {
+        layouts.set(node.id, {
+          dx: -28,
+          dy: 5,
+          placement: "left",
+          textAnchor: "end",
+        });
+        continue;
+      }
+
+      if (node.x < edgeThreshold) {
+        layouts.set(node.id, {
+          dx: 28,
+          dy: 5,
+          placement: "right",
+          textAnchor: "start",
+        });
+        continue;
+      }
+
+      if (crowded) {
+        const lane = Math.floor(index / 2);
+        const isAbove = index % 2 === 1;
+        layouts.set(node.id, {
+          dx: 0,
+          dy: isAbove ? -28 - lane * 18 : 35 + lane * 18,
+          placement: isAbove ? "above" : "below",
+          textAnchor: "middle",
+        });
+        continue;
+      }
+
+      layouts.set(node.id, {
+        dx: 0,
+        dy: 35,
+        placement: "below",
+        textAnchor: "middle",
+      });
+    }
+  }
+
+  return layouts;
+}
+
 export function GraphView({
   width,
   height,
@@ -82,19 +340,18 @@ export function GraphView({
   scope = "vault",
   centerNodeId = null,
   nodeScopeDepth = 1,
+  readabilityFloorPercent = 70,
 }: GraphViewProps) {
+  const viewportRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [layout, setLayout] = useState<GraphLayout | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Viewport state
-  const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
 
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
 
   // Selected node
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
@@ -220,37 +477,102 @@ export function GraphView({
     return { hasCenter: true, nodes, edges, labelCounts };
   }, [scope, centerNodeId, nodeScopeDepth, normalizedLayout]);
 
-  // Create a map for quick node lookup
+  const labelLayouts = useMemo(
+    () => computeLabelLayouts(visibleGraph.nodes, width),
+    [visibleGraph.nodes, width]
+  );
+
+  const getNodeLabel = useCallback(
+    (node: GraphNode): string => {
+      const duplicateLabel = (visibleGraph.labelCounts.get(node.label) ?? 0) > 1;
+      if (!duplicateLabel) {
+        return node.label;
+      }
+      return `${node.label} (${stripMarkdownExtension(node.id)})`;
+    },
+    [visibleGraph.labelCounts]
+  );
+
+  const nodeVisuals = useMemo(() => {
+    const map = new Map<string, NodeVisual>();
+    for (const node of visibleGraph.nodes) {
+      const label = getNodeLabel(node);
+      const labelLayout = labelLayouts.get(node.id) ?? {
+        dx: 0,
+        dy: 35,
+        placement: "below" as const,
+        textAnchor: "middle" as const,
+      };
+      map.set(node.id, {
+        node,
+        label,
+        labelLayout,
+        targetBox: estimateLabelTargetBox(label, labelLayout),
+      });
+    }
+    return map;
+  }, [getNodeLabel, labelLayouts, visibleGraph.nodes]);
+
+  const surfaceLayout = useMemo(() => resolveSurfaceLayout(nodeVisuals), [nodeVisuals]);
+
   const nodeMap = useMemo(() => {
     const map = new Map<string, GraphNode>();
     visibleGraph.nodes.forEach((node) => map.set(node.id, node));
     return map;
   }, [visibleGraph.nodes]);
 
-  const getNode = useCallback(
-    (id: string): GraphNode | undefined => nodeMap.get(id),
-    [nodeMap]
+  const centerViewportOnSurface = useCallback(
+    (nextZoom: number) => {
+      const viewport = viewportRef.current;
+      if (!viewport) {
+        return;
+      }
+      const scaledWidth = surfaceLayout.width * nextZoom;
+      const scaledHeight = surfaceLayout.height * nextZoom;
+      viewport.scrollLeft = Math.max(0, (scaledWidth - width) / 2);
+      viewport.scrollTop = Math.max(0, (scaledHeight - height) / 2);
+    },
+    [height, surfaceLayout.height, surfaceLayout.width, width]
   );
+
+  useEffect(() => {
+    if (!layout || visibleGraph.nodes.length === 0) {
+      return;
+    }
+    const initialZoom = computeInitialZoom(
+      surfaceLayout.width,
+      surfaceLayout.height,
+      width,
+      height,
+      readabilityFloorPercent
+    );
+    setZoom(initialZoom);
+    centerViewportOnSurface(initialZoom);
+    // Intentionally exclude readabilityFloorPercent so active manual view state
+    // is preserved until the next open or reset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [layout, visibleGraph.nodes.length, surfaceLayout.width, surfaceLayout.height, width, height]);
 
   // Handle mouse down for panning
   const handleMouseDown = (e: React.MouseEvent) => {
     // Only pan when clicking on the SVG background (not on nodes)
-    if (e.target === svgRef.current) {
+    const viewport = viewportRef.current;
+    if (e.target === svgRef.current && viewport) {
       setIsDragging(true);
       setDragStart({
-        x: e.clientX - pan.x,
-        y: e.clientY - pan.y,
+        x: e.clientX,
+        y: e.clientY,
+        scrollLeft: viewport.scrollLeft,
+        scrollTop: viewport.scrollTop,
       });
     }
   };
 
   // Handle mouse move for panning
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) {
-      setPan({
-        x: e.clientX - dragStart.x,
-        y: e.clientY - dragStart.y,
-      });
+    if (isDragging && viewportRef.current) {
+      viewportRef.current.scrollLeft = dragStart.scrollLeft - (e.clientX - dragStart.x);
+      viewportRef.current.scrollTop = dragStart.scrollTop - (e.clientY - dragStart.y);
     }
   };
 
@@ -310,21 +632,17 @@ export function GraphView({
     });
   }, [effectiveSelectedNode, nodeMap, onSelectionChange, visibleGraph.edges]);
 
-  const getNodeLabel = useCallback(
-    (node: GraphNode): string => {
-      const duplicateLabel = (visibleGraph.labelCounts.get(node.label) ?? 0) > 1;
-      if (!duplicateLabel) {
-        return node.label;
-      }
-      return `${node.label} (${stripMarkdownExtension(node.id)})`;
-    },
-    [visibleGraph.labelCounts]
-  );
-
   // Reset view
   const handleResetView = () => {
-    setPan({ x: 0, y: 0 });
-    setZoom(1);
+    const nextZoom = computeInitialZoom(
+      surfaceLayout.width,
+      surfaceLayout.height,
+      width,
+      height,
+      readabilityFloorPercent
+    );
+    setZoom(nextZoom);
+    centerViewportOnSurface(nextZoom);
   };
 
   if (loading) {
@@ -367,38 +685,70 @@ export function GraphView({
     );
   }
 
+  const hasOverflowX = surfaceLayout.width * zoom > width + 1;
+  const hasOverflowY = surfaceLayout.height * zoom > height + 1;
+
   return (
     <div className="graph-view" style={{ width, height }}>
-      <svg
-        ref={svgRef}
-        width={width}
-        height={height}
-        role="img"
-        aria-label="Note link graph"
-        className={`graph-view__svg ${isDragging ? "is-dragging" : ""}`}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
+      <div
+        ref={viewportRef}
+        className="graph-view__viewport"
+        data-testid="graph-viewport"
+        data-overflow-x={hasOverflowX ? "true" : "false"}
+        data-overflow-y={hasOverflowY ? "true" : "false"}
       >
-        <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
+        <svg
+          ref={svgRef}
+          width={surfaceLayout.width * zoom}
+          height={surfaceLayout.height * zoom}
+          role="img"
+          aria-label="Note link graph"
+          className={`graph-view__svg ${isDragging ? "is-dragging" : ""}`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+        >
+          <g transform={`scale(${zoom})`}>
           {/* Edges first (rendered behind nodes) */}
           {visibleGraph.edges.map((edge) => {
-            const sourceNode = getNode(edge.source);
-            const targetNode = getNode(edge.target);
-            if (!sourceNode || !targetNode) return null;
+            const sourceVisual = surfaceLayout.visuals.get(edge.source);
+            const targetVisual = surfaceLayout.visuals.get(edge.target);
+            if (!sourceVisual || !targetVisual) return null;
             const isConnected =
               hoveredNode !== null &&
               (edge.source === hoveredNode || edge.target === hoveredNode);
+            const sourceCenterX =
+              sourceVisual.originX + sourceVisual.targetBox.x + sourceVisual.targetBox.width / 2;
+            const sourceCenterY =
+              sourceVisual.originY + sourceVisual.targetBox.y + sourceVisual.targetBox.height / 2;
+            const targetCenterX =
+              targetVisual.originX + targetVisual.targetBox.x + targetVisual.targetBox.width / 2;
+            const targetCenterY =
+              targetVisual.originY + targetVisual.targetBox.y + targetVisual.targetBox.height / 2;
+            const startPoint = getRectBoundaryPoint(
+              sourceVisual.originX,
+              sourceVisual.originY,
+              sourceVisual.targetBox,
+              targetCenterX,
+              targetCenterY
+            );
+            const endPoint = getRectBoundaryPoint(
+              targetVisual.originX,
+              targetVisual.originY,
+              targetVisual.targetBox,
+              sourceCenterX,
+              sourceCenterY
+            );
 
             return (
               <line
                 key={`${edge.source}-${edge.target}`}
-                x1={sourceNode.x}
-                y1={sourceNode.y}
-                x2={targetNode.x}
-                y2={targetNode.y}
+                x1={startPoint.x}
+                y1={startPoint.y}
+                x2={endPoint.x}
+                y2={endPoint.y}
                 className={`graph-edge ${
                   hoveredNode === null
                     ? ""
@@ -412,25 +762,46 @@ export function GraphView({
 
           {/* Nodes */}
           {visibleGraph.nodes.map((node) => (
-            <g
-              key={node.id}
-              transform={`translate(${node.x}, ${node.y})`}
-              className={`graph-node ${effectiveSelectedNode === node.id ? "is-selected" : ""}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleNodeClick(node.id);
-              }}
-              onMouseEnter={() => setHoveredNode(node.id)}
-              onMouseLeave={() => setHoveredNode(null)}
-            >
-              <circle r={20} className="graph-node__circle" />
-              <text className="graph-node__label" dy={35}>
-                {getNodeLabel(node)}
-              </text>
-            </g>
+            (() => {
+              const visual = surfaceLayout.visuals.get(node.id);
+              if (!visual) return null;
+              const isHovered = hoveredNode === node.id;
+
+              return (
+                <g
+                  key={node.id}
+                  transform={`translate(${visual.originX}, ${visual.originY})`}
+                  className={`graph-node ${effectiveSelectedNode === node.id ? "is-selected" : ""} ${
+                    isHovered ? "is-hovered" : ""
+                  }`}
+                  data-node-id={node.id}
+                  data-origin-x={visual.originX}
+                  data-origin-y={visual.originY}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleNodeClick(node.id);
+                  }}
+                  onMouseEnter={() => setHoveredNode(node.id)}
+                  onMouseLeave={() => setHoveredNode(null)}
+                >
+                  <rect className="graph-node__target" {...visual.targetBox} />
+                  <text
+                    className={`graph-node__label graph-node__label--${visual.labelLayout.placement}`}
+                    x={visual.labelLayout.dx}
+                    y={visual.labelLayout.dy}
+                    textAnchor={visual.labelLayout.textAnchor}
+                    data-label-placement={visual.labelLayout.placement}
+                  >
+                    {visual.label}
+                  </text>
+                  <title>{stripMarkdownExtension(node.id)}</title>
+                </g>
+              );
+            })()
           ))}
-        </g>
-      </svg>
+          </g>
+        </svg>
+      </div>
 
       {/* Controls overlay */}
       <div className="graph-view__controls">
@@ -441,7 +812,7 @@ export function GraphView({
           className="graph-view__control-btn"
           onClick={handleResetView}
         />
-        <div className="graph-view__zoom-info">{Math.round(zoom * 100)}%</div>
+        <div className="graph-view__zoom-info">{`${Math.round(zoom * 100)}%`}</div>
       </div>
 
       {/* Stats overlay */}

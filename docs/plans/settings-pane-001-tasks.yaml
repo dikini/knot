@@ -71,7 +71,25 @@ tasks:
     title: Verify feature and publish compliance audit report
     status: planned
     size: S
-    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8]
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9]
     concerns: [CONF, REL, CAP]
-    dependencies: [SP-007]
+    dependencies: [SP-010]
     acceptance: Targeted tests, typecheck, lint, and audit doc completed with noted residual risks.
+
+  - id: SP-009
+    title: Add failing tests and API coverage for TOML-backed graph readability floor setting
+    status: planned
+    size: S
+    spec_refs: [FR-8, FR-9]
+    concerns: [CONF, REL]
+    dependencies: [SP-007]
+    acceptance: App-config and settings pane tests fail until graph readability floor is exposed and persisted.
+
+  - id: SP-010
+    title: Implement settings UI and app-config persistence for graph readability floor
+    status: planned
+    size: S
+    spec_refs: [FR-8, FR-9]
+    concerns: [CONF, REL]
+    dependencies: [SP-009]
+    acceptance: Layout settings expose graph readability floor, persist it through app-config TOML, and preserve existing settings behavior.

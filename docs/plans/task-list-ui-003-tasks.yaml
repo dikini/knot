@@ -46,3 +46,19 @@ tasks:
     spec_refs: [TL-003]
     dependencies: [TL-002B]
     acceptance: "Undo/redo and markdown persistence remain correct; audit and typecheck complete"
+
+  - id: TL-004A
+    title: "Add failing regression tests for interactive view-mode checkbox toggling"
+    status: completed
+    size: S
+    spec_refs: [TL-001, TL-003]
+    dependencies: [TL-003B]
+    acceptance: "Renderer/component tests fail until view-mode checkboxes update markdown state and rerender"
+
+  - id: TL-004B
+    title: "Persist view-mode checkbox clicks back into markdown state and rerender checkbox UI"
+    status: completed
+    size: M
+    spec_refs: [TL-001, TL-003]
+    dependencies: [TL-004A]
+    acceptance: "Clicking a checkbox in view mode updates markdown task markers, marks the note dirty, and rerenders the checkbox state"

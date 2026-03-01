@@ -77,9 +77,9 @@ export const VaultScopeDefault: Story = {
       node.textContent?.includes("Root")
     );
     expect(rootNode).not.toBeNull();
-    const rootCircle = rootNode?.querySelector("circle");
-    expect(rootCircle).not.toBeNull();
-    await userEvent.click(rootCircle as Element);
+    const rootTarget = rootNode?.querySelector(".graph-node__target");
+    expect(rootTarget).not.toBeNull();
+    await userEvent.click(rootTarget as Element);
     await expect(args.onNodeClick).toHaveBeenCalledWith("notes/root.md");
   },
 };
@@ -101,9 +101,9 @@ export const HoverHighlightsConnectedEdges: Story = {
       node.textContent?.includes("Child A")
     );
     expect(childNode).not.toBeNull();
-    const childCircle = childNode?.querySelector("circle");
-    expect(childCircle).not.toBeNull();
-    await userEvent.hover(childCircle as Element);
+    const childTarget = childNode?.querySelector(".graph-node__target");
+    expect(childTarget).not.toBeNull();
+    await userEvent.hover(childTarget as Element);
     await waitFor(() => {
       expect(canvasElement.querySelectorAll(".graph-edge--highlighted").length).toBe(1);
     });

@@ -481,10 +481,15 @@ impl VaultManager {
     }
 
     fn update_graph_for_note(&mut self, note: &Note) -> Result<()> {
-        // Parse note for links
         let parsed = crate::markdown::parse(note.content());
-        self.graph.update_note(note.path(), &parsed.links);
-        Ok(())
+        let stored_note = self
+            .db
+            .get_note_by_path(note.path(), &self.root)?
+            .ok_or_else(|| KnotError::NoteNotFound(note.path().to_string()))?;
+
+        crate::graph::save_links(&self.db, stored_note.id(), &parsed.links)?;
+        crate::graph::save_headings(&self.db, stored_note.id(), &parsed.headings)?;
+        self.rebuild_graph()
     }
 
     //endregion
@@ -806,5 +811,42 @@ mod tests {
         assert!(vault.root_path().join("Engineering/python.md").exists());
         assert!(vault.get_note("Engineering/rust.md").is_ok());
         assert!(vault.get_note("Programming/rust.md").is_err());
+    }
+
+    #[test]
+    fn save_note_persists_runtime_wikilink_neighbors_and_backlinks_across_reopen() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+
+        let mut vault = VaultManager::create(&vault_path).unwrap();
+        vault
+            .save_note("runtime/manifesto.md", "# Runtime Manifesto\n\nCore principles.")
+            .unwrap();
+        vault
+            .save_note(
+                "runtime/current-design.md",
+                "# Current Design\n\nSee [[manifesto]] for the shorter statement.",
+            )
+            .unwrap();
+
+        let mut neighbors = vault.graph_neighbors("runtime/current-design.md", 1);
+        neighbors.sort();
+        assert_eq!(neighbors, vec!["runtime/manifesto.md".to_string()]);
+
+        let mut backlinks = vault.graph().get_backlinks("runtime/manifesto.md");
+        backlinks.sort();
+        assert_eq!(backlinks, vec!["runtime/current-design.md".to_string()]);
+
+        drop(vault);
+
+        let reopened = VaultManager::open(&vault_path).unwrap();
+
+        let mut reopened_neighbors = reopened.graph_neighbors("runtime/current-design.md", 1);
+        reopened_neighbors.sort();
+        assert_eq!(reopened_neighbors, vec!["runtime/manifesto.md".to_string()]);
+
+        let mut reopened_backlinks = reopened.graph().get_backlinks("runtime/manifesto.md");
+        reopened_backlinks.sort();
+        assert_eq!(reopened_backlinks, vec!["runtime/current-design.md".to_string()]);
     }
 }

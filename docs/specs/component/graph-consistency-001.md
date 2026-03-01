@@ -15,6 +15,8 @@ Fix graph mode reliability issues where disconnected notes are missing, ambiguou
 - FR-4: Graph view MUST disambiguate duplicate visible labels (same filename stem across different paths) so nodes are distinguishable.
 - FR-5: Graph build MUST resolve common wiki-link targets that omit `.md` or use note title when the target maps unambiguously to an existing note.
 - FR-6: Graph layout MUST keep disconnected components within a discoverable distance of the main cluster using bounded center-gravity, without forcing aggressive global zoom-out.
+- FR-7: Note save and file-sync flows MUST persist parsed links/headings and refresh the in-memory graph from persisted data so basename/title wiki-links resolve consistently for neighbors and backlinks without requiring a manual reindex.
+- FR-8: Force-directed graph layout MUST avoid collapsing simple chain-like note paths into an almost perfectly horizontal ribbon in normal desktop-sized viewports.
 
 ## Acceptance Criteria
 - AC-1: A vault with linked and disconnected notes renders nodes for both linked and disconnected notes.
@@ -23,3 +25,5 @@ Fix graph mode reliability issues where disconnected notes are missing, ambiguou
 - AC-4: When two nodes share the same `label`, rendered label text differs via path-based disambiguation.
 - AC-5: Links such as `[[rust]]` to note `rust.md` and `[[Some Title]]` to note with title `Some Title` produce edges when target mapping is unique.
 - AC-6: For a layout containing connected and disconnected notes, disconnected nodes are not pinned to extreme outer bounds and remain visually proximate to the main cluster.
+- AC-7: After saving or externally syncing notes like `runtime/current-design.md` linking to `[[manifesto]]`, graph neighbors/backlinks resolve to `runtime/manifesto.md` immediately and still resolve after reopening the vault.
+- AC-8: For a chain-like graph with 6+ connected notes, the computed layout preserves meaningful vertical spread instead of placing nearly all nodes on the same horizontal band.

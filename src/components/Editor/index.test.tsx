@@ -553,8 +553,53 @@ describe("Editor Component", () => {
       const checkboxes = screen.getAllByRole("checkbox");
       expect(checkboxes).toHaveLength(2);
       expect(checkboxes[0]).toBeChecked();
-      expect(checkboxes[0]).toBeDisabled();
       expect(checkboxes[1]).not.toBeChecked();
+    });
+
+    it("toggles task list checkboxes in view mode and persists markdown", async () => {
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: "- [x] Done\n- [ ] Todo",
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+      });
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: "- [x] Done\n- [ ] Todo",
+        setContent: (next) =>
+          useEditorStore.setState((prev) => ({
+            ...prev,
+            content: next,
+            isDirty: true,
+          })),
+        markDirty: (next) =>
+          useEditorStore.setState((prev) => ({
+            ...prev,
+            isDirty: next,
+          })),
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      fireEvent.click(checkboxes[1]);
+
+      await waitFor(() => {
+        expect(screen.getAllByRole("checkbox")[1]).toBeChecked();
+      });
+
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      expect(screen.getByLabelText("Source markdown editor")).toHaveValue("- [x] Done\n\n- [x] Todo");
+      expect(useEditorStore.getState().isDirty).toBe(true);
     });
 
     it("renders Mermaid fences as diagram containers in view mode", () => {
@@ -1036,6 +1081,9 @@ describe("Editor Component", () => {
                 clear_paragraph: "Mod-Alt-0",
               },
             },
+            graph: {
+              readability_floor_percent: 70,
+            },
           }}
         />
       );
@@ -1094,6 +1142,9 @@ describe("Editor Component", () => {
                 redo: "Mod-Shift-z, Mod-y",
                 clear_paragraph: "Alt-0",
               },
+            },
+            graph: {
+              readability_floor_percent: 70,
             },
           }}
         />

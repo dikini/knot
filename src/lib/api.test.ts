@@ -231,6 +231,9 @@ describe("API Client", () => {
             clear_paragraph: "Mod-Alt-0",
           },
         },
+        graph: {
+          readability_floor_percent: 70,
+        },
       };
       vi.mocked(invoke).mockResolvedValue(mockSettings);
 
@@ -254,6 +257,9 @@ describe("API Client", () => {
             redo: "Alt-Shift-z",
             clear_paragraph: "Alt-0",
           },
+        },
+        graph: {
+          readability_floor_percent: 85,
         },
       };
       vi.mocked(invoke).mockResolvedValue(settings);

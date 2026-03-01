@@ -578,13 +578,30 @@ function App() {
     void persistAppKeymapSettings(appKeymapDraft, "App keymap settings updated");
   };
 
+  const handleGraphReadabilityFloorPercentChange = (value: number) => {
+    const nextValue = Math.max(40, Math.min(100, Math.floor(value || 0)));
+    setAppKeymapDraft((current) => ({
+      ...current,
+      graph: {
+        ...current.graph,
+        readability_floor_percent: nextValue,
+      },
+    }));
+  };
+
   const handleResetAppKeymapField = (field: ManagedShortcutFieldPath) => {
     const nextSettings = resetManagedShortcutField(appKeymapDraft, field);
     void persistAppKeymapSettings(nextSettings, "Shortcut reset to default");
   };
 
   const handleResetAllAppKeymaps = () => {
-    void persistAppKeymapSettings(DEFAULT_APP_KEYMAP_SETTINGS, "All keymaps reset to default");
+    void persistAppKeymapSettings(
+      {
+        ...DEFAULT_APP_KEYMAP_SETTINGS,
+        graph: appKeymapDraft.graph,
+      },
+      "All keymaps reset to default"
+    );
   };
 
   function handleToolModeSelect(nextMode: ShellToolMode): void {
@@ -746,6 +763,7 @@ function App() {
                 scope={graphScope}
                 centerNodeId={currentNote?.path ?? null}
                 nodeScopeDepth={nodeGraphDepth}
+                readabilityFloorPercent={appKeymapSettings.graph.readability_floor_percent}
                 // SPEC: COMP-GRAPH-CONSISTENCY-001 FR-3
                 selectedNodeId={graphSelection.path ?? currentNote?.path ?? null}
               />
@@ -761,6 +779,8 @@ function App() {
                 onContextPanelWidthChange={setContextPanelWidth}
                 editorSurfaceMode={editorSurfaceMode}
                 onEditorSurfaceModeChange={setEditorSurfaceMode}
+                graphReadabilityFloorPercent={appKeymapDraft.graph.readability_floor_percent}
+                onGraphReadabilityFloorPercentChange={handleGraphReadabilityFloorPercentChange}
                 vaultSettings={vaultSettings}
                 isVaultSettingsLoading={isVaultSettingsLoading}
                 onRefreshVaultSettings={() => {
@@ -836,6 +856,8 @@ function App() {
             onContextPanelWidthChange={setContextPanelWidth}
             editorSurfaceMode={editorSurfaceMode}
             onEditorSurfaceModeChange={setEditorSurfaceMode}
+            graphReadabilityFloorPercent={appKeymapDraft.graph.readability_floor_percent}
+            onGraphReadabilityFloorPercentChange={handleGraphReadabilityFloorPercentChange}
             vaultSettings={vaultSettings}
             isVaultSettingsLoading={isVaultSettingsLoading}
             onRefreshVaultSettings={() => {

@@ -1,6 +1,6 @@
-import { DOMSerializer } from "prosemirror-model";
+import { DOMSerializer, Fragment, type Node as ProseMirrorNode } from "prosemirror-model";
 import katex from "katex";
-import { parseMarkdown } from "./markdown";
+import { parseMarkdown, serializeMarkdown } from "./markdown";
 import { schema } from "./schema";
 
 // TRACE: DESIGN-mermaid-diagrams-001
@@ -27,8 +27,9 @@ function rewriteMermaidBlocks(container: HTMLDivElement): void {
 
 function rewriteTaskListBlocks(container: HTMLDivElement): void {
   const taskItems = container.querySelectorAll<HTMLLIElement>("li[data-task='true']");
-  for (const item of taskItems) {
+  for (const [taskIndex, item] of taskItems.entries()) {
     item.parentElement?.classList.add("task-list");
+    item.dataset.taskIndex = String(taskIndex);
 
     if (item.querySelector("[data-task-checkbox='true']")) {
       continue;
@@ -36,14 +37,13 @@ function rewriteTaskListBlocks(container: HTMLDivElement): void {
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
-    checkbox.disabled = true;
     checkbox.className = "task-list-item__checkbox";
     checkbox.checked = item.dataset.checked === "true";
     if (checkbox.checked) {
       checkbox.setAttribute("checked", "");
     }
     checkbox.setAttribute("data-task-checkbox", "true");
-    checkbox.setAttribute("aria-label", checkbox.checked ? "Completed task" : "Incomplete task");
+    checkbox.setAttribute("aria-label", checkbox.checked ? "Mark task incomplete" : "Mark task complete");
 
     item.classList.add("task-list-item");
     item.insertBefore(checkbox, item.firstChild);
@@ -92,6 +92,59 @@ export function renderMarkdownToHtml(markdown: string): string {
   rewriteMathNodes(container);
   rewriteMermaidBlocks(container);
   return container.innerHTML;
+}
+
+export function toggleTaskListItemInMarkdown(markdown: string, taskIndex: number): string | null {
+  if (!Number.isInteger(taskIndex) || taskIndex < 0) {
+    return null;
+  }
+
+  const walkState = { currentTaskIndex: 0, toggled: false };
+  const doc = parseMarkdown(markdown);
+  const nextDoc = rewriteTaskListNode(doc, taskIndex, walkState);
+
+  if (!walkState.toggled) {
+    return null;
+  }
+
+  return serializeMarkdown(nextDoc);
+}
+
+function rewriteTaskListNode(
+  node: ProseMirrorNode,
+  targetTaskIndex: number,
+  walkState: { currentTaskIndex: number; toggled: boolean }
+): ProseMirrorNode {
+  const shouldToggle = node.type === schema.nodes.list_item && node.attrs.task === true;
+  const nextAttrs =
+    shouldToggle && walkState.currentTaskIndex === targetTaskIndex
+      ? { ...node.attrs, checked: node.attrs.checked !== true }
+      : node.attrs;
+
+  if (shouldToggle) {
+    walkState.toggled ||= walkState.currentTaskIndex === targetTaskIndex;
+    walkState.currentTaskIndex += 1;
+  }
+
+  if (node.isText) {
+    return node;
+  }
+
+  if (node.isLeaf) {
+    return nextAttrs === node.attrs ? node : node.type.create(nextAttrs, null, node.marks);
+  }
+
+  const nextChildren: ProseMirrorNode[] = [];
+  node.content.forEach((child) => {
+    nextChildren.push(rewriteTaskListNode(child, targetTaskIndex, walkState));
+  });
+
+  const nextContent = Fragment.fromArray(nextChildren);
+  if (nextAttrs === node.attrs && nextContent.eq(node.content)) {
+    return node;
+  }
+
+  return node.type.create(nextAttrs, nextContent, node.marks);
 }
 
 // TRACE: DESIGN-mermaid-diagrams-001

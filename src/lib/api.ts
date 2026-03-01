@@ -53,6 +53,9 @@ export interface AppKeymapSettings {
       clear_paragraph: string;
     };
   };
+  graph: {
+    readability_floor_percent: number;
+  };
 }
 
 // Helper to handle errors consistently

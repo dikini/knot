@@ -37,6 +37,62 @@ tasks:
     title: "Run verification and update status artifacts"
     status: done
     size: S
-    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7]
+    dependencies: [GUI-003, GUI-004, GUI-007, GUI-009, GUI-012]
+    acceptance: "Typecheck/tests pass and audit/project status docs are updated after graph fit-floor implementation lands"
+
+  - id: GUI-006
+    title: "Add failing tests for dense-cluster label staggering and edge-aware label anchoring"
+    status: done
+    size: S
+    spec_refs: [FR-6]
     dependencies: [GUI-003, GUI-004]
-    acceptance: "Typecheck/tests pass and audit/project status docs are updated"
+    acceptance: "Tests fail until crowded labels stagger and edge-adjacent labels avoid clipping"
+
+  - id: GUI-007
+    title: "Implement density-aware label placement, compact crowded labels, and edge clipping avoidance"
+    status: done
+    size: S
+    spec_refs: [FR-6]
+    dependencies: [GUI-006]
+    acceptance: "Crowded graph clusters remain readable, edge labels stay inside the viewport, and full note identity remains available via label metadata"
+
+  - id: GUI-008
+    title: "Add failing tests for text-first graph nodes, rectangular hit targets, and debug-visible active states"
+    status: done
+    size: S
+    spec_refs: [FR-1, FR-5]
+    dependencies: [GUI-007]
+    acceptance: "Tests fail until graph nodes render as text with rectangular targets and active states expose subtle debug backgrounds"
+
+  - id: GUI-009
+    title: "Replace circle nodes with text-first rectangular targets and update styles/stories"
+    status: done
+    size: M
+    spec_refs: [FR-1, FR-5]
+    dependencies: [GUI-008]
+    acceptance: "Graph nodes render as text-first rectangles, retain click/hover behavior, and stories/tests no longer depend on circle markup"
+
+  - id: GUI-010
+    title: "Add failing tests for readability-floor fit, scrollable overflow cues, and collision-safe pill placement"
+    status: planned
+    size: M
+    spec_refs: [FR-7]
+    dependencies: [GUI-009]
+    acceptance: "Tests fail until graph framing honors the readability floor, overflowing graphs show cues, and dense pill targets no longer overlap"
+
+  - id: GUI-011
+    title: "Implement canonical-scale graph framing, collision-safe pill spacing, and scrollable overflow viewport"
+    status: planned
+    size: M
+    spec_refs: [FR-7]
+    dependencies: [GUI-010]
+    acceptance: "Graph view expands surface bounds as needed, preserves non-overlapping pills, and exposes scrollable overflow with fit-floor framing"
+
+  - id: GUI-012
+    title: "Keep manual graph view stable until reset/open while reset applies the latest readability floor"
+    status: planned
+    size: S
+    spec_refs: [FR-7]
+    dependencies: [GUI-011]
+    acceptance: "Changing readability floor persists immediately but does not mutate the active graph transform until reset or next open"

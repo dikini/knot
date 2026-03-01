@@ -23,6 +23,8 @@ interface SettingsPaneProps {
   onContextPanelWidthChange: (width: number) => void;
   editorSurfaceMode: "sepia" | "dark";
   onEditorSurfaceModeChange: (mode: "sepia" | "dark") => void;
+  graphReadabilityFloorPercent: number;
+  onGraphReadabilityFloorPercentChange: (value: number) => void;
   vaultSettings: VaultSettings | null;
   isVaultSettingsLoading: boolean;
   onRefreshVaultSettings: () => void;
@@ -59,6 +61,8 @@ export function SettingsPane({
   onContextPanelWidthChange,
   editorSurfaceMode,
   onEditorSurfaceModeChange,
+  graphReadabilityFloorPercent,
+  onGraphReadabilityFloorPercentChange,
   vaultSettings,
   isVaultSettingsLoading,
   onRefreshVaultSettings,
@@ -317,6 +321,35 @@ export function SettingsPane({
                 onChange={(event) => onContextPanelWidthChange(Number(event.target.value))}
               />
             </label>
+            <label className="settings-pane__field">
+              <span className="settings-pane__field-meta">
+                <span className="settings-pane__field-label">Graph readability floor</span>
+                <span className="settings-pane__field-help">
+                  Minimum initial or reset graph zoom percentage before overflow is allowed.
+                </span>
+              </span>
+              <input
+                type="number"
+                min={40}
+                max={100}
+                step={1}
+                aria-label="Graph readability floor"
+                className="settings-pane__control settings-pane__control--sm"
+                value={graphReadabilityFloorPercent}
+                onChange={(event) =>
+                  onGraphReadabilityFloorPercentChange(Number(event.target.value))
+                }
+              />
+            </label>
+            <div className="settings-pane__inline-actions">
+              <button
+                type="button"
+                onClick={onApplyAppKeymapSettings}
+                disabled={isAppKeymapSettingsLoading}
+              >
+                {isAppKeymapSettingsLoading ? "Saving..." : "Apply graph fit"}
+              </button>
+            </div>
           </div>
         )}
 

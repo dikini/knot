@@ -39,6 +39,9 @@ export const DEFAULT_APP_KEYMAP_SETTINGS: AppKeymapSettings = {
       clear_paragraph: "Mod-Alt-0",
     },
   },
+  graph: {
+    readability_floor_percent: 70,
+  },
 };
 
 export function expandManagedShortcutMap(
@@ -98,6 +101,17 @@ export function validateAppKeymapSettings(settings: AppKeymapSettings): Shortcut
     }
   }
 
+  if (
+    !Number.isFinite(settings.graph.readability_floor_percent) ||
+    settings.graph.readability_floor_percent < 40 ||
+    settings.graph.readability_floor_percent > 100
+  ) {
+    errors.push({
+      field: "general.save_note",
+      message: "Graph readability floor must be between 40 and 100",
+    });
+  }
+
   if (errors.length > 0) {
     return { ok: false, errors };
   }
@@ -116,6 +130,7 @@ export function setManagedShortcutValue(
 ): AppKeymapSettings {
   if (field === "general.save_note") {
     return {
+      ...settings,
       keymaps: {
         ...settings.keymaps,
         general: {
@@ -128,6 +143,7 @@ export function setManagedShortcutValue(
 
   if (field === "general.switch_notes") {
     return {
+      ...settings,
       keymaps: {
         ...settings.keymaps,
         general: {
@@ -140,6 +156,7 @@ export function setManagedShortcutValue(
 
   if (field === "general.switch_search") {
     return {
+      ...settings,
       keymaps: {
         ...settings.keymaps,
         general: {
@@ -152,6 +169,7 @@ export function setManagedShortcutValue(
 
   if (field === "general.switch_graph") {
     return {
+      ...settings,
       keymaps: {
         ...settings.keymaps,
         general: {
@@ -164,6 +182,7 @@ export function setManagedShortcutValue(
 
   if (field === "editor.undo") {
     return {
+      ...settings,
       keymaps: {
         ...settings.keymaps,
         editor: {
@@ -176,6 +195,7 @@ export function setManagedShortcutValue(
 
   if (field === "editor.redo") {
     return {
+      ...settings,
       keymaps: {
         ...settings.keymaps,
         editor: {
@@ -187,6 +207,7 @@ export function setManagedShortcutValue(
   }
 
   return {
+    ...settings,
     keymaps: {
       ...settings.keymaps,
       editor: {

@@ -30,3 +30,23 @@ tasks:
     title: Implement bounded center-gravity and re-verify
     status: done
     refs: [FR-6]
+  - id: GCS-008
+    title: Add backend regression test for saved/runtime note graph persistence and alias-resolved neighbors/backlinks
+    status: done
+    refs: [FR-7]
+  - id: GCS-009
+    title: Persist parsed links/headings in save/sync flows and rebuild graph from database-backed state
+    status: done
+    refs: [FR-7]
+  - id: GCS-010
+    title: Re-verify graph persistence regression and publish audit update
+    status: done
+    refs: [FR-7]
+  - id: GCS-011
+    title: Add backend regression test for chain-like layout flattening
+    status: done
+    refs: [FR-8]
+  - id: GCS-012
+    title: Add deterministic layout jitter to prevent horizontal ribbon collapse and re-verify
+    status: done
+    refs: [FR-8]

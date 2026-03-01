@@ -747,10 +747,7 @@ impl McpServer {
                     Ok(())
                 })?;
 
-                Ok(json!({
-                    "content": [{ "type": "text", "text": format!("Deleted note: {path}") }],
-                    "isError": false
-                }))
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
             }
             "replace_note" => {
                 let path = arguments
@@ -769,10 +766,7 @@ impl McpServer {
                     Ok(())
                 })?;
 
-                Ok(json!({
-                    "content": [{ "type": "text", "text": format!("Replaced note content: {path}") }],
-                    "isError": false
-                }))
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
             }
             "create_directory" => {
                 let path = arguments
@@ -787,10 +781,7 @@ impl McpServer {
                     Ok(())
                 })?;
 
-                Ok(json!({
-                    "content": [{ "type": "text", "text": format!("Created directory: {path}") }],
-                    "isError": false
-                }))
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
             }
             "remove_directory" => {
                 let path = arguments
@@ -835,10 +826,7 @@ impl McpServer {
                     Ok(())
                 })?;
 
-                Ok(json!({
-                    "content": [{ "type": "text", "text": format!("Removed directory: {path}") }],
-                    "isError": false
-                }))
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
             }
             "rename_directory" => {
                 let old_path = arguments
@@ -857,10 +845,7 @@ impl McpServer {
                     Ok(())
                 })?;
 
-                Ok(json!({
-                    "content": [{ "type": "text", "text": format!("Renamed directory: {old_path} -> {new_path}") }],
-                    "isError": false
-                }))
+                Ok(json!({ "content": [{ "type": "text", "text": "null" }], "isError": false }))
             }
             "list_directory" => {
                 let maybe_path = arguments.get("path").and_then(Value::as_str).map(str::trim);
@@ -1709,10 +1694,13 @@ mod tests {
                 "params": { "name": "create_directory", "arguments": { "path": "scratch" } }
             }))
             .expect("create directory response");
-        assert!(create_dir["result"]["content"][0]["text"]
+        let create_dir_text = create_dir["result"]["content"][0]["text"]
             .as_str()
-            .unwrap_or_default()
-            .contains("Created directory"));
+            .expect("create directory text");
+        assert_eq!(
+            serde_json::from_str::<Value>(create_dir_text).expect("create directory JSON payload"),
+            Value::Null
+        );
 
         let create_note = server
             .handle_request(&json!({
@@ -1733,6 +1721,13 @@ mod tests {
             }))
             .expect("replace note response");
         assert!(replace_note["result"]["isError"] == json!(false));
+        let replace_note_text = replace_note["result"]["content"][0]["text"]
+            .as_str()
+            .expect("replace note text");
+        assert_eq!(
+            serde_json::from_str::<Value>(replace_note_text).expect("replace note JSON payload"),
+            Value::Null
+        );
 
         let list_dir = server
             .handle_request(&json!({
@@ -1747,7 +1742,7 @@ mod tests {
             .expect("list text");
         assert!(list_text.contains("scratch/new.md"));
 
-        let rename_dir = server
+        let delete_note = server
             .handle_request(&json!({
                 "jsonrpc": "2.0",
                 "id": 45,
@@ -1756,11 +1751,18 @@ mod tests {
             }))
             .expect("delete note response");
         assert!(
-            rename_dir["result"]["isError"] == json!(false),
-            "{rename_dir:?}"
+            delete_note["result"]["isError"] == json!(false),
+            "{delete_note:?}"
+        );
+        let delete_note_text = delete_note["result"]["content"][0]["text"]
+            .as_str()
+            .expect("delete note text");
+        assert_eq!(
+            serde_json::from_str::<Value>(delete_note_text).expect("delete note JSON payload"),
+            Value::Null
         );
 
-        let delete_note = server
+        let rename_dir = server
             .handle_request(&json!({
                 "jsonrpc": "2.0",
                 "id": 46,
@@ -1769,8 +1771,15 @@ mod tests {
             }))
             .expect("rename directory response");
         assert!(
-            delete_note["result"]["isError"] == json!(false),
-            "{delete_note:?}"
+            rename_dir["result"]["isError"] == json!(false),
+            "{rename_dir:?}"
+        );
+        let rename_dir_text = rename_dir["result"]["content"][0]["text"]
+            .as_str()
+            .expect("rename directory text");
+        assert_eq!(
+            serde_json::from_str::<Value>(rename_dir_text).expect("rename directory JSON payload"),
+            Value::Null
         );
 
         let remove_dir = server
@@ -1785,6 +1794,13 @@ mod tests {
             remove_dir["result"]["isError"] == json!(false),
             "{remove_dir:?}"
         );
+        let remove_dir_text = remove_dir["result"]["content"][0]["text"]
+            .as_str()
+            .expect("create temp-empty directory text");
+        assert_eq!(
+            serde_json::from_str::<Value>(remove_dir_text).expect("create temp-empty directory JSON payload"),
+            Value::Null
+        );
 
         let remove_empty_dir = server
             .handle_request(&json!({
@@ -1797,6 +1813,13 @@ mod tests {
         assert!(
             remove_empty_dir["result"]["isError"] == json!(false),
             "{remove_empty_dir:?}"
+        );
+        let remove_empty_dir_text = remove_empty_dir["result"]["content"][0]["text"]
+            .as_str()
+            .expect("remove directory text");
+        assert_eq!(
+            serde_json::from_str::<Value>(remove_empty_dir_text).expect("remove directory JSON payload"),
+            Value::Null
         );
     }
 

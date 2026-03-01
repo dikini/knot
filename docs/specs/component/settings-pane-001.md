@@ -6,7 +6,7 @@
 - Status: `draft`
 - Concerns: `[CONF, REL, CAP]`
 - Created: `2026-02-23`
-- Updated: `2026-02-23`
+- Updated: `2026-03-01`
 
 ## Purpose
 Provide an explicit settings surface with section navigation and a manual full vault reindex action so users can recover from out-of-sync vault state without restarting or using hidden commands.
@@ -36,6 +36,11 @@ Provide an explicit settings surface with section navigation and a manual full v
 
 **FR-8**: Settings updates that map to persisted configuration must update the authoritative storage path already used by that setting (frontend localStorage or backend vault config).
 
+**FR-9**: The Layout settings section must expose an app-level graph readability floor control persisted through the existing TOML-backed app config path.
+- Default value: `70`.
+- The value represents the minimum initial/reset zoom percentage for graph auto-fit.
+- Changing the value must persist immediately through the current app-level TOML settings policy.
+
 ### Behavior
 **Given** a vault is open  
 **When** user opens settings and clicks `Reindex vault`  
@@ -52,6 +57,7 @@ Provide an explicit settings surface with section navigation and a manual full v
 | Settings section list inside rail body | Scales with additional settings while keeping chrome stable | Reduced horizontal space for section content |
 | Expose both frontend and vault config in one pane | Matches user expectation for one settings destination | Requires frontend + backend command wiring |
 | Add explicit manual full reindex action | Supports recovery when watcher/open-path sync misses metadata updates | Potentially heavier operation on large vaults |
+| Reuse existing app-config TOML policy for graph readability floor | Avoids introducing a second app-level settings mechanism | Some layout settings remain split across localStorage and TOML |
 
 ## Concern Mapping
 | Concern | Requirement | Implementation Strategy |
@@ -67,6 +73,7 @@ Provide an explicit settings surface with section navigation and a manual full v
 - [ ] Appearance/layout settings are visible and editable.
 - [ ] Vault config settings are visible and editable.
 - [ ] Persisted settings survive reload/open for both frontend and vault config-backed fields.
+- [ ] Layout settings expose graph readability floor and persist it through app-config TOML with default `70`.
 
 ## Verification Strategy
 - Unit tests for inspector/settings mode interactions.

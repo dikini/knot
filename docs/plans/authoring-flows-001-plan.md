@@ -18,8 +18,8 @@ Trace: DESIGN-authoring-flows-001
 ### Phase 1: Explorer Note Operations
 | ID | Task | Size | Depends | Spec Ref |
 | --- | --- | --- | --- | --- |
-| AF-001 | Add failing tests for folder-scoped note creation and active-note path reconciliation | S | - | FR-1, FR-4 |
-| AF-002 | Implement sidebar/store note creation plus unified rename/move note flows | M | AF-001 | FR-1, FR-2, FR-3, FR-4 |
+| AF-001 | Add failing tests for folder-scoped note creation, drag-drop note move, delayed auto-expand, and active-note path reconciliation | M | - | FR-1, FR-3.1, FR-3.2, FR-3.3, FR-3.4, FR-4 |
+| AF-002 | Implement sidebar/store note creation plus unified rename/move note flows, drag-drop targets, and delayed folder auto-expand | M | AF-001 | FR-1, FR-2, FR-3, FR-3.1, FR-3.2, FR-3.3, FR-3.4, FR-4 |
 
 ### Phase 2: Editor List and Formatting Commands
 | ID | Task | Size | Depends | Spec Ref |
@@ -35,5 +35,5 @@ Trace: DESIGN-authoring-flows-001
 | Concern | Tasks | Verification |
 | --- | --- | --- |
 | CONF | AF-001, AF-002, AF-005 | Sidebar/editor unit tests for deterministic post-action state |
-| REL | AF-001, AF-002, AF-003, AF-004, AF-005 | Regression tests for active note sync and undo/redo |
+| REL | AF-001, AF-002, AF-003, AF-004, AF-005 | Regression tests for active note sync, drag-drop move behavior, delayed auto-expand, and undo/redo |
 | COMP | AF-003, AF-004 | Markdown round-trip tests for task list syntax |

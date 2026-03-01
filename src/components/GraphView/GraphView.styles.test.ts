@@ -11,7 +11,7 @@ describe("GraphView hover stability styles (COMP-GRAPH-HOVER-001)", () => {
     expect(css).not.toMatch(/\.graph-node:hover\s*\{[^}]*\btransform\s*:/s);
   });
 
-  it("keeps non-positional hover emphasis on node circle", () => {
-    expect(css).toMatch(/\.graph-node:hover\s+\.graph-node__circle\s*\{/);
+  it("keeps non-positional hover emphasis on node target", () => {
+    expect(css).toMatch(/\.graph-node:hover\s+\.graph-node__target\s*,/);
   });
 });

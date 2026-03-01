@@ -48,11 +48,46 @@ describe("GraphView Component", () => {
     edges: [],
   };
 
+  const denseClusterLayout: GraphLayout = {
+    nodes: [
+      { id: "runtime/architecture.md", label: "architecture", x: 120, y: 80 },
+      { id: "runtime/preliminary-algebra.md", label: "preliminary-algebra", x: 200, y: 80 },
+      { id: "runtime/conversation-summary.md", label: "conversation-summary", x: 280, y: 80 },
+      { id: "runtime/proof-boundaries.md", label: "proof-boundaries", x: 360, y: 80 },
+      { id: "runtime/design.md", label: "design", x: 440, y: 80 },
+      { id: "runtime/manifesto.md", label: "manifesto", x: 520, y: 80 },
+      { id: "docs/mcp-cookbook.md", label: "MCP Cookbook", x: 790, y: 160 },
+    ],
+    edges: [
+      { source: "runtime/architecture.md", target: "runtime/preliminary-algebra.md" },
+      { source: "runtime/preliminary-algebra.md", target: "runtime/conversation-summary.md" },
+      { source: "runtime/conversation-summary.md", target: "runtime/proof-boundaries.md" },
+      { source: "runtime/proof-boundaries.md", target: "runtime/design.md" },
+      { source: "runtime/design.md", target: "runtime/manifesto.md" },
+    ],
+  };
+
+  const overlappingPillLayout: GraphLayout = {
+    nodes: [
+      { id: "wide-a.md", label: "Extremely Wide Alpha Label", x: 220, y: 140 },
+      { id: "wide-b.md", label: "Extremely Wide Beta Label", x: 240, y: 146 },
+      { id: "wide-c.md", label: "Extremely Wide Gamma Label", x: 260, y: 152 },
+    ],
+    edges: [],
+  };
+
   describe("FR-1: Graph view component", () => {
     it("should render SVG canvas", () => {
       vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
 
-      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+      render(
+        <GraphView
+          width={800}
+          height={600}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={70}
+        />
+      );
 
       return waitFor(() => {
         const svg = screen.getByRole("img", { name: "Note link graph" });
@@ -60,15 +95,21 @@ describe("GraphView Component", () => {
       });
     });
 
-    it("should show nodes as circles with labels", async () => {
+    it("should show nodes as text-first targets with labels", async () => {
       vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
 
-      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+      render(
+        <GraphView
+          width={800}
+          height={600}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={70}
+        />
+      );
 
-      await waitFor(() => {
-        const nodes = screen.getAllByText(/Note [1-4]/);
-        expect(nodes.length).toBe(4);
-      });
+      expect(await screen.findByText("Note 1")).toBeInTheDocument();
+      const targets = document.querySelectorAll(".graph-node__target");
+      expect(targets.length).toBe(4);
     });
 
     it("should show edges as lines between nodes", async () => {
@@ -81,6 +122,49 @@ describe("GraphView Component", () => {
         // Check that edges (lines) are rendered by checking for line elements
         const edges = svg.querySelectorAll("line");
         expect(edges.length).toBeGreaterThan(0);
+      });
+    });
+
+    it("should connect edges to the nearest pill boundary instead of the node anchor", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      await waitFor(() => {
+        const edge = document.querySelector("line");
+        const sourceNode = document.querySelector('[data-node-id="note1.md"]');
+        const targetNode = document.querySelector('[data-node-id="note2.md"]');
+        const sourceRect = sourceNode?.querySelector(".graph-node__target");
+        const targetRect = targetNode?.querySelector(".graph-node__target");
+
+        expect(edge).not.toBeNull();
+        expect(sourceNode).not.toBeNull();
+        expect(targetNode).not.toBeNull();
+        expect(sourceRect).not.toBeNull();
+        expect(targetRect).not.toBeNull();
+
+        const sourceLeft =
+          Number(sourceNode?.getAttribute("data-origin-x")) + Number(sourceRect?.getAttribute("x"));
+        const sourceTop =
+          Number(sourceNode?.getAttribute("data-origin-y")) + Number(sourceRect?.getAttribute("y"));
+        const sourceRight = sourceLeft + Number(sourceRect?.getAttribute("width"));
+        const sourceBottom = sourceTop + Number(sourceRect?.getAttribute("height"));
+        const targetLeft =
+          Number(targetNode?.getAttribute("data-origin-x")) + Number(targetRect?.getAttribute("x"));
+        const targetTop =
+          Number(targetNode?.getAttribute("data-origin-y")) + Number(targetRect?.getAttribute("y"));
+        const targetRight = targetLeft + Number(targetRect?.getAttribute("width"));
+        const x1 = Number(edge?.getAttribute("x1"));
+        const y1 = Number(edge?.getAttribute("y1"));
+        const x2 = Number(edge?.getAttribute("x2"));
+        const y2 = Number(edge?.getAttribute("y2"));
+
+        expect(y1).toBe(sourceBottom);
+        expect(y2).toBe(targetTop);
+        expect(x1).toBeGreaterThanOrEqual(sourceLeft);
+        expect(x1).toBeLessThanOrEqual(sourceRight);
+        expect(x2).toBeGreaterThanOrEqual(targetLeft);
+        expect(x2).toBeLessThanOrEqual(targetRight);
       });
     });
   });
@@ -185,6 +269,72 @@ describe("GraphView Component", () => {
         expect(screen.getByText(/error/i)).toBeInTheDocument();
       });
     });
+
+    it("uses the readability floor when fit would otherwise become too small", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(overlappingPillLayout);
+
+      render(
+        <GraphView
+          width={240}
+          height={180}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={70}
+        />
+      );
+
+      expect(await screen.findByText("70%")).toBeInTheDocument();
+    });
+
+    it("shows overflow cues when graph bounds exceed the viewport", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(overlappingPillLayout);
+
+      render(
+        <GraphView
+          width={240}
+          height={180}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={70}
+        />
+      );
+
+      await screen.findByText("Extremely Wide Alpha Label");
+      expect(screen.getByTestId("graph-viewport")).toHaveAttribute("data-overflow-x", "false");
+      expect(screen.getByTestId("graph-viewport")).toHaveAttribute("data-overflow-y", "false");
+    });
+
+    it("prevents overlapping pill targets in dense layouts even if content overflows", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(overlappingPillLayout);
+
+      render(
+        <GraphView
+          width={320}
+          height={220}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={70}
+        />
+      );
+
+      await screen.findByText("Extremely Wide Alpha Label");
+      const alphaNode = document.querySelector('[data-node-id="wide-a.md"]');
+      const betaNode = document.querySelector('[data-node-id="wide-b.md"]');
+      const alphaRect = alphaNode?.querySelector(".graph-node__target");
+      const betaRect = betaNode?.querySelector(".graph-node__target");
+      expect(alphaRect).not.toBeNull();
+      expect(betaRect).not.toBeNull();
+
+      const alphaX =
+        Number(alphaNode?.getAttribute("data-origin-x")) + Number(alphaRect?.getAttribute("x"));
+      const alphaY =
+        Number(alphaNode?.getAttribute("data-origin-y")) + Number(alphaRect?.getAttribute("y"));
+      const alphaWidth = Number(alphaRect?.getAttribute("width"));
+      const alphaHeight = Number(alphaRect?.getAttribute("height"));
+      const betaX =
+        Number(betaNode?.getAttribute("data-origin-x")) + Number(betaRect?.getAttribute("x"));
+      const betaY =
+        Number(betaNode?.getAttribute("data-origin-y")) + Number(betaRect?.getAttribute("y"));
+
+      expect(alphaX + alphaWidth <= betaX || betaX + Number(betaRect?.getAttribute("width")) <= alphaX || alphaY + alphaHeight <= betaY || betaY + Number(betaRect?.getAttribute("height")) <= alphaY).toBe(true);
+    });
   });
 
   describe("FR-4: Toggle between views", () => {
@@ -206,15 +356,15 @@ describe("GraphView Component", () => {
   });
 
   describe("FR-5: Visual styling", () => {
-    it("should render nodes as circles", async () => {
+    it("should render rectangular node targets", async () => {
       vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
 
       render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
 
-      await waitFor(() => {
-        const nodes = screen.getAllByText(/Note [1-4]/);
-        expect(nodes.length).toBe(4);
-      });
+      await screen.findByText("Note 1");
+      const firstNode = document.querySelector('[data-node-id="note1.md"]');
+      expect(firstNode?.querySelector(".graph-node__target")).not.toBeNull();
+      expect(firstNode?.querySelector("circle")).toBeNull();
     });
 
     it("should style selected/hovered nodes differently", async () => {
@@ -230,6 +380,23 @@ describe("GraphView Component", () => {
       // After clicking, the node should be selected
       // We verify this by checking the component didn't crash
       expect(screen.getByRole("img", { name: "Note link graph" })).toBeInTheDocument();
+    });
+
+    it("shows subtle debug-visible target backgrounds for hovered and selected nodes", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(mockLayout);
+
+      render(<GraphView width={800} height={600} onNodeClick={mockOnNodeClick} />);
+
+      const noteLabel = await screen.findByText("Note 1");
+      const nodeGroup = noteLabel.closest('[data-node-id="note1.md"]');
+      expect(nodeGroup).not.toBeNull();
+
+      fireEvent.mouseEnter(nodeGroup as SVGGElement);
+      expect(nodeGroup).toHaveClass("is-hovered");
+
+      fireEvent.click(nodeGroup as SVGGElement);
+      expect(nodeGroup).toHaveClass("is-selected");
+      expect(nodeGroup?.querySelector(".graph-node__target")).not.toBeNull();
     });
 
     it("should mark externally selected node when selectedNodeId prop is provided", async () => {
@@ -258,6 +425,90 @@ describe("GraphView Component", () => {
       expect(
         await screen.findByText("type-systems (programming/type-systems)")
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("FR-7: Fit floor and reset framing", () => {
+    it("does not disturb a manual zoom when the readability floor setting changes", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(overlappingPillLayout);
+
+      const { rerender } = render(
+        <GraphView
+          width={260}
+          height={180}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={70}
+        />
+      );
+
+      const svg = await screen.findByRole("img", { name: "Note link graph" });
+      fireEvent.wheel(svg, { deltaY: -100 });
+      const zoomBefore = screen.getByText(/%$/).textContent;
+      expect(zoomBefore).toBe("83%");
+
+      rerender(
+        <GraphView
+          width={260}
+          height={180}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={90}
+        />
+      );
+
+      expect(screen.getByText(zoomBefore ?? "83%")).toBeInTheDocument();
+      expect(screen.queryByText("90%")).not.toBeInTheDocument();
+    });
+
+    it("applies the latest readability floor when reset is used", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(overlappingPillLayout);
+
+      const { rerender } = render(
+        <GraphView
+          width={260}
+          height={180}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={70}
+        />
+      );
+
+      await screen.findByText("Extremely Wide Alpha Label");
+      rerender(
+        <GraphView
+          width={260}
+          height={180}
+          onNodeClick={mockOnNodeClick}
+          readabilityFloorPercent={90}
+        />
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Reset" }));
+      expect(screen.getByText("90%")).toBeInTheDocument();
+    });
+  });
+
+  describe("FR-6: Label readability", () => {
+    it("stagger labels in dense horizontal clusters", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(denseClusterLayout);
+
+      render(<GraphView width={900} height={560} onNodeClick={mockOnNodeClick} />);
+
+      const architectureLabel = await screen.findByText("architecture");
+      const algebraLabel = await screen.findByText("preliminary-algebra");
+      const conversationLabel = await screen.findByText("conversation-summary");
+
+      expect(architectureLabel).toHaveAttribute("data-label-placement", "below");
+      expect(algebraLabel).toHaveAttribute("data-label-placement", "above");
+      expect(conversationLabel).toHaveAttribute("data-label-placement", "below");
+    });
+
+    it("keeps edge-adjacent labels inside the graph viewport", async () => {
+      vi.mocked(getGraphLayout).mockResolvedValue(denseClusterLayout);
+
+      render(<GraphView width={900} height={560} onNodeClick={mockOnNodeClick} />);
+
+      const edgeLabel = await screen.findByText("MCP Cookbook");
+      expect(edgeLabel).toHaveAttribute("data-label-placement", "left");
+      expect(edgeLabel).toHaveAttribute("text-anchor", "end");
     });
   });
 

@@ -4,8 +4,30 @@
 
 .graph-view {
   position: relative;
-  overflow: hidden;
   background: var(--bg-primary, #1a1a2e);
+}
+
+.graph-view__viewport {
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  scrollbar-width: auto;
+  scrollbar-color: rgba(87, 108, 168, 0.8) rgba(18, 22, 48, 0.9);
+}
+
+.graph-view__viewport::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.graph-view__viewport::-webkit-scrollbar-track {
+  background: rgba(18, 22, 48, 0.9);
+}
+
+.graph-view__viewport::-webkit-scrollbar-thumb {
+  background: rgba(87, 108, 168, 0.8);
+  border-radius: 999px;
+  border: 2px solid rgba(18, 22, 48, 0.9);
 }
 
 /* SVG container */
@@ -46,31 +68,41 @@
   cursor: pointer;
 }
 
-.graph-node__circle {
-  fill: var(--accent-color, #4a9eff);
-  stroke: var(--bg-primary, #1a1a2e);
-  stroke-width: 2;
-  transition: fill 0.2s ease, stroke-width 0.2s ease;
+.graph-node__target {
+  fill: rgba(74, 158, 255, 0.06);
+  stroke: rgba(74, 158, 255, 0.14);
+  stroke-width: 1;
+  transition:
+    fill 0.2s ease,
+    stroke 0.2s ease,
+    stroke-width 0.2s ease,
+    opacity 0.2s ease;
 }
 
-.graph-node:hover .graph-node__circle {
-  fill: var(--accent-hover, #6ab2ff);
-  stroke-width: 3;
+.graph-node:hover .graph-node__target,
+.graph-node.is-hovered .graph-node__target {
+  fill: rgba(106, 178, 255, 0.14);
+  stroke: rgba(106, 178, 255, 0.34);
+  stroke-width: 1.5;
 }
 
-.graph-node.is-selected .graph-node__circle {
-  fill: var(--accent-active, #ff6b6b);
-  stroke: var(--bg-primary, #1a1a2e);
-  stroke-width: 3;
+.graph-node.is-selected .graph-node__target {
+  fill: rgba(255, 107, 107, 0.16);
+  stroke: rgba(255, 107, 107, 0.48);
+  stroke-width: 1.5;
 }
 
 .graph-node__label {
   fill: var(--text-primary, #e8e8f0);
   font-size: 12px;
   font-weight: 500;
-  text-anchor: middle;
   pointer-events: none;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  paint-order: stroke;
+  stroke: color-mix(in srgb, var(--bg-primary, #1a1a2e) 88%, transparent);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+  dominant-baseline: middle;
 }
 
 /* Controls overlay */

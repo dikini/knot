@@ -137,7 +137,16 @@ export const useVaultStore = create<VaultState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const notes = await api.listNotes();
-      set({ noteList: notes, isLoading: false });
+      const { currentNote } = get();
+      const hasCurrentNote = currentNote
+        ? notes.some((note) => note.path === currentNote.path)
+        : false;
+
+      set({
+        noteList: notes,
+        currentNote: currentNote && !hasCurrentNote ? null : currentNote,
+        isLoading: false,
+      });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Failed to load notes",

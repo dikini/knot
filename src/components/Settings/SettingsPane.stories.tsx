@@ -17,6 +17,8 @@ const meta = {
     onContextPanelWidthChange: fn(),
     editorSurfaceMode: "sepia",
     onEditorSurfaceModeChange: fn(),
+    graphReadabilityFloorPercent: 70,
+    onGraphReadabilityFloorPercentChange: fn(),
     vaultSettings: {
       name: "Canonical",
       plugins_enabled: false,
