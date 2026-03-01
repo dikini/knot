@@ -127,6 +127,28 @@ vi.mock("@lib/api", () => ({
     editor: { font_size: 14, tab_size: 4 },
   }),
   reindexVault: vi.fn().mockResolvedValue({ reindexed_count: 2 }),
+  getAppKeymapSettings: vi.fn().mockResolvedValue({
+    keymaps: {
+      general: {
+        save_note: "Mod-s",
+      },
+      editor: {
+        undo: "Mod-z",
+        redo: "Mod-Shift-z, Mod-y",
+      },
+    },
+  }),
+  updateAppKeymapSettings: vi.fn().mockResolvedValue({
+    keymaps: {
+      general: {
+        save_note: "Mod-s",
+      },
+      editor: {
+        undo: "Mod-z",
+        redo: "Mod-Shift-z, Mod-y",
+      },
+    },
+  }),
 }));
 
 vi.mock("@lib/store", () => ({
@@ -521,25 +543,23 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     });
   });
 
-  it("opens settings mode from the settings affordance and shows maintenance action", async () => {
+  it("opens settings mode from the settings affordance and shows General keymaps first", async () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: /settings/i }));
 
-    expect(await screen.findByRole("heading", { name: /maintenance/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /reindex vault/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /general/i })).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Mod-s")).toBeInTheDocument();
   });
 
-  it("switches settings sections and renders vault configuration fields", async () => {
+  it("switches settings sections and renders editor keymap fields", async () => {
     render(<App />);
 
     fireEvent.click(await screen.findByRole("button", { name: /settings/i }));
-    fireEvent.click(await screen.findByRole("button", { name: /^vault$/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /editor keymaps/i }));
 
-    expect(await screen.findByLabelText(/vault name/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/plugins enabled/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/sync enabled/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/sync peers/i)).toBeInTheDocument();
+    expect(await screen.findByDisplayValue("Mod-z")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Mod-Shift-z, Mod-y")).toBeInTheDocument();
   });
 
   it("triggers reindex action and reports success toast", async () => {

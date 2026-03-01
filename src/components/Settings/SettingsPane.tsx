@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ShellDensityMode } from "@lib/store";
-import type { VaultSettings } from "@lib/api";
+import type { AppKeymapSettings, VaultSettings } from "@lib/api";
+import type { ManagedShortcutFieldPath } from "@lib/keymapSettings";
 import "./SettingsPane.css";
 
-export type SettingsSection = "appearance" | "layout" | "vault" | "maintenance";
+export type SettingsSection =
+  | "general-keymaps"
+  | "editor-keymaps"
+  | "appearance"
+  | "layout"
+  | "vault"
+  | "maintenance";
 
 interface SettingsPaneProps {
   section: SettingsSection;
@@ -23,9 +30,18 @@ interface SettingsPaneProps {
   onReindexVault: () => Promise<void>;
   isReindexing: boolean;
   reindexStatus: string | null;
+  appKeymapSettings: AppKeymapSettings;
+  appKeymapErrors: Partial<Record<ManagedShortcutFieldPath, string>>;
+  isAppKeymapSettingsLoading: boolean;
+  onAppKeymapChange: (field: ManagedShortcutFieldPath, value: string) => void;
+  onApplyAppKeymapSettings: () => void;
+  onResetAppKeymapField: (field: ManagedShortcutFieldPath) => void;
+  onResetAllAppKeymaps: () => void;
 }
 
 const SECTION_LABELS: Array<{ id: SettingsSection; label: string }> = [
+  { id: "general-keymaps", label: "General" },
+  { id: "editor-keymaps", label: "Editor keymaps" },
   { id: "appearance", label: "Appearance" },
   { id: "layout", label: "Layout" },
   { id: "vault", label: "Vault" },
@@ -50,6 +66,13 @@ export function SettingsPane({
   onReindexVault,
   isReindexing,
   reindexStatus,
+  appKeymapSettings,
+  appKeymapErrors,
+  isAppKeymapSettingsLoading,
+  onAppKeymapChange,
+  onApplyAppKeymapSettings,
+  onResetAppKeymapField,
+  onResetAllAppKeymaps,
 }: SettingsPaneProps) {
   const [vaultDraft, setVaultDraft] = useState({
     name: "",
@@ -97,6 +120,43 @@ export function SettingsPane({
     });
   };
 
+  const renderKeymapField = (
+    field: ManagedShortcutFieldPath,
+    label: string,
+    help: string,
+    value: string
+  ) => (
+    <label className="settings-pane__field">
+      <span className="settings-pane__field-meta">
+        <span className="settings-pane__field-label">{label}</span>
+        <span className="settings-pane__field-help">{help}</span>
+      </span>
+      <div className="settings-pane__keymap-control">
+        <input
+          aria-label={label}
+          className="settings-pane__control settings-pane__control--md"
+          value={value}
+          onChange={(event) => onAppKeymapChange(field, event.target.value)}
+          disabled={isAppKeymapSettingsLoading}
+        />
+        <button
+          type="button"
+          className="settings-pane__control settings-pane__control--sm"
+          onClick={() => onResetAppKeymapField(field)}
+          disabled={isAppKeymapSettingsLoading}
+          aria-label={`Reset shortcut for ${label.toLowerCase()}`}
+        >
+          Reset
+        </button>
+      </div>
+      {appKeymapErrors[field] ? (
+        <span className="settings-pane__error" role="alert">
+          {appKeymapErrors[field]}
+        </span>
+      ) : null}
+    </label>
+  );
+
   return (
     <div className="settings-pane" aria-label="Settings pane">
       <nav className="settings-pane__nav" aria-label="Settings sections">
@@ -113,6 +173,47 @@ export function SettingsPane({
       </nav>
       <section className="settings-pane__content" aria-label={`${panelTitle} settings`}>
         <h2>{panelTitle}</h2>
+
+        {section === "general-keymaps" && (
+          <div className="settings-pane__group">
+            <div className="settings-pane__inline-actions">
+              <button type="button" onClick={onApplyAppKeymapSettings} disabled={isAppKeymapSettingsLoading}>
+                {isAppKeymapSettingsLoading ? "Saving..." : "Apply"}
+              </button>
+            </div>
+            {renderKeymapField(
+              "general.save_note",
+              "Save note shortcut",
+              "Managed save shortcut for the current note editor.",
+              appKeymapSettings.keymaps.general.save_note
+            )}
+          </div>
+        )}
+
+        {section === "editor-keymaps" && (
+          <div className="settings-pane__group">
+            <div className="settings-pane__inline-actions">
+              <button type="button" onClick={onApplyAppKeymapSettings} disabled={isAppKeymapSettingsLoading}>
+                {isAppKeymapSettingsLoading ? "Saving..." : "Apply"}
+              </button>
+              <button type="button" onClick={onResetAllAppKeymaps} disabled={isAppKeymapSettingsLoading}>
+                Reset all keymaps
+              </button>
+            </div>
+            {renderKeymapField(
+              "editor.undo",
+              "Undo shortcut",
+              "Managed editor undo shortcut.",
+              appKeymapSettings.keymaps.editor.undo
+            )}
+            {renderKeymapField(
+              "editor.redo",
+              "Redo shortcut",
+              "Managed editor redo shortcut. Multiple chords can be separated by commas.",
+              appKeymapSettings.keymaps.editor.redo
+            )}
+          </div>
+        )}
 
         {section === "appearance" && (
           <div className="settings-pane__group">

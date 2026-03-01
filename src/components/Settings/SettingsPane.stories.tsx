@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent } from "storybook/test";
+import { DEFAULT_APP_KEYMAP_SETTINGS } from "@lib/keymapSettings";
 import { SettingsPane } from "./SettingsPane";
 
 const meta = {
@@ -28,6 +29,13 @@ const meta = {
     onReindexVault: fn(async () => {}),
     isReindexing: false,
     reindexStatus: null,
+    appKeymapSettings: DEFAULT_APP_KEYMAP_SETTINGS,
+    appKeymapErrors: {},
+    isAppKeymapSettingsLoading: false,
+    onAppKeymapChange: fn(),
+    onApplyAppKeymapSettings: fn(),
+    onResetAppKeymapField: fn(),
+    onResetAllAppKeymaps: fn(),
   },
 } satisfies Meta<typeof SettingsPane>;
 
@@ -35,6 +43,9 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Maintenance: Story = {
+  args: {
+    section: "maintenance",
+  },
   play: async ({ canvas, args }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Reindex vault" }));
     await expect(args.onReindexVault).toHaveBeenCalled();

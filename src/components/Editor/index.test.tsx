@@ -766,6 +766,30 @@ describe("Editor Component", () => {
         expect(api.saveNote).toHaveBeenCalledWith("test.md", "# Test\n\nUpdated");
       });
     });
+
+    it("should save on a persisted custom save shortcut", async () => {
+      render(
+        <Editor
+          appKeymapSettings={{
+            keymaps: {
+              general: {
+                save_note: "Alt-s",
+              },
+              editor: {
+                undo: "Mod-z",
+                redo: "Mod-Shift-z, Mod-y",
+              },
+            },
+          }}
+        />
+      );
+
+      fireEvent.keyDown(window, { key: "s", altKey: true });
+
+      await waitFor(() => {
+        expect(api.saveNote).toHaveBeenCalledWith("test.md", "# Test\n\nUpdated");
+      });
+    });
   });
 
   describe("Custom Events", () => {

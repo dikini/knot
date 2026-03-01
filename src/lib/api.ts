@@ -39,6 +39,18 @@ export interface VaultSettings {
   };
 }
 
+export interface AppKeymapSettings {
+  keymaps: {
+    general: {
+      save_note: string;
+    };
+    editor: {
+      undo: string;
+      redo: string;
+    };
+  };
+}
+
 // Helper to handle errors consistently
 function handleError(error: unknown): never {
   if (typeof error === "string") {
@@ -219,6 +231,28 @@ export async function updateVaultSettings(patch: Partial<VaultSettings>): Promis
 export async function reindexVault(): Promise<{ reindexed_count: number }> {
   try {
     return await invoke<{ reindexed_count: number }>("reindex_vault");
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Read app-level keymap settings from TOML-backed app config.
+ */
+export async function getAppKeymapSettings(): Promise<AppKeymapSettings> {
+  try {
+    return await invoke<AppKeymapSettings>("get_app_keymap_settings");
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Persist app-level keymap settings through typed Tauri commands.
+ */
+export async function updateAppKeymapSettings(settings: AppKeymapSettings): Promise<AppKeymapSettings> {
+  try {
+    return await invoke<AppKeymapSettings>("update_app_keymap_settings", { settings });
   } catch (error) {
     handleError(error);
   }

@@ -63,6 +63,8 @@ fn main() {
             knot::commands::vault::set_unsaved_changes,
             knot::commands::vault::get_vault_settings,
             knot::commands::vault::update_vault_settings,
+            knot::commands::vault::get_app_keymap_settings,
+            knot::commands::vault::update_app_keymap_settings,
             knot::commands::vault::reindex_vault,
             // Note commands
             knot::commands::notes::list_notes,

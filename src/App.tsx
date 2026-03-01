@@ -15,6 +15,13 @@ import { useVaultStore } from "@lib/store";
 import { useEditorStore } from "@lib/store";
 import type { ShellToolMode } from "@lib/store";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
+import {
+  DEFAULT_APP_KEYMAP_SETTINGS,
+  resetManagedShortcutField,
+  setManagedShortcutValue,
+  validateAppKeymapSettings,
+  type ManagedShortcutFieldPath,
+} from "@lib/keymapSettings";
 import { resolveVaultSwitchWithUnsavedGuard } from "@lib/vaultSwitchGuard";
 import * as api from "@lib/api";
 import type { RecentVault } from "@lib/api";
@@ -58,6 +65,10 @@ function App() {
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("maintenance");
   const [vaultSettings, setVaultSettings] = useState<api.VaultSettings | null>(null);
   const [isVaultSettingsLoading, setIsVaultSettingsLoading] = useState(false);
+  const [appKeymapSettings, setAppKeymapSettings] = useState<api.AppKeymapSettings>(DEFAULT_APP_KEYMAP_SETTINGS);
+  const [appKeymapDraft, setAppKeymapDraft] = useState<api.AppKeymapSettings>(DEFAULT_APP_KEYMAP_SETTINGS);
+  const [appKeymapErrors, setAppKeymapErrors] = useState<Partial<Record<ManagedShortcutFieldPath, string>>>({});
+  const [isAppKeymapSettingsLoading, setIsAppKeymapSettingsLoading] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
   const [reindexStatus, setReindexStatus] = useState<string | null>(null);
   const [editorMeasureBand, setEditorMeasureBand] = useState<45 | 54 | 62 | 70>(54);
@@ -161,6 +172,24 @@ function App() {
       cancelled = true;
     };
   }, [setVault, loadNotes]);
+
+  useEffect(() => {
+    const loadAppKeymaps = async () => {
+      setIsAppKeymapSettingsLoading(true);
+      try {
+        const nextSettings = await api.getAppKeymapSettings();
+        setAppKeymapSettings(nextSettings);
+        setAppKeymapDraft(nextSettings);
+        setAppKeymapErrors({});
+      } catch (err) {
+        error(err instanceof Error ? err.message : "Failed to load app keymap settings");
+      } finally {
+        setIsAppKeymapSettingsLoading(false);
+      }
+    };
+
+    void loadAppKeymaps();
+  }, [error]);
 
   // Poll for external file changes when vault is open
   useEffect(() => {
@@ -475,7 +504,7 @@ function App() {
 
   const handleOpenSettings = () => {
     setInspectorMode("details");
-    setSettingsSection("maintenance");
+    setSettingsSection("general-keymaps");
     setInspectorRailOpen(false);
     setViewMode("settings");
     void loadVaultSettings();
@@ -509,6 +538,54 @@ function App() {
     } finally {
       setIsReindexing(false);
     }
+  };
+
+  const persistAppKeymapSettings = async (nextSettings: api.AppKeymapSettings, successMessage: string) => {
+    const validation = validateAppKeymapSettings(nextSettings);
+    if (!validation.ok) {
+      setAppKeymapErrors(
+        validation.errors.reduce<Partial<Record<ManagedShortcutFieldPath, string>>>((accumulator, issue) => {
+          accumulator[issue.field] = issue.message;
+          return accumulator;
+        }, {})
+      );
+      return;
+    }
+
+    setIsAppKeymapSettingsLoading(true);
+    try {
+      const persisted = await api.updateAppKeymapSettings(nextSettings);
+      setAppKeymapSettings(persisted);
+      setAppKeymapDraft(persisted);
+      setAppKeymapErrors({});
+      success(successMessage);
+    } catch (err) {
+      error(err instanceof Error ? err.message : "Failed to update app keymap settings");
+    } finally {
+      setIsAppKeymapSettingsLoading(false);
+    }
+  };
+
+  const handleAppKeymapChange = (field: ManagedShortcutFieldPath, value: string) => {
+    setAppKeymapDraft((current) => setManagedShortcutValue(current, field, value));
+    setAppKeymapErrors((current) => {
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const handleApplyAppKeymapSettings = () => {
+    void persistAppKeymapSettings(appKeymapDraft, "App keymap settings updated");
+  };
+
+  const handleResetAppKeymapField = (field: ManagedShortcutFieldPath) => {
+    const nextSettings = resetManagedShortcutField(appKeymapDraft, field);
+    void persistAppKeymapSettings(nextSettings, "Shortcut reset to default");
+  };
+
+  const handleResetAllAppKeymaps = () => {
+    void persistAppKeymapSettings(DEFAULT_APP_KEYMAP_SETTINGS, "All keymaps reset to default");
   };
 
   const handleToolModeSelect = (nextMode: ShellToolMode) => {
@@ -659,7 +736,7 @@ function App() {
               />
             </div>
             {viewMode === "editor" ? (
-              <Editor key={currentNote?.path ?? "no-note-selected"} />
+              <Editor key={currentNote?.path ?? "no-note-selected"} appKeymapSettings={appKeymapSettings} />
             ) : viewMode === "graph" ? (
               <GraphView
                 width={graphSize.width}
@@ -694,6 +771,13 @@ function App() {
                 onReindexVault={handleReindexVault}
                 isReindexing={isReindexing}
                 reindexStatus={reindexStatus}
+                appKeymapSettings={appKeymapDraft}
+                appKeymapErrors={appKeymapErrors}
+                isAppKeymapSettingsLoading={isAppKeymapSettingsLoading}
+                onAppKeymapChange={handleAppKeymapChange}
+                onApplyAppKeymapSettings={handleApplyAppKeymapSettings}
+                onResetAppKeymapField={handleResetAppKeymapField}
+                onResetAllAppKeymaps={handleResetAllAppKeymaps}
               />
             )}
           </div>
@@ -762,6 +846,13 @@ function App() {
             onReindexVault={handleReindexVault}
             isReindexing={isReindexing}
             reindexStatus={reindexStatus}
+            appKeymapSettings={appKeymapDraft}
+            appKeymapErrors={appKeymapErrors}
+            isAppKeymapSettingsLoading={isAppKeymapSettingsLoading}
+            onAppKeymapChange={handleAppKeymapChange}
+            onApplyAppKeymapSettings={handleApplyAppKeymapSettings}
+            onResetAppKeymapField={handleResetAppKeymapField}
+            onResetAllAppKeymaps={handleResetAllAppKeymaps}
           />
         ) : (
           <>

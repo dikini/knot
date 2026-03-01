@@ -8,6 +8,7 @@
 //! - P2P sync (future)
 
 pub mod app_command;
+pub mod app_config;
 pub mod commands;
 pub mod config;
 pub mod core;

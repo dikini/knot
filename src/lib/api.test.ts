@@ -215,6 +215,46 @@ describe("API Client", () => {
       expect(invoke).toHaveBeenCalledWith("reindex_vault");
       expect(result).toEqual({ reindexed_count: 3 });
     });
+
+    it("should get app keymap settings", async () => {
+      const mockSettings = {
+        keymaps: {
+          general: {
+            save_note: "Mod-s",
+          },
+          editor: {
+            undo: "Mod-z",
+            redo: "Mod-Shift-z, Mod-y",
+          },
+        },
+      };
+      vi.mocked(invoke).mockResolvedValue(mockSettings);
+
+      const result = await api.getAppKeymapSettings();
+
+      expect(invoke).toHaveBeenCalledWith("get_app_keymap_settings");
+      expect(result).toEqual(mockSettings);
+    });
+
+    it("should update app keymap settings", async () => {
+      const settings = {
+        keymaps: {
+          general: {
+            save_note: "Alt-s",
+          },
+          editor: {
+            undo: "Alt-z",
+            redo: "Alt-Shift-z",
+          },
+        },
+      };
+      vi.mocked(invoke).mockResolvedValue(settings);
+
+      const result = await api.updateAppKeymapSettings(settings);
+
+      expect(invoke).toHaveBeenCalledWith("update_app_keymap_settings", { settings });
+      expect(result).toEqual(settings);
+    });
   });
 
   describe("Note Operations", () => {

@@ -56,6 +56,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-TASK-LIST-UI-003 | task-list-ui | designed | component/task-list-ui-003.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-LIST-CONTINUATION-004 | list-continuation | designed | component/list-continuation-004.md | [CONF, REL] | implemented (verified targeted) |
 | COMP-EDITOR-HISTORY-005 | editor-history | designed | component/editor-history-005.md | [CONF, REL] | implemented (verified targeted) |
+| COMP-APP-KEYMAP-006 | app-keymap-settings | designed | component/app-keymap-settings-006.md | [CONF, REL] | implemented (verified targeted) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
 | COMP-KNOTD-UI-010 | knotd-ui-daemon | designed | component/knotd-ui-daemon-010.md | [REL, CONF, CAP] | draft |
 | COMP-KNOTD-DEV-LIFECYCLE-011 | knotd-dev-lifecycle | designed | component/knotd-dev-lifecycle-011.md | [REL, CONF, CAP] | draft |

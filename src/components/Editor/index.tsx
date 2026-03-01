@@ -11,6 +11,8 @@ import {
 import { IconButton } from "@components/IconButton";
 import { useEditorStore, useVaultStore } from "@lib/store";
 import * as api from "@lib/api";
+import type { AppKeymapSettings } from "@lib/api";
+import { DEFAULT_APP_KEYMAP_SETTINGS, expandManagedShortcutMap, matchesShortcutEvent } from "@lib/keymapSettings";
 import {
   Save,
   Bold,
@@ -44,7 +46,11 @@ import "./Editor.css";
 // SPEC: COMP-EDITOR-MODES-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-9, FR-11
 // TRACE: DESIGN-editor-medium-like-interactions
 // TRACE: DESIGN-editor-wikilink-ux-003
-export function Editor() {
+interface EditorProps {
+  appKeymapSettings?: AppKeymapSettings;
+}
+
+export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: EditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const editContainerRef = useRef<HTMLDivElement>(null);
   const pmRef = useRef<ProseMirrorEditor | null>(null);
@@ -98,6 +104,7 @@ export function Editor() {
     undo: false,
     redo: false,
   });
+  const managedShortcuts = useMemo(() => expandManagedShortcutMap(appKeymapSettings), [appKeymapSettings]);
 
   const noteScopedModeKey = currentNote ? `knot:editor-mode:${currentNote.path}` : null;
 
@@ -551,19 +558,33 @@ export function Editor() {
     }
   }, [currentNote, content, isDirty, markDirty, setCurrentNote]);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl/Cmd + S to save
-      if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-        e.preventDefault();
-        handleSave();
+    const handleManagedKeyDown = (event: KeyboardEvent) => {
+      if (matchesShortcutEvent(event, appKeymapSettings.keymaps.general.save_note)) {
+        event.preventDefault();
+        void handleSave();
+        return;
+      }
+
+      if (editorMode !== "edit" || !pmRef.current) {
+        return;
+      }
+
+      if (managedShortcuts.undo.some((shortcut) => matchesShortcutEvent(event, serializeShortcut(shortcut)))) {
+        event.preventDefault();
+        handleHistoryCommand(undoHistory);
+        return;
+      }
+
+      if (managedShortcuts.redo.some((shortcut) => matchesShortcutEvent(event, serializeShortcut(shortcut)))) {
+        event.preventDefault();
+        handleHistoryCommand(redoHistory);
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleSave]);
+    window.addEventListener("keydown", handleManagedKeyDown, true);
+    return () => window.removeEventListener("keydown", handleManagedKeyDown, true);
+  }, [appKeymapSettings, editorMode, handleHistoryCommand, handleSave, managedShortcuts]);
 
   // Listen for save events from outside
   useEffect(() => {
@@ -988,4 +1009,19 @@ export function Editor() {
       )}
     </div>
   );
+}
+
+function serializeShortcut(shortcut: { useMod: boolean; altKey: boolean; shiftKey: boolean; key: string }): string {
+  const parts: string[] = [];
+  if (shortcut.useMod) {
+    parts.push("Mod");
+  }
+  if (shortcut.altKey) {
+    parts.push("Alt");
+  }
+  if (shortcut.shiftKey) {
+    parts.push("Shift");
+  }
+  parts.push(shortcut.key);
+  return parts.join("-");
 }

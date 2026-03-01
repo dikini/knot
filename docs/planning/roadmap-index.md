@@ -19,4 +19,5 @@
 | task-list-ui-003 | component | implemented | codex | [editor-modes-001, markdown-engine-001] | [COMP-TASK-LIST-UI-003] |
 | list-continuation-004 | component | implemented | codex | [authoring-flows-001, task-list-ui-003] | [COMP-LIST-CONTINUATION-004] |
 | editor-history-005 | component | implemented | codex | [editor-modes-001] | [COMP-EDITOR-HISTORY-005] |
+| app-keymap-settings-006 | component | implemented | codex | [settings-pane-001, editor-history-005] | [COMP-APP-KEYMAP-006] |
 | settings-pane-001 | component | planned | - | [tool-rail-context-001, vault-unsaved-changes-001] | [COMP-SETTINGS-PANE-001] |

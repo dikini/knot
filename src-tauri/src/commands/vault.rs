@@ -8,6 +8,9 @@ use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tracing::{info, instrument};
 
 use crate::commands::emit_event;
+use crate::app_config::{
+    load_app_keymap_settings, save_app_keymap_settings, AppKeymapSettings,
+};
 use crate::core::VaultManager;
 use crate::error::KnotError;
 use crate::knotd_client;
@@ -475,6 +478,12 @@ pub async fn sync_external_changes(
     Ok(())
 }
 
+fn app_config_root() -> Result<PathBuf, String> {
+    let config_dir = dirs::config_dir()
+        .ok_or_else(|| "Could not determine config directory".to_string())?;
+    Ok(config_dir.join("knot"))
+}
+
 /// Get vault configuration/settings JSON object.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -515,6 +524,25 @@ pub async fn update_vault_settings(
             .map_err(|e| e.to_response_string()),
         None => Err("No vault is open".to_string()),
     }
+}
+
+/// Read app-level keymap settings from TOML-backed app config.
+#[tauri::command]
+#[instrument]
+pub async fn get_app_keymap_settings() -> Result<AppKeymapSettings, String> {
+    let config_root = app_config_root()?;
+    load_app_keymap_settings(&config_root).map_err(|error| error.to_response_string())
+}
+
+/// Update app-level keymap settings through a typed command contract.
+#[tauri::command]
+#[instrument(skip(settings))]
+pub async fn update_app_keymap_settings(
+    settings: AppKeymapSettings,
+) -> Result<AppKeymapSettings, String> {
+    let config_root = app_config_root()?;
+    save_app_keymap_settings(&config_root, &settings).map_err(|error| error.to_response_string())?;
+    load_app_keymap_settings(&config_root).map_err(|error| error.to_response_string())
 }
 
 /// Perform explicit full vault reindex when users suspect metadata drift.

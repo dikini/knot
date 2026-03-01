@@ -1,0 +1,50 @@
+plan: app-keymap-settings-006
+trace: FEATURE-app-keymap-settings-006
+spec: docs/specs/component/app-keymap-settings-006.md
+generated: 2026-03-01
+approach: sequential
+tasks:
+  - id: AK-001A
+    title: Add failing tests for app TOML keymap persistence and typed command wrappers
+    status: completed
+    size: M
+    spec_refs: [AK-001]
+    concerns: [CONF, REL]
+    dependencies: []
+    acceptance: App settings commands and config storage are test-covered before implementation.
+
+  - id: AK-002A
+    title: Add failing UI tests for General and Editor keymap sections with reset controls
+    status: completed
+    size: M
+    spec_refs: [AK-002, AK-005]
+    concerns: [CONF]
+    dependencies: [AK-001A]
+    acceptance: Settings UI tests expect the two managed keymap sections and reset affordances.
+
+  - id: AK-003A
+    title: Add failing shared resolver tests for save, undo, and redo runtime shortcut handling
+    status: completed
+    size: M
+    spec_refs: [AK-003]
+    concerns: [CONF, REL]
+    dependencies: [AK-002A]
+    acceptance: Runtime shortcut tests require shared persisted mapping resolution for save and editor history actions.
+
+  - id: AK-004B
+    title: Implement validated app keymap persistence, settings UI, and runtime wiring
+    status: completed
+    size: M
+    spec_refs: [AK-001, AK-002, AK-003, AK-004, AK-005]
+    concerns: [CONF, REL]
+    dependencies: [AK-003A]
+    acceptance: Persisted shortcuts drive runtime save/undo/redo, invalid state is rejected, and reset flows work.
+
+  - id: AK-005V
+    title: Publish verification artifacts and complete branch-local commit
+    status: completed
+    size: S
+    spec_refs: [AK-001, AK-002, AK-003, AK-004, AK-005]
+    concerns: [CONF, REL]
+    dependencies: [AK-004B]
+    acceptance: Targeted tests, typecheck, audit doc, roadmap/spec-map updates, and a single commit are complete.
