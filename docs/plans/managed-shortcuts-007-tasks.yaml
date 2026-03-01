@@ -1,0 +1,41 @@
+plan: managed-shortcuts-007
+trace: FEATURE-managed-shortcuts-007
+spec: docs/specs/component/managed-shortcuts-007.md
+generated: 2026-03-01
+approach: sequential
+tasks:
+  - id: MS-001
+    title: Extend the existing app keymap schema, defaults, and validation for safe managed shortcuts
+    status: completed
+    size: M
+    spec_refs: [MS-001]
+    concerns: [CONF, REL]
+    dependencies: []
+    acceptance: TOML-backed defaults, persistence, and duplicate validation cover the added managed actions.
+
+  - id: MS-002
+    title: Expose the new managed shortcut fields in settings and preserve apply/reset behavior
+    status: completed
+    size: M
+    spec_refs: [MS-002]
+    concerns: [CONF]
+    dependencies: [MS-001]
+    acceptance: Settings UI tests cover Notes/Search/Graph and clear paragraph managed fields.
+
+  - id: MS-003
+    title: Route managed shell and editor shortcuts through shared command paths
+    status: completed
+    size: S
+    spec_refs: [MS-003]
+    concerns: [REL]
+    dependencies: [MS-002]
+    acceptance: Runtime tests confirm shared shell routing and edit-mode clear paragraph handling.
+
+  - id: MS-004
+    title: Publish verification artifacts and complete documentation updates
+    status: completed
+    size: S
+    spec_refs: [MS-001, MS-002, MS-003]
+    concerns: [CONF, REL]
+    dependencies: [MS-003]
+    acceptance: Audit report, roadmap entry, spec-map entry, and verification commands are complete.

@@ -28,6 +28,17 @@ const nodes = {
     },
   },
 
+  math_display: {
+    content: "text*",
+    group: "block math",
+    atom: true,
+    code: true,
+    parseDOM: [{ tag: "math-display" }],
+    toDOM(): DOMOutputSpec {
+      return ["math-display", { class: "math-node" }, 0];
+    },
+  },
+
   heading: {
     attrs: { level: { default: 1 } },
     content: "inline*",
@@ -161,6 +172,17 @@ const nodes = {
     parseDOM: [{ tag: "br" }],
     toDOM(): DOMOutputSpec {
       return ["br"];
+    },
+  },
+
+  math_inline: {
+    content: "text*",
+    group: "inline math",
+    inline: true,
+    atom: true,
+    parseDOM: [{ tag: "math-inline" }],
+    toDOM(): DOMOutputSpec {
+      return ["math-inline", { class: "math-node" }, 0];
     },
   },
 

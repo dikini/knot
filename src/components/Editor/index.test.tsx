@@ -395,6 +395,7 @@ describe("Editor Component", () => {
       expect(screen.getByRole("button", { name: "Bold" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Italic" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Code" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Inline math" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Link" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Quote" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Strikethrough" })).toBeInTheDocument();
@@ -469,6 +470,7 @@ describe("Editor Component", () => {
       expect(within(menu).getByRole("menuitem", { name: "Bullet list" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Numbered list" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Horizontal rule" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Math block" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Mermaid diagram" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Code block" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Blockquote" })).toBeInTheDocument();
@@ -478,9 +480,66 @@ describe("Editor Component", () => {
       expect(within(menu).getByTestId("block-menu-icon-bullet")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-ordered")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-hr")).toBeInTheDocument();
+      expect(within(menu).getByTestId("block-menu-icon-math")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-mermaid")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-code")).toBeInTheDocument();
       expect(within(menu).getByTestId("block-menu-icon-quote")).toBeInTheDocument();
+    });
+
+    it("inserts display math from the block menu", async () => {
+      const tr = {
+        doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Start")])]),
+        insert: vi.fn().mockReturnThis(),
+        scrollIntoView: vi.fn().mockReturnThis(),
+        setSelection: vi.fn().mockReturnThis(),
+      };
+
+      mockInitProseMirrorEditor.mockImplementationOnce(() => ({
+        destroy: vi.fn(),
+        getMarkdown: vi.fn(() => "# Initial\n\nContent"),
+        setMarkdown: vi.fn(),
+        view: {
+          dom: {
+            getBoundingClientRect: vi.fn(() => ({
+              left: 120,
+              right: 720,
+              top: 80,
+              bottom: 520,
+              width: 600,
+              height: 440,
+              x: 120,
+              y: 80,
+              toJSON: () => ({}),
+            })),
+          },
+          state: {
+            selection: {
+              from: 2,
+              to: 2,
+              empty: true,
+              $from: {
+                depth: 1,
+                parent: { isTextblock: true },
+                after: vi.fn(() => 10),
+              },
+            },
+            tr,
+            doc: tr.doc,
+          },
+          dispatch: vi.fn(),
+          focus: vi.fn(),
+          coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+        },
+      }));
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+      fireEvent.click(await screen.findByRole("button", { name: "Open block menu" }));
+      fireEvent.click(await screen.findByRole("menuitem", { name: "Math block" }));
+
+      expect(tr.insert).toHaveBeenCalledTimes(1);
+      const insertedNode = tr.insert.mock.calls[0]?.[1];
+      expect(insertedNode?.type?.name).toBe("math_display");
     });
 
     it("inserts Mermaid as a code_block node, not raw markdown text", async () => {
@@ -774,10 +833,14 @@ describe("Editor Component", () => {
             keymaps: {
               general: {
                 save_note: "Alt-s",
+                switch_notes: "Mod-1",
+                switch_search: "Mod-2",
+                switch_graph: "Mod-3",
               },
               editor: {
                 undo: "Mod-z",
                 redo: "Mod-Shift-z, Mod-y",
+                clear_paragraph: "Mod-Alt-0",
               },
             },
           }}
@@ -788,6 +851,65 @@ describe("Editor Component", () => {
 
       await waitFor(() => {
         expect(api.saveNote).toHaveBeenCalledWith("test.md", "# Test\n\nUpdated");
+      });
+    });
+
+    it("clears paragraph formatting on a persisted managed shortcut in edit mode", async () => {
+      const dispatch = vi.fn();
+      mockInitProseMirrorEditor.mockImplementationOnce(() => ({
+        destroy: vi.fn(),
+        getMarkdown: vi.fn(() => "# Initial\n\nContent"),
+        setMarkdown: vi.fn(),
+        view: {
+          dom: {
+            getBoundingClientRect: vi.fn(() => ({
+              left: 120,
+              right: 720,
+              top: 80,
+              bottom: 520,
+              width: 600,
+              height: 440,
+              x: 120,
+              y: 80,
+              toJSON: () => ({}),
+            })),
+          },
+          state: EditorState.create({
+            schema,
+            doc: schema.node("doc", null, [
+              schema.node("heading", { level: 2 }, [schema.text("Section title")]),
+            ]),
+          }),
+          dispatch,
+          focus: vi.fn(),
+          coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+        },
+      }));
+
+      render(
+        <Editor
+          appKeymapSettings={{
+            keymaps: {
+              general: {
+                save_note: "Mod-s",
+                switch_notes: "Mod-1",
+                switch_search: "Mod-2",
+                switch_graph: "Mod-3",
+              },
+              editor: {
+                undo: "Mod-z",
+                redo: "Mod-Shift-z, Mod-y",
+                clear_paragraph: "Alt-0",
+              },
+            },
+          }}
+        />
+      );
+
+      fireEvent.keyDown(window, { key: "0", altKey: true });
+
+      await waitFor(() => {
+        expect(dispatch).toHaveBeenCalledTimes(1);
       });
     });
   });

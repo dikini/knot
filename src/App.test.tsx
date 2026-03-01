@@ -131,10 +131,14 @@ vi.mock("@lib/api", () => ({
     keymaps: {
       general: {
         save_note: "Mod-s",
+        switch_notes: "Mod-1",
+        switch_search: "Mod-2",
+        switch_graph: "Mod-3",
       },
       editor: {
         undo: "Mod-z",
         redo: "Mod-Shift-z, Mod-y",
+        clear_paragraph: "Mod-Alt-0",
       },
     },
   }),
@@ -142,10 +146,14 @@ vi.mock("@lib/api", () => ({
     keymaps: {
       general: {
         save_note: "Mod-s",
+        switch_notes: "Mod-1",
+        switch_search: "Mod-2",
+        switch_graph: "Mod-3",
       },
       editor: {
         undo: "Mod-z",
         redo: "Mod-Shift-z, Mod-y",
+        clear_paragraph: "Mod-Alt-0",
       },
     },
   }),
@@ -410,12 +418,79 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     setItemSpy.mockRestore();
   });
 
-  it("switches shell tool mode with Ctrl/Cmd+1/2/3", () => {
+  it("switches shell tool mode with persisted managed shortcuts", async () => {
+    localStorage.setItem(
+      "knot:shell:/tmp/vault",
+      JSON.stringify({
+        toolMode: "search",
+        isToolRailCollapsed: false,
+        isContextPanelCollapsed: false,
+        isInspectorRailOpen: false,
+        contextPanelWidth: 320,
+        densityMode: "comfortable",
+        showTextLabels: false,
+      })
+    );
     render(<App />);
+
+    await waitFor(() => {
+      expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");
+    });
+    mockStoreState.setShellToolMode.mockClear();
 
     fireEvent.keyDown(window, { key: "1", ctrlKey: true });
     fireEvent.keyDown(window, { key: "2", metaKey: true });
     fireEvent.keyDown(window, { key: "3", ctrlKey: true });
+
+    expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("notes");
+    expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");
+    expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("graph");
+  });
+
+  it("uses custom persisted tool-switch shortcuts instead of hard-coded defaults", async () => {
+    const api = await import("@lib/api");
+    localStorage.setItem(
+      "knot:shell:/tmp/vault",
+      JSON.stringify({
+        toolMode: "search",
+        isToolRailCollapsed: false,
+        isContextPanelCollapsed: false,
+        isInspectorRailOpen: false,
+        contextPanelWidth: 320,
+        densityMode: "comfortable",
+        showTextLabels: false,
+      })
+    );
+    vi.mocked(api.getAppKeymapSettings).mockResolvedValueOnce({
+      keymaps: {
+        general: {
+          save_note: "Mod-s",
+          switch_notes: "Alt-1",
+          switch_search: "Alt-2",
+          switch_graph: "Alt-3",
+        },
+        editor: {
+          undo: "Mod-z",
+          redo: "Mod-Shift-z, Mod-y",
+          clear_paragraph: "Mod-Alt-0",
+        },
+      },
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(api.getAppKeymapSettings).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");
+    });
+    mockStoreState.setShellToolMode.mockClear();
+
+    fireEvent.keyDown(window, { key: "1", altKey: true });
+    fireEvent.keyDown(window, { key: "2", altKey: true });
+    fireEvent.keyDown(window, { key: "3", altKey: true });
 
     expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("notes");
     expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");

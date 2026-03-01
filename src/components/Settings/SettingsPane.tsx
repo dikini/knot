@@ -187,6 +187,24 @@ export function SettingsPane({
               "Managed save shortcut for the current note editor.",
               appKeymapSettings.keymaps.general.save_note
             )}
+            {renderKeymapField(
+              "general.switch_notes",
+              "Switch to notes shortcut",
+              "Managed shortcut for the shared Notes tool route.",
+              appKeymapSettings.keymaps.general.switch_notes
+            )}
+            {renderKeymapField(
+              "general.switch_search",
+              "Switch to search shortcut",
+              "Managed shortcut for the shared Search tool route.",
+              appKeymapSettings.keymaps.general.switch_search
+            )}
+            {renderKeymapField(
+              "general.switch_graph",
+              "Switch to graph shortcut",
+              "Managed shortcut for the shared Graph tool route.",
+              appKeymapSettings.keymaps.general.switch_graph
+            )}
           </div>
         )}
 
@@ -211,6 +229,12 @@ export function SettingsPane({
               "Redo shortcut",
               "Managed editor redo shortcut. Multiple chords can be separated by commas.",
               appKeymapSettings.keymaps.editor.redo
+            )}
+            {renderKeymapField(
+              "editor.clear_paragraph",
+              "Clear paragraph shortcut",
+              "Managed shortcut for clearing the current block back to a paragraph.",
+              appKeymapSettings.keymaps.editor.clear_paragraph
             )}
           </div>
         )}

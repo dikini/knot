@@ -58,6 +58,9 @@ describe("SettingsPane keymap settings", () => {
 
     expect(screen.getByRole("heading", { name: "General" })).toBeInTheDocument();
     expect(screen.getByDisplayValue("Mod-s")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Mod-1")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Mod-2")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Mod-3")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /reset shortcut for save note shortcut/i })).toBeInTheDocument();
   });
 
@@ -93,6 +96,7 @@ describe("SettingsPane keymap settings", () => {
 
     expect(screen.getByDisplayValue("Mod-z")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Mod-Shift-z, Mod-y")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Mod-Alt-0")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /reset all keymaps/i })).toBeInTheDocument();
   });
 

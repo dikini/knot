@@ -200,4 +200,37 @@ describe("Editor key bindings", () => {
     expect(nextState.doc.child(0).child(1)?.attrs.task).toBe(true);
     expect(nextState.doc.child(0).child(1)?.attrs.checked).toBe(false);
   });
+
+  it("inserts inline math on Mod-Space", () => {
+    let state = EditorState.create({
+      schema,
+      doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Mass")])]),
+    });
+
+    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, 1, 5)));
+
+    const handled = keyBindings["Mod-Space"](state, (tr) => {
+      state = state.apply(tr);
+    });
+
+    expect(handled).toBe(true);
+    expect(state.doc.child(0).child(0)?.type.name).toBe("math_inline");
+    expect(state.doc.child(0).child(0)?.textContent).toBe("Mass");
+  });
+
+  it("inserts display math on Mod-Shift-M", () => {
+    let state = EditorState.create({
+      schema,
+      doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Prelude")])]),
+    });
+
+    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, 4)));
+
+    const handled = keyBindings["Mod-Shift-m"](state, (tr) => {
+      state = state.apply(tr);
+    });
+
+    expect(handled).toBe(true);
+    expect(state.doc.child(1)?.type.name).toBe("math_display");
+  });
 });

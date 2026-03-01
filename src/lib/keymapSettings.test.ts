@@ -11,8 +11,12 @@ describe("app keymap settings", () => {
     const resolved = expandManagedShortcutMap(DEFAULT_APP_KEYMAP_SETTINGS);
 
     expect(resolved.saveNote).toHaveLength(1);
+    expect(resolved.switchNotes).toHaveLength(1);
+    expect(resolved.switchSearch).toHaveLength(1);
+    expect(resolved.switchGraph).toHaveLength(1);
     expect(resolved.undo).toHaveLength(1);
     expect(resolved.redo).toHaveLength(2);
+    expect(resolved.clearParagraph).toHaveLength(1);
   });
 
   it("matches persisted shortcut chords against keyboard events", () => {
@@ -42,16 +46,20 @@ describe("app keymap settings", () => {
 
   it("rejects malformed managed shortcuts", () => {
     const result = validateAppKeymapSettings({
-      keymaps: {
-        general: {
-          save_note: "Ctrl++",
+        keymaps: {
+          general: {
+            save_note: "Ctrl++",
+            switch_notes: "Mod-1",
+            switch_search: "Mod-2",
+            switch_graph: "Mod-3",
+          },
+          editor: {
+            undo: "Mod-z",
+            redo: "Mod-Shift-z, Mod-y",
+            clear_paragraph: "Mod-Alt-0",
+          },
         },
-        editor: {
-          undo: "Mod-z",
-          redo: "Mod-Shift-z, Mod-y",
-        },
-      },
-    });
+      });
 
     expect(result.ok).toBe(false);
     if (result.ok) {
@@ -62,16 +70,20 @@ describe("app keymap settings", () => {
 
   it("rejects duplicate managed shortcuts across actions", () => {
     const result = validateAppKeymapSettings({
-      keymaps: {
-        general: {
-          save_note: "Mod-s",
+        keymaps: {
+          general: {
+            save_note: "Mod-s",
+            switch_notes: "Mod-1",
+            switch_search: "Mod-2",
+            switch_graph: "Mod-3",
+          },
+          editor: {
+            undo: "Mod-s",
+            redo: "Mod-Shift-z",
+            clear_paragraph: "Mod-Alt-0",
+          },
         },
-        editor: {
-          undo: "Mod-s",
-          redo: "Mod-Shift-z",
-        },
-      },
-    });
+      });
 
     expect(result.ok).toBe(false);
     if (result.ok) {

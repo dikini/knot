@@ -7,6 +7,7 @@
 import { EditorState, Transaction } from "prosemirror-state";
 import { canSplit } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
+import { insertDisplayMath, insertInlineMath } from "../commands";
 import { schema } from "../schema";
 
 /**
@@ -117,6 +118,16 @@ export const keyBindings: Keymap = {
 
   "Mod-k": (_state, _dispatch): boolean => {
     return false;
+  },
+
+  // SPEC: COMP-MATH-PLUGIN-008 MP-003
+  "Mod-Space": (state, dispatch, view): boolean => {
+    return insertInlineMath(state, dispatch, view);
+  },
+
+  // SPEC: COMP-MATH-PLUGIN-008 MP-003
+  "Mod-Shift-m": (state, dispatch, view): boolean => {
+    return insertDisplayMath(state, dispatch, view);
   },
 
   // Headings

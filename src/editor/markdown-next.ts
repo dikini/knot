@@ -12,6 +12,33 @@ function createMarkdownIt(): MarkdownIt {
 
   md.enable("strikethrough");
 
+  md.block.ruler.before("fence", "math_display", (state, startLine, endLine, silent) => {
+    const start = state.bMarks[startLine] + state.tShift[startLine];
+    const max = state.eMarks[startLine];
+    if (state.src.slice(start, max).trim() !== "$$") {
+      return false;
+    }
+
+    let nextLine = startLine + 1;
+    while (nextLine < endLine) {
+      const nextStart = state.bMarks[nextLine] + state.tShift[nextLine];
+      const nextMax = state.eMarks[nextLine];
+      if (state.src.slice(nextStart, nextMax).trim() === "$$") {
+        if (!silent) {
+          const token = state.push("math_display", "math-display", 0);
+          token.block = true;
+          token.content = state.getLines(startLine + 1, nextLine, 0, true).replace(/\n$/, "");
+          token.map = [startLine, nextLine + 1];
+        }
+        state.line = nextLine + 1;
+        return true;
+      }
+      nextLine += 1;
+    }
+
+    return false;
+  });
+
   md.inline.ruler.before("link", "wikilink", (state, silent) => {
     const start = state.pos;
     const src = state.src;
@@ -82,6 +109,10 @@ const markdownParser = new MarkdownParser(schema, markdownTokenizer, {
       return { language };
     },
   },
+  math_display: {
+    block: "math_display",
+    noCloseToken: true,
+  },
   hr: { node: "horizontal_rule" },
   image: {
     node: "image",
@@ -141,6 +172,16 @@ const markdownSerializer = new MarkdownSerializer(
       state.write("```");
       state.closeBlock(node);
     },
+    math_display(state, node) {
+      state.write("$$\n");
+      state.text(node.textContent, false);
+      state.ensureNewLine();
+      state.write("$$");
+      state.closeBlock(node);
+    },
+    math_inline(state, node) {
+      state.write(`$${node.textContent}$`);
+    },
   },
   {
     ...defaultMarkdownSerializer.marks,
@@ -179,7 +220,7 @@ const markdownSerializer = new MarkdownSerializer(
 );
 
 export function parseMarkdownNextDocument(content: string): ProseMirrorNode {
-  return normalizeTaskListItems(markdownParser.parse(content));
+  return normalizeInlineMathNodes(normalizeTaskListItems(markdownParser.parse(content)));
 }
 
 export function serializeMarkdownNextDocument(doc: ProseMirrorNode): string {
@@ -220,6 +261,74 @@ function normalizeTaskListItems(node: ProseMirrorNode): ProseMirrorNode {
     nextChildren,
     node.marks
   );
+}
+
+function normalizeInlineMathNodes(node: ProseMirrorNode): ProseMirrorNode {
+  if (node.isText) {
+    return node;
+  }
+
+  const normalizedChildren: ProseMirrorNode[] = [];
+  node.forEach((child) => {
+    const normalizedChild = normalizeInlineMathNodes(child);
+    if (normalizedChild.isText) {
+      normalizedChildren.push(...splitInlineMathTextNode(normalizedChild));
+      return;
+    }
+    normalizedChildren.push(normalizedChild);
+  });
+
+  return node.type.create(node.attrs, normalizedChildren, node.marks);
+}
+
+function splitInlineMathTextNode(node: ProseMirrorNode): ProseMirrorNode[] {
+  const text = node.text ?? "";
+  if (!text.includes("$")) {
+    return [node];
+  }
+
+  const segments: ProseMirrorNode[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const start = findInlineMathDelimiter(text, cursor);
+    if (start === -1) {
+      segments.push(schema.text(text.slice(cursor), node.marks));
+      break;
+    }
+
+    if (start > cursor) {
+      segments.push(schema.text(text.slice(cursor, start), node.marks));
+    }
+
+    const end = findInlineMathDelimiter(text, start + 1);
+    if (end === -1) {
+      segments.push(schema.text(text.slice(start), node.marks));
+      break;
+    }
+
+    const content = text.slice(start + 1, end);
+    if (!content.trim()) {
+      segments.push(schema.text(text.slice(start, end + 1), node.marks));
+      cursor = end + 1;
+      continue;
+    }
+
+    segments.push(schema.nodes.math_inline.create(null, schema.text(content)));
+    cursor = end + 1;
+  }
+
+  return segments.filter((segment) => !segment.isText || (segment.text?.length ?? 0) > 0);
+}
+
+function findInlineMathDelimiter(text: string, from: number): number {
+  for (let index = from; index < text.length; index += 1) {
+    if (text[index] === "$" && text[index - 1] !== "\\") {
+      return index;
+    }
+  }
+
+  return -1;
 }
 
 function stripTaskMarker(paragraph: ProseMirrorNode): { checked: boolean; paragraph: ProseMirrorNode } | null {

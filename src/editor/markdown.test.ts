@@ -165,6 +165,21 @@ describe("Markdown Parser", () => {
       expect(doc.child(0).textContent).toBe("This is code text");
     });
 
+    it("should parse inline math as a dedicated math node", () => {
+      const doc = parseMarkdown("Energy is $E=mc^2$ in prose.");
+
+      expect(doc.child(0).type.name).toBe("paragraph");
+      expect(doc.child(0).child(1)?.type.name).toBe("math_inline");
+      expect(doc.child(0).child(1)?.textContent).toBe("E=mc^2");
+    });
+
+    it("should parse block math fences delimited by double dollars", () => {
+      const doc = parseMarkdown("$$\nx^2 + y^2 = z^2\n$$");
+
+      expect(doc.child(0).type.name).toBe("math_display");
+      expect(doc.child(0).textContent).toBe("x^2 + y^2 = z^2");
+    });
+
     it("should parse inline formatting - strikethrough", () => {
       const doc = parseMarkdown("This is ~~strikethrough~~ text");
 
@@ -234,6 +249,23 @@ describe("Markdown Parser", () => {
       expect(serialized).toContain("```javascript");
       expect(serialized).toContain("const x = 1;");
       expect(serialized).toContain("```");
+    });
+
+    it("should preserve inline math on round-trip", () => {
+      const markdown = "Energy is $E=mc^2$ in prose.";
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("$E=mc^2$");
+    });
+
+    it("should preserve block math on round-trip", () => {
+      const markdown = "$$\nx^2 + y^2 = z^2\n$$";
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("$$");
+      expect(serialized).toContain("x^2 + y^2 = z^2");
     });
 
     // TRACE: DESIGN-mermaid-diagrams-001

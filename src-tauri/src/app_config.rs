@@ -25,6 +25,15 @@ pub struct ManagedKeymapSections {
 pub struct GeneralKeymapSettings {
     #[serde(default = "default_save_note_shortcut")]
     pub save_note: String,
+
+    #[serde(default = "default_switch_notes_shortcut")]
+    pub switch_notes: String,
+
+    #[serde(default = "default_switch_search_shortcut")]
+    pub switch_search: String,
+
+    #[serde(default = "default_switch_graph_shortcut")]
+    pub switch_graph: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -34,6 +43,9 @@ pub struct EditorKeymapSettings {
 
     #[serde(default = "default_redo_shortcut")]
     pub redo: String,
+
+    #[serde(default = "default_clear_paragraph_shortcut")]
+    pub clear_paragraph: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -61,6 +73,9 @@ impl Default for GeneralKeymapSettings {
     fn default() -> Self {
         Self {
             save_note: default_save_note_shortcut(),
+            switch_notes: default_switch_notes_shortcut(),
+            switch_search: default_switch_search_shortcut(),
+            switch_graph: default_switch_graph_shortcut(),
         }
     }
 }
@@ -70,6 +85,7 @@ impl Default for EditorKeymapSettings {
         Self {
             undo: default_undo_shortcut(),
             redo: default_redo_shortcut(),
+            clear_paragraph: default_clear_paragraph_shortcut(),
         }
     }
 }
@@ -104,8 +120,15 @@ pub fn validate_app_keymap_settings(settings: &AppKeymapSettings) -> Result<()> 
     let mut seen: HashMap<String, &str> = HashMap::new();
     let managed_values = [
         ("general.save_note", settings.keymaps.general.save_note.as_str()),
+        ("general.switch_notes", settings.keymaps.general.switch_notes.as_str()),
+        ("general.switch_search", settings.keymaps.general.switch_search.as_str()),
+        ("general.switch_graph", settings.keymaps.general.switch_graph.as_str()),
         ("editor.undo", settings.keymaps.editor.undo.as_str()),
         ("editor.redo", settings.keymaps.editor.redo.as_str()),
+        (
+            "editor.clear_paragraph",
+            settings.keymaps.editor.clear_paragraph.as_str(),
+        ),
     ];
 
     let mut errors: Vec<ShortcutValidationError> = Vec::new();
@@ -155,6 +178,22 @@ fn default_undo_shortcut() -> String {
 
 fn default_redo_shortcut() -> String {
     "Mod-Shift-z, Mod-y".to_string()
+}
+
+fn default_switch_notes_shortcut() -> String {
+    "Mod-1".to_string()
+}
+
+fn default_switch_search_shortcut() -> String {
+    "Mod-2".to_string()
+}
+
+fn default_switch_graph_shortcut() -> String {
+    "Mod-3".to_string()
+}
+
+fn default_clear_paragraph_shortcut() -> String {
+    "Mod-Alt-0".to_string()
 }
 
 fn normalize_shortcut_list(raw: &str) -> std::result::Result<Vec<String>, String> {
@@ -275,10 +314,14 @@ mod tests {
             keymaps: ManagedKeymapSections {
                 general: GeneralKeymapSettings {
                     save_note: "Alt-s".to_string(),
+                    switch_notes: "Alt-1".to_string(),
+                    switch_search: "Alt-2".to_string(),
+                    switch_graph: "Alt-3".to_string(),
                 },
                 editor: EditorKeymapSettings {
                     undo: "Alt-z".to_string(),
                     redo: "Alt-Shift-z".to_string(),
+                    clear_paragraph: "Alt-0".to_string(),
                 },
             },
         };
@@ -304,10 +347,14 @@ mod tests {
             keymaps: ManagedKeymapSections {
                 general: GeneralKeymapSettings {
                     save_note: "Mod-s".to_string(),
+                    switch_notes: "Mod-1".to_string(),
+                    switch_search: "Mod-2".to_string(),
+                    switch_graph: "Mod-3".to_string(),
                 },
                 editor: EditorKeymapSettings {
                     undo: "Mod-s".to_string(),
                     redo: "Mod-Shift-z".to_string(),
+                    clear_paragraph: "Mod-Alt-0".to_string(),
                 },
             },
         };

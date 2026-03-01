@@ -1,6 +1,13 @@
 import type { AppKeymapSettings } from "./api";
 
-export type ManagedShortcutFieldPath = "general.save_note" | "editor.undo" | "editor.redo";
+export type ManagedShortcutFieldPath =
+  | "general.save_note"
+  | "general.switch_notes"
+  | "general.switch_search"
+  | "general.switch_graph"
+  | "editor.undo"
+  | "editor.redo"
+  | "editor.clear_paragraph";
 
 export interface ShortcutValidationIssue {
   field: ManagedShortcutFieldPath;
@@ -22,29 +29,44 @@ export const DEFAULT_APP_KEYMAP_SETTINGS: AppKeymapSettings = {
   keymaps: {
     general: {
       save_note: "Mod-s",
+      switch_notes: "Mod-1",
+      switch_search: "Mod-2",
+      switch_graph: "Mod-3",
     },
     editor: {
       undo: "Mod-z",
       redo: "Mod-Shift-z, Mod-y",
+      clear_paragraph: "Mod-Alt-0",
     },
   },
 };
 
 export function expandManagedShortcutMap(
   settings: AppKeymapSettings
-): Record<"saveNote" | "undo" | "redo", ShortcutDescriptor[]> {
+): Record<
+  "saveNote" | "switchNotes" | "switchSearch" | "switchGraph" | "undo" | "redo" | "clearParagraph",
+  ShortcutDescriptor[]
+> {
   return {
     saveNote: parseShortcutList(settings.keymaps.general.save_note),
+    switchNotes: parseShortcutList(settings.keymaps.general.switch_notes),
+    switchSearch: parseShortcutList(settings.keymaps.general.switch_search),
+    switchGraph: parseShortcutList(settings.keymaps.general.switch_graph),
     undo: parseShortcutList(settings.keymaps.editor.undo),
     redo: parseShortcutList(settings.keymaps.editor.redo),
+    clearParagraph: parseShortcutList(settings.keymaps.editor.clear_paragraph),
   };
 }
 
 export function validateAppKeymapSettings(settings: AppKeymapSettings): ShortcutValidationResult {
   const managedValues: Array<[ManagedShortcutFieldPath, string]> = [
     ["general.save_note", settings.keymaps.general.save_note],
+    ["general.switch_notes", settings.keymaps.general.switch_notes],
+    ["general.switch_search", settings.keymaps.general.switch_search],
+    ["general.switch_graph", settings.keymaps.general.switch_graph],
     ["editor.undo", settings.keymaps.editor.undo],
     ["editor.redo", settings.keymaps.editor.redo],
+    ["editor.clear_paragraph", settings.keymaps.editor.clear_paragraph],
   ];
 
   const errors: ShortcutValidationIssue[] = [];
@@ -104,6 +126,42 @@ export function setManagedShortcutValue(
     };
   }
 
+  if (field === "general.switch_notes") {
+    return {
+      keymaps: {
+        ...settings.keymaps,
+        general: {
+          ...settings.keymaps.general,
+          switch_notes: value,
+        },
+      },
+    };
+  }
+
+  if (field === "general.switch_search") {
+    return {
+      keymaps: {
+        ...settings.keymaps,
+        general: {
+          ...settings.keymaps.general,
+          switch_search: value,
+        },
+      },
+    };
+  }
+
+  if (field === "general.switch_graph") {
+    return {
+      keymaps: {
+        ...settings.keymaps,
+        general: {
+          ...settings.keymaps.general,
+          switch_graph: value,
+        },
+      },
+    };
+  }
+
   if (field === "editor.undo") {
     return {
       keymaps: {
@@ -116,12 +174,24 @@ export function setManagedShortcutValue(
     };
   }
 
+  if (field === "editor.redo") {
+    return {
+      keymaps: {
+        ...settings.keymaps,
+        editor: {
+          ...settings.keymaps.editor,
+          redo: value,
+        },
+      },
+    };
+  }
+
   return {
     keymaps: {
       ...settings.keymaps,
       editor: {
         ...settings.keymaps.editor,
-        redo: value,
+        clear_paragraph: value,
       },
     },
   };
@@ -138,10 +208,18 @@ export function getDefaultShortcutValue(field: ManagedShortcutFieldPath): string
   switch (field) {
     case "general.save_note":
       return DEFAULT_APP_KEYMAP_SETTINGS.keymaps.general.save_note;
+    case "general.switch_notes":
+      return DEFAULT_APP_KEYMAP_SETTINGS.keymaps.general.switch_notes;
+    case "general.switch_search":
+      return DEFAULT_APP_KEYMAP_SETTINGS.keymaps.general.switch_search;
+    case "general.switch_graph":
+      return DEFAULT_APP_KEYMAP_SETTINGS.keymaps.general.switch_graph;
     case "editor.undo":
       return DEFAULT_APP_KEYMAP_SETTINGS.keymaps.editor.undo;
     case "editor.redo":
       return DEFAULT_APP_KEYMAP_SETTINGS.keymaps.editor.redo;
+    case "editor.clear_paragraph":
+      return DEFAULT_APP_KEYMAP_SETTINGS.keymaps.editor.clear_paragraph;
   }
 }
 

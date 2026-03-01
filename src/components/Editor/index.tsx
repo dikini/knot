@@ -1,6 +1,14 @@
 import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { initProseMirrorEditor } from "@editor/index";
-import { canRedoHistory, canUndoHistory, clearBlockFormatting, redoHistory, undoHistory } from "@editor/commands";
+import {
+  canRedoHistory,
+  canUndoHistory,
+  clearBlockFormatting,
+  insertDisplayMath,
+  insertInlineMath,
+  redoHistory,
+  undoHistory,
+} from "@editor/commands";
 import { renderMarkdownToHtml, renderMermaidDiagrams } from "@editor/render";
 import {
   buildKnownWikilinkTargets,
@@ -32,6 +40,7 @@ import {
   ListOrdered,
   Minus,
   Pilcrow,
+  Sigma,
   Undo2,
 } from "lucide-react";
 import { toggleMark, wrapIn, setBlockType } from "prosemirror-commands";
@@ -579,12 +588,22 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       if (managedShortcuts.redo.some((shortcut) => matchesShortcutEvent(event, serializeShortcut(shortcut)))) {
         event.preventDefault();
         handleHistoryCommand(redoHistory);
+        return;
+      }
+
+      if (
+        managedShortcuts.clearParagraph.some((shortcut) =>
+          matchesShortcutEvent(event, serializeShortcut(shortcut))
+        )
+      ) {
+        event.preventDefault();
+        runCommand(clearBlockFormatting);
       }
     };
 
     window.addEventListener("keydown", handleManagedKeyDown, true);
     return () => window.removeEventListener("keydown", handleManagedKeyDown, true);
-  }, [appKeymapSettings, editorMode, handleHistoryCommand, handleSave, managedShortcuts]);
+  }, [appKeymapSettings, editorMode, handleHistoryCommand, handleSave, managedShortcuts, runCommand]);
 
   // Listen for save events from outside
   useEffect(() => {
@@ -781,6 +800,18 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
               <button
                 type="button"
                 className="editor-selection-toolbar__action"
+                aria-label="Inline math"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  runCommand(insertInlineMath);
+                }}
+              >
+                <Sigma size={14} />
+                <span className="editor-selection-toolbar__label">Inline math</span>
+              </button>
+              <button
+                type="button"
+                className="editor-selection-toolbar__action"
                 aria-label="Quote"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
@@ -926,6 +957,18 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
                   >
                     <Minus size={14} data-testid="block-menu-icon-hr" aria-hidden="true" />
                     <span>Horizontal rule</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
+                    onClick={() => {
+                      runCommand(insertDisplayMath);
+                      setBlockMenuOpen(false);
+                    }}
+                  >
+                    <Sigma size={14} data-testid="block-menu-icon-math" aria-hidden="true" />
+                    <span>Math block</span>
                   </button>
                   <button
                     type="button"

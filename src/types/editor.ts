@@ -49,6 +49,7 @@ export type NodeType =
   | "doc"
   | "paragraph"
   | "heading"
+  | "math_display"
   | "code_block"
   | "blockquote"
   | "bullet_list"
@@ -56,6 +57,7 @@ export type NodeType =
   | "list_item"
   | "horizontal_rule"
   | "hard_break"
+  | "math_inline"
   | "image";
 
 export type MarkType =

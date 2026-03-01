@@ -1,3 +1,4 @@
+import { mathSerializer } from "@benrbray/prosemirror-math";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { schema } from "./schema";
@@ -49,6 +50,9 @@ export function initProseMirrorEditor(
 
   const view = new EditorView(element, {
     state,
+    clipboardTextSerializer(slice) {
+      return mathSerializer.serializeSlice(slice);
+    },
     dispatchTransaction(transaction) {
       const newState = view.state.apply(transaction);
       view.updateState(newState);

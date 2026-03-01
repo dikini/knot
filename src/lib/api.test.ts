@@ -221,10 +221,14 @@ describe("API Client", () => {
         keymaps: {
           general: {
             save_note: "Mod-s",
+            switch_notes: "Mod-1",
+            switch_search: "Mod-2",
+            switch_graph: "Mod-3",
           },
           editor: {
             undo: "Mod-z",
             redo: "Mod-Shift-z, Mod-y",
+            clear_paragraph: "Mod-Alt-0",
           },
         },
       };
@@ -241,10 +245,14 @@ describe("API Client", () => {
         keymaps: {
           general: {
             save_note: "Alt-s",
+            switch_notes: "Alt-1",
+            switch_search: "Alt-2",
+            switch_graph: "Alt-3",
           },
           editor: {
             undo: "Alt-z",
             redo: "Alt-Shift-z",
+            clear_paragraph: "Alt-0",
           },
         },
       };

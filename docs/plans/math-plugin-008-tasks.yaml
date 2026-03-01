@@ -1,0 +1,50 @@
+plan: math-plugin-008
+trace: FEATURE-math-plugin-008
+spec: docs/specs/component/math-plugin-008.md
+generated: 2026-03-01
+approach: sequential
+tasks:
+  - id: MP-001
+    title: Integrate upstream math schema, plugin, CSS, input rules, and clipboard serializer
+    status: completed
+    size: M
+    spec_refs: [MP-001]
+    concerns: [CONF, REL, COMP]
+    dependencies: []
+    acceptance: Edit mode includes upstream math plugin behavior without custom node-view reimplementation.
+
+  - id: MP-002
+    title: Add shared inline and block math insertion commands and wire UI entry points
+    status: completed
+    size: M
+    spec_refs: [MP-002, MP-003]
+    concerns: [CONF, REL]
+    dependencies: [MP-001]
+    acceptance: Selection toolbar and block menu trigger the same shared math insertion helpers.
+
+  - id: MP-003
+    title: Route inline and block math keybindings through the shared command helpers
+    status: completed
+    size: S
+    spec_refs: [MP-003]
+    concerns: [CONF]
+    dependencies: [MP-002]
+    acceptance: Keymap tests verify centralized math shortcut behavior.
+
+  - id: MP-004
+    title: Preserve markdown round-trip and render math in view mode with KaTeX
+    status: completed
+    size: M
+    spec_refs: [MP-004]
+    concerns: [REL, COMP]
+    dependencies: [MP-001, MP-003]
+    acceptance: `$...$` and multiline `$$...$$` serialize correctly and view mode renders KaTeX output.
+
+  - id: MP-005
+    title: Publish verification artifacts and complete registry updates
+    status: completed
+    size: S
+    spec_refs: [MP-001, MP-002, MP-003, MP-004]
+    concerns: [CONF, REL, COMP]
+    dependencies: [MP-004]
+    acceptance: Audit report, roadmap entry, spec-map entry, and verification commands are complete.

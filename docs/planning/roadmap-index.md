@@ -20,4 +20,6 @@
 | list-continuation-004 | component | implemented | codex | [authoring-flows-001, task-list-ui-003] | [COMP-LIST-CONTINUATION-004] |
 | editor-history-005 | component | implemented | codex | [editor-modes-001] | [COMP-EDITOR-HISTORY-005] |
 | app-keymap-settings-006 | component | implemented | codex | [settings-pane-001, editor-history-005] | [COMP-APP-KEYMAP-006] |
+| managed-shortcuts-007 | component | implemented | codex | [app-keymap-settings-006, tool-rail-context-001, editor-history-005] | [COMP-MANAGED-SHORTCUTS-007] |
+| math-plugin-008 | component | implemented | codex | [markdown-engine-001, editor-modes-001, authoring-flows-001] | [COMP-MATH-PLUGIN-008] |
 | settings-pane-001 | component | planned | - | [tool-rail-context-001, vault-unsaved-changes-001] | [COMP-SETTINGS-PANE-001] |

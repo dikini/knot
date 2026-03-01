@@ -17,6 +17,7 @@ import type { ShellToolMode } from "@lib/store";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
 import {
   DEFAULT_APP_KEYMAP_SETTINGS,
+  matchesShortcutEvent,
   resetManagedShortcutField,
   setManagedShortcutValue,
   validateAppKeymapSettings,
@@ -230,23 +231,21 @@ function App() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (!vault) return;
-      if (!(event.ctrlKey || event.metaKey)) return;
-
-      if (event.key === "1") {
+      if (matchesShortcutEvent(event, appKeymapSettings.keymaps.general.switch_notes)) {
         event.preventDefault();
-        setShellToolMode("notes");
-      } else if (event.key === "2") {
+        handleToolModeSelect("notes");
+      } else if (matchesShortcutEvent(event, appKeymapSettings.keymaps.general.switch_search)) {
         event.preventDefault();
-        setShellToolMode("search");
-      } else if (event.key === "3") {
+        handleToolModeSelect("search");
+      } else if (matchesShortcutEvent(event, appKeymapSettings.keymaps.general.switch_graph)) {
         event.preventDefault();
-        setShellToolMode("graph");
+        handleToolModeSelect("graph");
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [setShellToolMode, vault]);
+  }, [appKeymapSettings, handleToolModeSelect, vault]);
 
   useEffect(() => {
     if (!vault) return;
@@ -588,7 +587,7 @@ function App() {
     void persistAppKeymapSettings(DEFAULT_APP_KEYMAP_SETTINGS, "All keymaps reset to default");
   };
 
-  const handleToolModeSelect = (nextMode: ShellToolMode) => {
+  function handleToolModeSelect(nextMode: ShellToolMode): void {
     const currentMode = shell.toolMode;
     const isPanelVisible = !shell.isContextPanelCollapsed;
 
@@ -623,7 +622,7 @@ function App() {
         toggleContextPanel();
       }
     }
-  };
+  }
 
   const graphControlsContent = (
     <GraphContextPanel

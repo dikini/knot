@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { EditorState, TextSelection, type Transaction } from "prosemirror-state";
 import { history, redo, undo } from "prosemirror-history";
 import { schema } from "./schema";
-import { clearBlockFormatting, redoHistory, undoHistory } from "./commands";
+import {
+  clearBlockFormatting,
+  insertDisplayMath,
+  insertInlineMath,
+  redoHistory,
+  undoHistory,
+} from "./commands";
 
 describe("Editor commands", () => {
   it("exposes shared undo/redo history helpers with history support", () => {
@@ -59,5 +65,38 @@ describe("Editor commands", () => {
     });
     expect(redid).toBe(true);
     expect(state.doc.child(0).type.name).toBe("paragraph");
+  });
+
+  it("inserts inline math and seeds it with the selected text", () => {
+    let state = EditorState.create({
+      schema,
+      doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Euler")])]),
+    });
+
+    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, 1, 6)));
+
+    const handled = insertInlineMath(state, (tr: Transaction) => {
+      state = state.apply(tr);
+    });
+
+    expect(handled).toBe(true);
+    expect(state.doc.child(0).child(0)?.type.name).toBe("math_inline");
+    expect(state.doc.child(0).child(0)?.textContent).toBe("Euler");
+  });
+
+  it("inserts display math at the current block boundary", () => {
+    let state = EditorState.create({
+      schema,
+      doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Prelude")])]),
+    });
+
+    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, 4)));
+
+    const handled = insertDisplayMath(state, (tr: Transaction) => {
+      state = state.apply(tr);
+    });
+
+    expect(handled).toBe(true);
+    expect(state.doc.child(1)?.type.name).toBe("math_display");
   });
 });

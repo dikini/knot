@@ -1,4 +1,5 @@
 import { DOMSerializer } from "prosemirror-model";
+import katex from "katex";
 import { parseMarkdown } from "./markdown";
 import { schema } from "./schema";
 
@@ -47,6 +48,34 @@ function rewriteTaskListBlocks(container: HTMLDivElement): void {
   }
 }
 
+function rewriteMathNodes(container: HTMLDivElement): void {
+  const inlineMathNodes = container.querySelectorAll<HTMLElement>("math-inline");
+  for (const node of inlineMathNodes) {
+    const source = node.textContent ?? "";
+    const wrapper = document.createElement("span");
+    wrapper.className = "editor-math editor-math--inline";
+    wrapper.dataset.mathNode = "inline";
+    wrapper.innerHTML = katex.renderToString(source, {
+      displayMode: false,
+      throwOnError: false,
+    });
+    node.replaceWith(wrapper);
+  }
+
+  const displayMathNodes = container.querySelectorAll<HTMLElement>("math-display");
+  for (const node of displayMathNodes) {
+    const source = node.textContent ?? "";
+    const wrapper = document.createElement("div");
+    wrapper.className = "editor-math editor-math--display";
+    wrapper.dataset.mathNode = "display";
+    wrapper.innerHTML = katex.renderToString(source, {
+      displayMode: true,
+      throwOnError: false,
+    });
+    node.replaceWith(wrapper);
+  }
+}
+
 /**
  * Render markdown to HTML using the same markdown->ProseMirror pipeline
  * used by edit mode, so view mode stays structurally consistent.
@@ -58,6 +87,7 @@ export function renderMarkdownToHtml(markdown: string): string {
   const container = document.createElement("div");
   container.appendChild(fragment);
   rewriteTaskListBlocks(container);
+  rewriteMathNodes(container);
   rewriteMermaidBlocks(container);
   return container.innerHTML;
 }

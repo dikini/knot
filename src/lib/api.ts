@@ -43,10 +43,14 @@ export interface AppKeymapSettings {
   keymaps: {
     general: {
       save_note: string;
+      switch_notes: string;
+      switch_search: string;
+      switch_graph: string;
     };
     editor: {
       undo: string;
       redo: string;
+      clear_paragraph: string;
     };
   };
 }
