@@ -417,6 +417,19 @@ describe("Editor Component", () => {
       expect(savedContent?.trimEnd().endsWith("Body text")).toBe(true);
     });
 
+    // TRACE: DESIGN-note-metadata-frontmatter-011
+    it("renders large metadata textareas at full width in meta mode", () => {
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Meta" }));
+
+      expect(screen.getByLabelText("Description").closest("label")).toHaveClass(
+        "editor-meta-form__field--wide"
+      );
+      expect(screen.getByLabelText("Extra YAML").closest("label")).toHaveClass(
+        "editor-meta-form__field--wide"
+      );
+    });
+
     it("blocks save when extra metadata yaml is invalid", async () => {
       const raw = "# Visible\n\nBody text";
 

@@ -881,7 +881,8 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       {editorMode === "meta" && (
         <div className="editor-container editor-container--meta">
           <form className="editor-meta-form" onSubmit={(event) => event.preventDefault()}>
-            <label className="editor-meta-form__field">
+            {/* TRACE: DESIGN-note-metadata-frontmatter-011 */}
+            <label className="editor-meta-form__field editor-meta-form__field--wide">
               <span>Description</span>
               <textarea
                 aria-label="Description"
