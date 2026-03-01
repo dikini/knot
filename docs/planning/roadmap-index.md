@@ -16,4 +16,5 @@
 | storybook-dx-001 | component | implemented | - | [ui-qa-dx-001, frontend-toolchain-001] | [COMP-STORYBOOK-DX-001] |
 | authoring-flows-001 | component | implemented | - | [explorer-tree-001, editor-wysiwym-002, markdown-engine-001] | [COMP-AUTHORING-FLOWS-001] |
 | typecheck-cleanup-002 | component | implemented | codex | [frontend-toolchain-001] | [COMP-TYPECHECK-CLEANUP-002] |
+| task-list-ui-003 | component | implemented | codex | [editor-modes-001, markdown-engine-001] | [COMP-TASK-LIST-UI-003] |
 | settings-pane-001 | component | planned | - | [tool-rail-context-001, vault-unsaved-changes-001] | [COMP-SETTINGS-PANE-001] |

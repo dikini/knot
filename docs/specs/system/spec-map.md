@@ -53,6 +53,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-STORYBOOK-DX-001 | storybook-dx | designed | component/storybook-dx-001.md | [CONF, REL, COMP, CAP] | implemented (verified with Storybook build + MCP smoke) |
 | COMP-AUTHORING-FLOWS-001 | authoring-flows | designed | component/authoring-flows-001.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-TYPECHECK-CLEANUP-002 | typecheck-cleanup | designed | component/typecheck-cleanup-002.md | [COMP, REL] | implemented (verified targeted) |
+| COMP-TASK-LIST-UI-003 | task-list-ui | designed | component/task-list-ui-003.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
 | COMP-KNOTD-UI-010 | knotd-ui-daemon | designed | component/knotd-ui-daemon-010.md | [REL, CONF, CAP] | draft |
 | COMP-KNOTD-DEV-LIFECYCLE-011 | knotd-dev-lifecycle | designed | component/knotd-dev-lifecycle-011.md | [REL, CONF, CAP] | draft |
@@ -181,3 +182,4 @@ docs/specs/
 | 2026-02-23 | Draft UI daemon integration spec/plan for knotd-backed command routing | COMP-KNOTD-UI-010 |
 | 2026-02-23 | Draft speculative reactive essay runtime design with typed sensor streams and incremental fixed-point reconciliation (planning deferred) | COMP-REACTIVE-ESSAY-001 |
 | 2026-03-01 | Implement targeted frontend typecheck cleanup for daemon smoke mock typing and SearchBox story null narrowing | COMP-TYPECHECK-CLEANUP-002 |
+| 2026-03-01 | Implement task list checkbox UI in view/edit modes with transaction-safe toggling and markdown fidelity verification | COMP-TASK-LIST-UI-003 |

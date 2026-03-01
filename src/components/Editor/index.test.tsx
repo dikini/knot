@@ -236,6 +236,22 @@ describe("Editor Component", () => {
       expect(screen.getByText("Bold")).toBeInTheDocument();
     });
 
+    it("renders task lists as checkbox UI in view mode", () => {
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: "- [x] Done\n- [ ] Todo",
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      expect(checkboxes).toHaveLength(2);
+      expect(checkboxes[0]).toBeChecked();
+      expect(checkboxes[0]).toBeDisabled();
+      expect(checkboxes[1]).not.toBeChecked();
+    });
+
     it("renders Mermaid fences as diagram containers in view mode", () => {
       useEditorStore.setState({
         ...useEditorStore.getState(),

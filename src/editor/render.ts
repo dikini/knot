@@ -24,6 +24,29 @@ function rewriteMermaidBlocks(container: HTMLDivElement): void {
   }
 }
 
+function rewriteTaskListBlocks(container: HTMLDivElement): void {
+  const taskItems = container.querySelectorAll<HTMLLIElement>("li[data-task='true']");
+  for (const item of taskItems) {
+    if (item.querySelector("[data-task-checkbox='true']")) {
+      continue;
+    }
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.disabled = true;
+    checkbox.className = "task-list-item__checkbox";
+    checkbox.checked = item.dataset.checked === "true";
+    if (checkbox.checked) {
+      checkbox.setAttribute("checked", "");
+    }
+    checkbox.setAttribute("data-task-checkbox", "true");
+    checkbox.setAttribute("aria-label", checkbox.checked ? "Completed task" : "Incomplete task");
+
+    item.classList.add("task-list-item");
+    item.insertBefore(checkbox, item.firstChild);
+  }
+}
+
 /**
  * Render markdown to HTML using the same markdown->ProseMirror pipeline
  * used by edit mode, so view mode stays structurally consistent.
@@ -34,6 +57,7 @@ export function renderMarkdownToHtml(markdown: string): string {
   const fragment = serializer.serializeFragment(doc.content);
   const container = document.createElement("div");
   container.appendChild(fragment);
+  rewriteTaskListBlocks(container);
   rewriteMermaidBlocks(container);
   return container.innerHTML;
 }

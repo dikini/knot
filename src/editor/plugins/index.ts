@@ -8,6 +8,7 @@ import { baseKeymap } from "prosemirror-commands";
 import { Plugin } from "prosemirror-state";
 import type { EditorConfig } from "../../types/editor";
 import { syntaxHidePlugin } from "./syntax-hide";
+import { taskListPlugin } from "./task-list";
 import { wikilinkPlugin } from "./wikilinks";
 import { keyBindings } from "./keymap";
 
@@ -22,6 +23,7 @@ export function plugins(config: EditorConfig): Plugin[] {
     keymap(keyBindings),
     
     // Feature plugins
+    taskListPlugin(),
     wikilinkPlugin(),
   ];
 
@@ -34,5 +36,6 @@ export function plugins(config: EditorConfig): Plugin[] {
 }
 
 export * from "./syntax-hide";
+export * from "./task-list";
 export * from "./wikilinks";
 export * from "./keymap";

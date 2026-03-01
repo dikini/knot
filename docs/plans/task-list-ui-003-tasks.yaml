@@ -1,0 +1,48 @@
+tasks:
+  - id: TL-001A
+    title: "Add failing tests for view-mode checkbox rendering"
+    status: completed
+    size: S
+    spec_refs: [TL-001]
+    dependencies: []
+    acceptance: "Renderer/component tests fail until task lists render checkbox UI in view mode"
+
+  - id: TL-002A
+    title: "Add failing tests for edit-mode checkbox UI and transaction toggling"
+    status: completed
+    size: M
+    spec_refs: [TL-002]
+    dependencies: [TL-001A]
+    acceptance: "Editor/plugin tests fail until edit mode exposes checkboxes and toggles via transactions"
+
+  - id: TL-003A
+    title: "Add failing tests for undo/redo and markdown persistence"
+    status: completed
+    size: M
+    spec_refs: [TL-003]
+    dependencies: [TL-002A]
+    acceptance: "History/serialization tests fail until toggles undo/redo cleanly and persist markdown markers"
+
+  - id: TL-001B
+    title: "Render task lists as checkbox UI in view mode"
+    status: completed
+    size: S
+    spec_refs: [TL-001]
+    dependencies: [TL-003A]
+    acceptance: "Rendered HTML includes checkbox affordances for task list items"
+
+  - id: TL-002B
+    title: "Implement targeted ProseMirror checkbox interaction support"
+    status: completed
+    size: M
+    spec_refs: [TL-002]
+    dependencies: [TL-001B]
+    acceptance: "Edit mode shows task checkboxes and toggles checked state through editor transactions"
+
+  - id: TL-003B
+    title: "Verify history/persistence and publish audit"
+    status: completed
+    size: S
+    spec_refs: [TL-003]
+    dependencies: [TL-002B]
+    acceptance: "Undo/redo and markdown persistence remain correct; audit and typecheck complete"

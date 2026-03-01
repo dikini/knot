@@ -596,6 +596,37 @@
   margin-bottom: var(--spacing-xs);
 }
 
+.ProseMirror li.task-list-item,
+.editor-view-markdown li.task-list-item {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  margin-left: -1.45rem;
+}
+
+.ProseMirror .task-list-item__content,
+.editor-view-markdown li.task-list-item > p,
+.editor-view-markdown li.task-list-item > div,
+.editor-view-markdown li.task-list-item > ul,
+.editor-view-markdown li.task-list-item > ol {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-list-item__checkbox {
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.28rem;
+  accent-color: var(--color-accent);
+  flex: 0 0 auto;
+  cursor: pointer;
+}
+
+.editor-view-markdown .task-list-item__checkbox {
+  cursor: default;
+}
+
 /* Horizontal rule */
 .ProseMirror hr {
   border: none;
