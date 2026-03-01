@@ -1,8 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { EditorState, TextSelection } from "prosemirror-state";
 import { history, redo, undo } from "prosemirror-history";
+import { EditorView } from "prosemirror-view";
 import { schema } from "../schema";
 import { keyBindings } from "./keymap";
+import { plugins } from ".";
+
+const editorPluginConfig = {
+  hideInactiveSyntax: true,
+  mediaEmbed: true,
+  wikilinks: true,
+  theme: "dark" as const,
+  fontSize: 16,
+  lineHeight: 1.6,
+};
 
 function endOfFirstParagraph(state: EditorState): number {
   let resolvedPos = 1;
@@ -17,6 +28,35 @@ function endOfFirstParagraph(state: EditorState): number {
   });
 
   return resolvedPos;
+}
+
+function dispatchEnterThroughPlugins(state: EditorState): {
+  handled: boolean;
+  nextState: EditorState;
+} {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+
+  const view = new EditorView(host, {
+    state,
+  });
+
+  const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true });
+  const handled = Boolean(
+    view.someProp("handleKeyDown", (handler) => handler(view, event))
+  );
+  const nextState = view.state;
+
+  view.destroy();
+  host.remove();
+
+  return { handled, nextState };
+}
+
+function withSelectionAtFirstParagraphEnd(state: EditorState): EditorState {
+  return state.apply(
+    state.tr.setSelection(TextSelection.create(state.doc, endOfFirstParagraph(state)))
+  );
 }
 
 describe("Editor key bindings", () => {
@@ -59,7 +99,7 @@ describe("Editor key bindings", () => {
       ]),
     });
 
-    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, endOfFirstParagraph(state))));
+    state = withSelectionAtFirstParagraphEnd(state);
 
     const handled = keyBindings.Enter(state, (tr) => {
       state = state.apply(tr);
@@ -81,7 +121,7 @@ describe("Editor key bindings", () => {
       ]),
     });
 
-    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, endOfFirstParagraph(state))));
+    state = withSelectionAtFirstParagraphEnd(state);
 
     const handled = keyBindings.Enter(state, (tr) => {
       state = state.apply(tr);
@@ -101,5 +141,63 @@ describe("Editor key bindings", () => {
     });
     expect(redid).toBe(true);
     expect(state.doc.child(0).childCount).toBe(2);
+  });
+
+  it("continues bullet lists when Enter is dispatched through the plugin stack", () => {
+    const selectedState = withSelectionAtFirstParagraphEnd(EditorState.create({
+      schema,
+      doc: schema.node("doc", null, [
+        schema.node("bullet_list", null, [
+          schema.node("list_item", null, [schema.node("paragraph", null, [schema.text("Item 1")])]),
+        ]),
+      ]),
+      plugins: plugins(editorPluginConfig),
+    }));
+
+    const { handled, nextState } = dispatchEnterThroughPlugins(selectedState);
+
+    expect(handled).toBe(true);
+    expect(nextState.doc.child(0).childCount).toBe(2);
+  });
+
+  it("continues ordered lists when Enter is dispatched through the plugin stack", () => {
+    const selectedState = withSelectionAtFirstParagraphEnd(EditorState.create({
+      schema,
+      doc: schema.node("doc", null, [
+        schema.node("ordered_list", { order: 3 }, [
+          schema.node("list_item", null, [schema.node("paragraph", null, [schema.text("Third")])]),
+        ]),
+      ]),
+      plugins: plugins(editorPluginConfig),
+    }));
+
+    const { handled, nextState } = dispatchEnterThroughPlugins(selectedState);
+
+    expect(handled).toBe(true);
+    expect(nextState.doc.child(0).type.name).toBe("ordered_list");
+    expect(nextState.doc.child(0).childCount).toBe(2);
+  });
+
+  it("continues task lists when Enter is dispatched through the plugin stack", () => {
+    const selectedState = withSelectionAtFirstParagraphEnd(EditorState.create({
+      schema,
+      doc: schema.node("doc", null, [
+        schema.node("bullet_list", null, [
+          schema.node(
+            "list_item",
+            { task: true, checked: true },
+            [schema.node("paragraph", null, [schema.text("Done")])]
+          ),
+        ]),
+      ]),
+      plugins: plugins(editorPluginConfig),
+    }));
+
+    const { handled, nextState } = dispatchEnterThroughPlugins(selectedState);
+
+    expect(handled).toBe(true);
+    expect(nextState.doc.child(0).childCount).toBe(2);
+    expect(nextState.doc.child(0).child(1)?.attrs.task).toBe(true);
+    expect(nextState.doc.child(0).child(1)?.attrs.checked).toBe(false);
   });
 });

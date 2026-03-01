@@ -1,0 +1,32 @@
+tasks:
+  - id: LC-001A
+    title: "Add failing plugin-stack tests for bullet and ordered list continuation"
+    status: completed
+    size: S
+    spec_refs: [LC-001]
+    dependencies: []
+    acceptance: "Live plugin-stack tests fail before the fix and pass after it for bullet and ordered lists"
+
+  - id: LC-002A
+    title: "Add failing plugin-stack test for task list continuation attrs"
+    status: completed
+    size: S
+    spec_refs: [LC-002]
+    dependencies: [LC-001A]
+    acceptance: "Task-list Enter handling is verified in the assembled plugin stack, including unchecked attr reset on the new item"
+
+  - id: LC-001B
+    title: "Reorder editor keymap plugins so custom continuation runs before baseKeymap"
+    status: completed
+    size: S
+    spec_refs: [LC-001, LC-002]
+    dependencies: [LC-002A]
+    acceptance: "The custom Enter handler receives list-key events before baseKeymap and restores live continuation behavior"
+
+  - id: LC-004V
+    title: "Run targeted verification, update workstream artifacts, and publish audit"
+    status: completed
+    size: M
+    spec_refs: [LC-001, LC-002]
+    dependencies: [LC-001B]
+    acceptance: "Verification report, roadmap/spec-map updates, targeted tests, and typecheck are all recorded for the workstream"

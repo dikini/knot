@@ -19,8 +19,8 @@ export function plugins(config: EditorConfig): Plugin[] {
   const pluginList: Plugin[] = [
     // Core functionality
     history(),
-    keymap(baseKeymap),
     keymap(keyBindings),
+    keymap(baseKeymap),
     
     // Feature plugins
     taskListPlugin(),
