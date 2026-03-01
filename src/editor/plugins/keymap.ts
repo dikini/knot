@@ -5,6 +5,7 @@
  */
 
 import { EditorState, Transaction } from "prosemirror-state";
+import { canSplit } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
 import { schema } from "../schema";
 
@@ -57,6 +58,47 @@ export const keyBindings: Keymap = {
     tr = tr.setBlockType(blockFrom, blockTo, heading, { level });
     tr = tr.delete(textStart, textEnd);
     dispatch(tr);
+    return true;
+  },
+
+  // SPEC: COMP-AUTHORING-FLOWS-001 FR-5, FR-8
+  "Enter": (state, dispatch): boolean => {
+    const { selection } = state;
+    if (!selection.empty) return false;
+
+    const { $from } = selection;
+    if ($from.parent.type.name !== "paragraph") return false;
+    if ($from.depth < 2) return false;
+
+    const listItem = $from.node(-1);
+    const listNode = $from.node(-2);
+    if (listItem.type !== schema.nodes.list_item) return false;
+    if (listNode.type !== schema.nodes.bullet_list && listNode.type !== schema.nodes.ordered_list) return false;
+
+    const nextListItemAttrs =
+      listItem.attrs.task === true
+        ? {
+            ...listItem.attrs,
+            checked: false,
+          }
+        : listItem.attrs;
+
+    if (
+      !canSplit(state.doc, selection.from, 2, [
+        { type: schema.nodes.list_item, attrs: nextListItemAttrs },
+        { type: schema.nodes.paragraph },
+      ])
+    ) {
+      return false;
+    }
+
+    if (!dispatch) return true;
+
+    const tr = state.tr.split(selection.from, 2, [
+      { type: schema.nodes.list_item, attrs: nextListItemAttrs },
+      { type: schema.nodes.paragraph },
+    ]);
+    dispatch(tr.scrollIntoView());
     return true;
   },
 

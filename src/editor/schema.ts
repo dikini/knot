@@ -110,11 +110,22 @@ const nodes = {
   },
 
   list_item: {
+    attrs: {
+      task: { default: false },
+      checked: { default: false },
+    },
     content: "paragraph block*",
     defining: true,
     parseDOM: [{ tag: "li" }],
-    toDOM(): DOMOutputSpec {
-      return ["li", 0];
+    toDOM(node: ProseMirrorNode): DOMOutputSpec {
+      const attrs =
+        node.attrs.task === true
+          ? {
+              "data-task": "true",
+              "data-checked": node.attrs.checked === true ? "true" : "false",
+            }
+          : {};
+      return ["li", attrs, 0];
     },
   },
 

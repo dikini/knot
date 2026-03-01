@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { initProseMirrorEditor } from "@editor/index";
+import { clearBlockFormatting } from "@editor/commands";
 import { renderMarkdownToHtml, renderMermaidDiagrams } from "@editor/render";
 import {
   buildKnownWikilinkTargets,
@@ -27,6 +28,7 @@ import {
   List,
   ListOrdered,
   Minus,
+  Pilcrow,
 } from "lucide-react";
 import { toggleMark, wrapIn, setBlockType } from "prosemirror-commands";
 import { Selection, TextSelection, type Command } from "prosemirror-state";
@@ -769,6 +771,18 @@ export function Editor() {
                   aria-label="Insert block"
                   onKeyDown={(event) => handleLinearToolbarKeydown(event, { closeOnEscape: true })}
                 >
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="editor-block-tool__menu-item"
+                    onClick={() => {
+                      runCommand(clearBlockFormatting);
+                      setBlockMenuOpen(false);
+                    }}
+                  >
+                    <Pilcrow size={14} data-testid="block-menu-icon-paragraph" aria-hidden="true" />
+                    <span>Paragraph</span>
+                  </button>
                   <button
                     type="button"
                     role="menuitem"

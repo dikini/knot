@@ -134,6 +134,19 @@ describe("Markdown Parser", () => {
       expect(doc.child(0).child(2).textContent).toBe("Third");
     });
 
+    it("should parse GitHub task lists with checked state", () => {
+      const doc = parseMarkdown("- [x] Done\n- [ ] Todo");
+
+      expect(doc.childCount).toBe(1);
+      expect(doc.child(0).type.name).toBe("bullet_list");
+      expect(doc.child(0).child(0).attrs.task).toBe(true);
+      expect(doc.child(0).child(0).attrs.checked).toBe(true);
+      expect(doc.child(0).child(0).textContent).toBe("Done");
+      expect(doc.child(0).child(1).attrs.task).toBe(true);
+      expect(doc.child(0).child(1).attrs.checked).toBe(false);
+      expect(doc.child(0).child(1).textContent).toBe("Todo");
+    });
+
     it("should parse inline formatting - bold", () => {
       const doc = parseMarkdown("This is **bold** text");
 
@@ -256,6 +269,15 @@ describe("Markdown Parser", () => {
 
       expect(serialized).toContain("1. First");
       expect(serialized).toContain("2. Second");
+    });
+
+    it("should serialize task lists with checked state intact", () => {
+      const markdown = "- [x] Done\n- [ ] Todo";
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("- [x] Done");
+      expect(serialized).toContain("- [ ] Todo");
     });
 
     it("should serialize horizontal rules", () => {

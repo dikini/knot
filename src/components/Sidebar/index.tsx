@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import { IconButton } from "@components/IconButton";
 import { VaultSwitcher } from "@components/VaultSwitcher";
@@ -147,6 +147,28 @@ export function Sidebar({
   };
 
   const normalizeRelPath = (value: string) => value.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+  const splitNotePath = (value: string) => {
+    const normalized = normalizeRelPath(value);
+    const parts = normalized.split("/");
+    const fileName = parts.pop() ?? "";
+    const parentPath = parts.join("/");
+    const baseName = fileName.replace(/\.md$/i, "");
+    return { parentPath, fileName, baseName };
+  };
+  const basenameOnly = (value: string) => normalizeRelPath(value).split("/").pop() ?? "";
+  const ensureMarkdownExtension = (value: string) => (value.endsWith(".md") ? value : `${value}.md`);
+  const joinNotePath = (parentPath: string, fileName: string) =>
+    parentPath ? `${parentPath}/${fileName}` : fileName;
+  const syncActiveNotePath = (oldPath: string, newPath: string) => {
+    if (currentNote?.path !== oldPath) return;
+
+    const { baseName } = splitNotePath(newPath);
+    setCurrentNote({
+      ...currentNote,
+      path: newPath,
+      title: baseName,
+    });
+  };
 
   const applyCreateFolder = (
     node: ExplorerFolderNode,
@@ -453,6 +475,41 @@ export function Sidebar({
     );
   };
 
+  const handleRenameNotePath = async (targetPath: string, nextPath: string) => {
+    if (!nextPath || nextPath === targetPath) return;
+
+    await withOptimisticTree(
+      (root) => applyRenameNode(root, targetPath, nextPath, "note"),
+      async () => {
+        await api.renameNote(targetPath, nextPath);
+        syncActiveNotePath(targetPath, nextPath);
+      }
+    );
+  };
+
+  // SPEC: COMP-AUTHORING-FLOWS-001 FR-2, FR-4
+  const handleRenameFile = async (targetPath: string) => {
+    const { parentPath, fileName } = splitNotePath(targetPath);
+    const nextFileName = ensureMarkdownExtension(basenameOnly(prompt("New file name:", fileName) ?? ""));
+    if (!nextFileName) return;
+    await handleRenameNotePath(targetPath, joinNotePath(parentPath, nextFileName));
+  };
+
+  // SPEC: COMP-AUTHORING-FLOWS-001 FR-2, FR-4
+  const handleRenameNote = async (targetPath: string) => {
+    const { parentPath, baseName } = splitNotePath(targetPath);
+    const nextBaseName = basenameOnly(prompt("New note name:", baseName) ?? "").replace(/\.md$/i, "");
+    if (!nextBaseName) return;
+    await handleRenameNotePath(targetPath, joinNotePath(parentPath, `${nextBaseName}.md`));
+  };
+
+  // SPEC: COMP-AUTHORING-FLOWS-001 FR-3, FR-4
+  const handleMoveNote = async (targetPath: string) => {
+    const { parentPath, fileName } = splitNotePath(targetPath);
+    const nextParentPath = normalizeRelPath(prompt("Destination folder:", parentPath) ?? "");
+    await handleRenameNotePath(targetPath, joinNotePath(nextParentPath, fileName));
+  };
+
   const handleExpandCollapseAll = async (expanded: boolean) => {
     if (!explorerRoot) return;
     const folderPaths = collectFolderPaths(explorerRoot);
@@ -479,6 +536,7 @@ export function Sidebar({
       onClick={() => void handleNoteClick(notePath)}
       onContextMenu={(event) => {
         event.preventDefault();
+        event.stopPropagation();
         setContextMenu({
           x: event.clientX,
           y: event.clientY,
@@ -491,7 +549,7 @@ export function Sidebar({
     </li>
   );
 
-  const renderFolder = (folder: ExplorerFolderNode, depth: number): JSX.Element | JSX.Element[] => {
+  const renderFolder = (folder: ExplorerFolderNode, depth: number): ReactElement | ReactElement[] => {
     if (folder.path === "") {
       return (
         <>
@@ -521,6 +579,7 @@ export function Sidebar({
         onFocus={() => setFocusedKey(`folder:${folder.path}`)}
         onContextMenu={(event) => {
           event.preventDefault();
+          event.stopPropagation();
           setContextMenu({
             x: event.clientX,
             y: event.clientY,
@@ -535,6 +594,7 @@ export function Sidebar({
           onClick={() => void handleFolderToggle(folder.path, !folder.expanded)}
           onContextMenu={(event) => {
             event.preventDefault();
+            event.stopPropagation();
             setContextMenu({
               x: event.clientX,
               y: event.clientY,
@@ -674,8 +734,14 @@ export function Sidebar({
           )}
           {contextMenu.targetType === "note" && (
             <>
-              <button type="button" role="menuitem" onClick={() => void handleRenameTarget("note", contextMenu.path)}>
+              <button type="button" role="menuitem" onClick={() => void handleRenameFile(contextMenu.path)}>
+                Rename file
+              </button>
+              <button type="button" role="menuitem" onClick={() => void handleRenameNote(contextMenu.path)}>
                 Rename note
+              </button>
+              <button type="button" role="menuitem" onClick={() => void handleMoveNote(contextMenu.path)}>
+                Move note
               </button>
               <button type="button" role="menuitem" onClick={() => void handleDeleteTarget("note", contextMenu.path)}>
                 Delete note

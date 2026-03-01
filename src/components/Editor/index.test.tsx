@@ -335,6 +335,7 @@ describe("Editor Component", () => {
       const menu = await screen.findByRole("menu", { name: "Insert block" });
 
       expect(within(menu).getByRole("menuitem", { name: "Heading 1" })).toBeInTheDocument();
+      expect(within(menu).getByRole("menuitem", { name: "Paragraph" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Heading 2" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Heading 3" })).toBeInTheDocument();
       expect(within(menu).getByRole("menuitem", { name: "Bullet list" })).toBeInTheDocument();

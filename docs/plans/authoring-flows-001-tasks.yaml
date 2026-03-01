@@ -1,0 +1,40 @@
+tasks:
+  - id: AF-001
+    title: "Add failing tests for folder-scoped note creation and active-note path reconciliation"
+    status: completed
+    size: S
+    spec_refs: [FR-1, FR-4]
+    dependencies: []
+    acceptance: "Tests fail until note creation in selected folders and active-note rename/move synchronization are implemented"
+
+  - id: AF-002
+    title: "Implement sidebar/store note creation plus unified rename/move note flows"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4]
+    dependencies: [AF-001]
+    acceptance: "Explorer actions create notes in selected folders and keep currentNote in sync after rename/move"
+
+  - id: AF-003
+    title: "Add failing editor tests for list continuation, task list markdown, and undo coverage"
+    status: completed
+    size: M
+    spec_refs: [FR-5, FR-6, FR-8]
+    dependencies: [AF-002]
+    acceptance: "Tests demonstrate missing list continuation, task list round-trip, and command history behavior"
+
+  - id: AF-004
+    title: "Implement task list parsing/serialization and list continuation commands with history support"
+    status: completed
+    size: M
+    spec_refs: [FR-5, FR-6, FR-8]
+    dependencies: [AF-003]
+    acceptance: "Bullet, ordered, and task lists continue correctly and round-trip through markdown with undo support"
+
+  - id: AF-005
+    title: "Add clear-formatting tests and implement paragraph reset command wiring"
+    status: completed
+    size: S
+    spec_refs: [FR-7, FR-8]
+    dependencies: [AF-004]
+    acceptance: "Users can reset block formatting to a plain paragraph and undo the operation"

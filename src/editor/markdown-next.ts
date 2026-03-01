@@ -1,6 +1,6 @@
 import MarkdownIt from "markdown-it";
 import { MarkdownParser, MarkdownSerializer, defaultMarkdownSerializer } from "prosemirror-markdown";
-import { Node as ProseMirrorNode } from "prosemirror-model";
+import { Fragment, Node as ProseMirrorNode } from "prosemirror-model";
 import { schema } from "./schema";
 
 function createMarkdownIt(): MarkdownIt {
@@ -116,6 +116,24 @@ const markdownSerializer = new MarkdownSerializer(
     bullet_list(state, node) {
       state.renderList(node, "  ", () => "- ");
     },
+    list_item(state, node, parent, index) {
+      const checkboxPrefix =
+        node.attrs.task === true ? `[${node.attrs.checked === true ? "x" : " "}] ` : "";
+      const firstChild = node.firstChild;
+
+      if (firstChild?.type.name === "paragraph") {
+        state.write(checkboxPrefix);
+        state.renderInline(firstChild, false);
+        state.closeBlock(firstChild);
+        for (let childIndex = 1; childIndex < node.childCount; childIndex += 1) {
+          state.render(node.child(childIndex), node, childIndex);
+        }
+        return;
+      }
+
+      state.write(checkboxPrefix);
+      defaultMarkdownSerializer.nodes.list_item(state, node, parent, index);
+    },
     code_block(state, node) {
       state.write("```" + ((node.attrs.language as string | null) ?? "") + "\n");
       state.text(node.textContent, false);
@@ -161,9 +179,72 @@ const markdownSerializer = new MarkdownSerializer(
 );
 
 export function parseMarkdownNextDocument(content: string): ProseMirrorNode {
-  return markdownParser.parse(content);
+  return normalizeTaskListItems(markdownParser.parse(content));
 }
 
 export function serializeMarkdownNextDocument(doc: ProseMirrorNode): string {
   return markdownSerializer.serialize(doc);
+}
+
+function normalizeTaskListItems(node: ProseMirrorNode): ProseMirrorNode {
+  if (node.isText) {
+    return node;
+  }
+
+  const normalizedChildren: ProseMirrorNode[] = [];
+  node.forEach((child) => {
+    normalizedChildren.push(normalizeTaskListItems(child));
+  });
+
+  if (node.type.name !== "list_item" || normalizedChildren.length === 0) {
+    return node.type.create(node.attrs, normalizedChildren, node.marks);
+  }
+
+  const firstChild = normalizedChildren[0];
+  if (firstChild.type.name !== "paragraph") {
+    return node.type.create(node.attrs, normalizedChildren, node.marks);
+  }
+
+  const parsedTask = stripTaskMarker(firstChild);
+  if (!parsedTask) {
+    return node.type.create(node.attrs, normalizedChildren, node.marks);
+  }
+
+  const nextChildren = [parsedTask.paragraph, ...normalizedChildren.slice(1)];
+  return node.type.create(
+    {
+      ...node.attrs,
+      task: true,
+      checked: parsedTask.checked,
+    },
+    nextChildren,
+    node.marks
+  );
+}
+
+function stripTaskMarker(paragraph: ProseMirrorNode): { checked: boolean; paragraph: ProseMirrorNode } | null {
+  const firstChild = paragraph.firstChild;
+  if (!firstChild?.isText) {
+    return null;
+  }
+
+  const match = firstChild.text?.match(/^\[( |x|X)\]\s+/);
+  if (!match) {
+    return null;
+  }
+
+  const nextText = firstChild.text?.slice(match[0].length) ?? "";
+  const nextChildren: ProseMirrorNode[] = [];
+
+  if (nextText.length > 0) {
+    nextChildren.push(schema.text(nextText, firstChild.marks));
+  }
+  for (let index = 1; index < paragraph.childCount; index += 1) {
+    nextChildren.push(paragraph.child(index));
+  }
+
+  return {
+    checked: match[1].toLowerCase() === "x",
+    paragraph: paragraph.copy(Fragment.fromArray(nextChildren)),
+  };
 }

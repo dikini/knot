@@ -14,18 +14,29 @@ const mockLoadNote = vi.fn();
 const mockSaveCurrentNote = vi.fn();
 const mockSetCurrentNote = vi.fn();
 const mockLoadNotes = vi.fn();
+const mockVaultStoreState = {
+  vault: { path: "/tmp/vault", name: "vault", note_count: 1, last_modified: 1 },
+  noteList: [],
+  currentNote: null as null | {
+    id: string;
+    path: string;
+    title: string;
+    content: string;
+    created_at: number;
+    modified_at: number;
+    word_count: number;
+    headings: [];
+    backlinks: [];
+  },
+  loadNote: mockLoadNote,
+  saveCurrentNote: mockSaveCurrentNote,
+  isLoading: false,
+  setCurrentNote: mockSetCurrentNote,
+};
 
 vi.mock("@lib/store", () => ({
   useVaultStore: Object.assign(
-    () => ({
-      vault: { path: "/tmp/vault", name: "vault", note_count: 1, last_modified: 1 },
-      noteList: [],
-      currentNote: null,
-      loadNote: mockLoadNote,
-      saveCurrentNote: mockSaveCurrentNote,
-      isLoading: false,
-      setCurrentNote: mockSetCurrentNote,
-    }),
+    () => mockVaultStoreState,
     {
       getState: () => ({
         loadNotes: mockLoadNotes,
@@ -40,7 +51,8 @@ vi.mock("@lib/store", () => ({
 
 const mockGetExplorerTree = vi.fn();
 const mockSetFolderExpanded = vi.fn();
-const mockLoadNoteApi = vi.fn();
+const mockCreateNoteApi = vi.fn();
+const mockRenameNoteApi = vi.fn();
 const mockListen = vi.fn();
 let treeEventHandler: (() => void) | null = null;
 
@@ -51,10 +63,10 @@ vi.mock("@tauri-apps/api/event", () => ({
 vi.mock("@lib/api", () => ({
   getExplorerTree: (...args: unknown[]) => mockGetExplorerTree(...args),
   setFolderExpanded: (...args: unknown[]) => mockSetFolderExpanded(...args),
-  createNote: (...args: unknown[]) => mockLoadNoteApi(...args),
+  createNote: (...args: unknown[]) => mockCreateNoteApi(...args),
   createDirectory: vi.fn(),
   renameDirectory: vi.fn(),
-  renameNote: vi.fn(),
+  renameNote: (...args: unknown[]) => mockRenameNoteApi(...args),
   deleteDirectory: vi.fn(),
   deleteNote: vi.fn(),
 }));
@@ -63,6 +75,8 @@ describe("Sidebar Explorer M1", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     treeEventHandler = null;
+    mockVaultStoreState.currentNote = null;
+    window.prompt = vi.fn();
     mockListen.mockResolvedValue(() => {});
     mockListen.mockImplementation((_eventName: string, handler: () => void) => {
       treeEventHandler = handler;
@@ -80,12 +94,29 @@ describe("Sidebar Explorer M1", () => {
             name: "Programming",
             expanded: true,
             folders: [],
-            notes: [],
+            notes: [
+              {
+                path: "Programming/daily.md",
+                display_title: "daily",
+              },
+            ],
           },
         ],
         notes: [],
       },
     });
+    mockCreateNoteApi.mockResolvedValue({
+      id: "created",
+      path: "Programming/draft.md",
+      title: "draft",
+      content: "# New Note\n\nStart writing...",
+      created_at: 1,
+      modified_at: 1,
+      word_count: 3,
+      headings: [],
+      backlinks: [],
+    });
+    mockRenameNoteApi.mockResolvedValue(undefined);
   });
 
   it("renders top explorer action icons", async () => {
@@ -126,6 +157,174 @@ describe("Sidebar Explorer M1", () => {
     expect(await screen.findByRole("menuitem", { name: "New note here" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "New folder" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Rename folder" })).toBeInTheDocument();
+  });
+
+  it("creates a note inside the selected folder", async () => {
+    vi.mocked(window.prompt).mockReturnValue("draft");
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const folderButton = await screen.findByRole("treeitem", { name: "Programming" });
+    fireEvent.contextMenu(folderButton);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "New note here" }));
+
+    await waitFor(() => {
+      expect(mockCreateNoteApi).toHaveBeenCalledWith(
+        "Programming/draft.md",
+        "# New Note\n\nStart writing..."
+      );
+    });
+    expect(mockSetCurrentNote).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "Programming/draft.md" })
+    );
+  });
+
+  it("shows separate note rename and move actions", async () => {
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const noteButton = (await screen.findByText("daily")).closest("li");
+    expect(noteButton).not.toBeNull();
+    fireEvent.contextMenu(noteButton!);
+
+    expect(await screen.findByRole("menuitem", { name: "Rename file" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Rename note" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Move note" })).toBeInTheDocument();
+  });
+
+  it("renames the active note file inside its current directory", async () => {
+    vi.mocked(window.prompt).mockReturnValue("renamed.md");
+    mockVaultStoreState.currentNote = {
+      id: "note-1",
+      path: "Programming/daily.md",
+      title: "daily",
+      content: "# Daily",
+      created_at: 1,
+      modified_at: 1,
+      word_count: 1,
+      headings: [],
+      backlinks: [],
+    };
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const noteButton = (await screen.findByText("daily")).closest("li");
+    expect(noteButton).not.toBeNull();
+    fireEvent.contextMenu(noteButton!);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename file" }));
+
+    await waitFor(() => {
+      expect(mockRenameNoteApi).toHaveBeenCalledWith(
+        "Programming/daily.md",
+        "Programming/renamed.md"
+      );
+    });
+    expect(mockSetCurrentNote).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "Programming/renamed.md", title: "renamed" })
+    );
+  });
+
+  it("renames the active note title while preserving the directory", async () => {
+    vi.mocked(window.prompt).mockReturnValue("weekly-plan");
+    mockVaultStoreState.currentNote = {
+      id: "note-1",
+      path: "Programming/daily.md",
+      title: "daily",
+      content: "# Daily",
+      created_at: 1,
+      modified_at: 1,
+      word_count: 1,
+      headings: [],
+      backlinks: [],
+    };
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const noteButton = (await screen.findByText("daily")).closest("li");
+    expect(noteButton).not.toBeNull();
+    fireEvent.contextMenu(noteButton!);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Rename note" }));
+
+    await waitFor(() => {
+      expect(mockRenameNoteApi).toHaveBeenCalledWith(
+        "Programming/daily.md",
+        "Programming/weekly-plan.md"
+      );
+    });
+    expect(mockSetCurrentNote).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "Programming/weekly-plan.md", title: "weekly-plan" })
+    );
+  });
+
+  it("moves the active note to a different directory while preserving basename", async () => {
+    vi.mocked(window.prompt).mockReturnValue("Archive");
+    mockVaultStoreState.currentNote = {
+      id: "note-1",
+      path: "Programming/daily.md",
+      title: "daily",
+      content: "# Daily",
+      created_at: 1,
+      modified_at: 1,
+      word_count: 1,
+      headings: [],
+      backlinks: [],
+    };
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const noteButton = (await screen.findByText("daily")).closest("li");
+    expect(noteButton).not.toBeNull();
+    fireEvent.contextMenu(noteButton!);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Move note" }));
+
+    await waitFor(() => {
+      expect(mockRenameNoteApi).toHaveBeenCalledWith(
+        "Programming/daily.md",
+        "Archive/daily.md"
+      );
+    });
+    expect(mockSetCurrentNote).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "Archive/daily.md", title: "daily" })
+    );
   });
 
   it("supports keyboard navigation and folder toggle via arrows", async () => {
