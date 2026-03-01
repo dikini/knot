@@ -1,0 +1,26 @@
+trace: BUG-typecheck-cleanup-002
+
+tasks:
+  - id: TC-001
+    title: "Type daemon smoke test mock props as ReactNode-compatible values"
+    status: done
+    size: S
+    spec_refs: [FR-1]
+    dependencies: []
+    acceptance: "src/App.daemon-smoke.test.tsx compiles without unknown-to-ReactNode errors"
+
+  - id: TC-002
+    title: "Narrow nullable SearchBox story query results before clicking"
+    status: done
+    size: S
+    spec_refs: [FR-2]
+    dependencies: [TC-001]
+    acceptance: "src/components/SearchBox/SearchBox.stories.tsx compiles without nullable Element cast errors"
+
+  - id: TC-003
+    title: "Run focused verification and publish audit report"
+    status: done
+    size: S
+    spec_refs: [FR-3]
+    dependencies: [TC-002]
+    acceptance: "npm run typecheck and npm run ui:daemon:smoke pass, and the audit report is recorded"

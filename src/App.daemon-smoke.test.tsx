@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "./App";
@@ -69,8 +70,14 @@ vi.mock("@components/Sidebar", () => ({
 vi.mock("@components/Editor", () => ({ Editor: () => <div data-testid="editor-view">Editor</div> }));
 vi.mock("@components/GraphView", () => ({ GraphView: () => <div data-testid="graph-view">Graph</div> }));
 vi.mock("@components/GraphView/GraphContextPanel", () => ({ GraphContextPanel: () => <div /> }));
-vi.mock("@components/Shell/ContextPanel", () => ({ ContextPanel: ({ notesContent }: { notesContent: unknown }) => <div>{notesContent}</div> }));
-vi.mock("@components/Shell/InspectorRail", () => ({ InspectorRail: ({ children }: { children: unknown }) => <div>{children}</div> }));
+vi.mock("@components/Shell/ContextPanel", () => ({
+  // TASK: TC-001
+  ContextPanel: ({ notesContent }: { notesContent: ReactNode }) => <div>{notesContent}</div>,
+}));
+vi.mock("@components/Shell/InspectorRail", () => ({
+  // TASK: TC-001
+  InspectorRail: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
 vi.mock("@components/Shell/ToolRail", () => ({ ToolRail: () => <div /> }));
 vi.mock("@components/SearchBox", () => ({ SearchBox: () => <div /> }));
 vi.mock("@components/Settings/SettingsPane", () => ({ SettingsPane: () => <div /> }));

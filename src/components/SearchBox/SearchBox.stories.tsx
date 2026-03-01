@@ -57,15 +57,19 @@ export const QueryWithResults: Story = {
     const input = canvas.getByLabelText("Search notes");
     await userEvent.type(input, "graph");
 
-    let secondResult: Element | null = null;
+    let secondResult: HTMLElement | null = null;
     await waitFor(() => {
-      secondResult = canvasElement.querySelector("#search-result-1");
+      secondResult = canvasElement.querySelector<HTMLElement>("#search-result-1");
       expect(secondResult).not.toBeNull();
       expect(secondResult?.textContent ?? "").toContain("Graph");
       expect(secondResult?.textContent ?? "").toContain("Mode");
     });
 
-    await userEvent.click(secondResult as Element);
+    if (!secondResult) {
+      throw new Error("Expected second search result to be rendered");
+    }
+
+    await userEvent.click(secondResult);
     await expect(args.onResultSelect).toHaveBeenCalledWith("notes/graph-mode.md");
   },
 };
@@ -98,9 +102,9 @@ export const KeyboardSelectFirstResult: Story = {
   play: async ({ canvas, canvasElement, args }) => {
     const input = canvas.getByLabelText("Search notes");
     await userEvent.type(input, "keyboard");
-    let firstResult: Element | null = null;
+    let firstResult: HTMLElement | null = null;
     await waitFor(() => {
-      firstResult = canvasElement.querySelector("#search-result-0");
+      firstResult = canvasElement.querySelector<HTMLElement>("#search-result-0");
       expect(firstResult).not.toBeNull();
       expect(firstResult?.textContent ?? "").toContain("Keyboard");
       expect(firstResult?.textContent ?? "").toContain("Alpha");
