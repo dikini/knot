@@ -11,6 +11,13 @@ import {
 } from "@editor/commands";
 import { renderMarkdownToHtml, renderMermaidDiagrams } from "@editor/render";
 import {
+  emptyMetadataDraft,
+  parseNoteDocument,
+  serializeNoteDocument,
+  validateExtraMetadataYaml,
+  type NoteMetadataDraft,
+} from "@lib/frontmatter";
+import {
   buildKnownWikilinkTargets,
   getWikilinkSuggestions,
   notePathFromWikilinkTarget,
@@ -68,9 +75,14 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
   const blockToggleRef = useRef<HTMLButtonElement>(null);
   const viewArticleRef = useRef<HTMLElement>(null);
   const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
+  const metadataDraftRef = useRef<NoteMetadataDraft>(emptyMetadataDraft());
+  const extraMetadataYamlRef = useRef("");
   const { currentNote, setCurrentNote, loadNote, noteList, shell } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
-  const [editorMode, setEditorMode] = useState<"source" | "edit" | "view">("edit");
+  const [editorMode, setEditorMode] = useState<"meta" | "source" | "edit" | "view">("edit");
+  const [metadataDraft, setMetadataDraft] = useState<NoteMetadataDraft>(emptyMetadataDraft());
+  const [extraMetadataYaml, setExtraMetadataYaml] = useState("");
+  const [metaValidationError, setMetaValidationError] = useState<string | null>(null);
   const [selectionToolbar, setSelectionToolbar] = useState<{
     visible: boolean;
     x: number;
@@ -135,8 +147,26 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     });
   }, []);
 
+  const effectiveRawMarkdown = isDirty ? content : (content || currentNote?.content || "");
+  const parsedDocument = useMemo(() => {
+    try {
+      return {
+        ...parseNoteDocument(effectiveRawMarkdown),
+        error: null as string | null,
+      };
+    } catch (error) {
+      return {
+        body: effectiveRawMarkdown,
+        managed: emptyMetadataDraft(),
+        extra: "",
+        hasFrontmatter: false,
+        error: error instanceof Error ? error.message : "Invalid front matter",
+      };
+    }
+  }, [effectiveRawMarkdown]);
+
   if (currentNote?.content && initialContentRef.current === "# New Note\n\nStart writing...") {
-    initialContentRef.current = currentNote.content;
+    initialContentRef.current = parsedDocument.body || currentNote.content;
   }
 
   useEffect(() => {
@@ -145,7 +175,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       return;
     }
     const stored = localStorage.getItem(noteScopedModeKey);
-    if (stored === "source" || stored === "edit" || stored === "view") {
+    if (stored === "meta" || stored === "source" || stored === "edit" || stored === "view") {
       setEditorMode(stored);
       return;
     }
@@ -161,7 +191,85 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     if (!currentNote) return;
     setContent(currentNote.content);
     markDirty(false);
-  }, [currentNote, setContent, markDirty]);
+    try {
+      const parsed = parseNoteDocument(currentNote.content);
+      setMetadataDraft(parsed.managed);
+      setExtraMetadataYaml(parsed.extra);
+      setMetaValidationError(null);
+    } catch (error) {
+      setMetadataDraft(emptyMetadataDraft());
+      setExtraMetadataYaml("");
+      setMetaValidationError(error instanceof Error ? error.message : "Invalid front matter");
+    }
+  }, [currentNote, markDirty, setContent]);
+
+  useEffect(() => {
+    metadataDraftRef.current = metadataDraft;
+    extraMetadataYamlRef.current = extraMetadataYaml;
+  }, [metadataDraft, extraMetadataYaml]);
+
+  const getBodyMarkdown = useCallback((markdown: string) => {
+    try {
+      return parseNoteDocument(markdown).body;
+    } catch {
+      return markdown;
+    }
+  }, []);
+
+  const syncMetaDraftFromMarkdown = useCallback((markdown: string) => {
+    try {
+      const parsed = parseNoteDocument(markdown);
+      setMetadataDraft(parsed.managed);
+      setExtraMetadataYaml(parsed.extra);
+      setMetaValidationError(null);
+    } catch (error) {
+      setMetadataDraft(emptyMetadataDraft());
+      setExtraMetadataYaml("");
+      setMetaValidationError(error instanceof Error ? error.message : "Invalid front matter");
+    }
+  }, []);
+
+  const commitMetadataToContent = useCallback(
+    (nextManaged: NoteMetadataDraft, nextExtraYaml: string) => {
+      const validationError = validateExtraMetadataYaml(nextExtraYaml);
+      setMetadataDraft(nextManaged);
+      setExtraMetadataYaml(nextExtraYaml);
+      setMetaValidationError(validationError);
+      useEditorStore.setState((previous) => ({
+        ...previous,
+        isDirty: true,
+      }));
+      markDirty(true);
+
+      if (validationError) {
+        return false;
+      }
+
+      const serialized = serializeNoteDocument({
+        body: parsedDocument.body,
+        managed: nextManaged,
+        extraYaml: nextExtraYaml,
+      });
+      setContent(serialized);
+      useEditorStore.setState((previous) => ({
+        ...previous,
+        content: serialized,
+        isDirty: true,
+      }));
+      return true;
+    },
+    [markDirty, parsedDocument.body, setContent]
+  );
+
+  const handleModeChange = useCallback(
+    (nextMode: "meta" | "source" | "edit" | "view") => {
+      if (nextMode === "meta") {
+        syncMetaDraftFromMarkdown(effectiveRawMarkdown);
+      }
+      setEditorMode(nextMode);
+    },
+    [effectiveRawMarkdown, syncMetaDraftFromMarkdown]
+  );
 
   useEffect(() => {
     const dirty = Boolean(currentNote && isDirty);
@@ -279,7 +387,12 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
 
     const pm = initProseMirrorEditor(editorRef.current, {
       onChange: (state) => {
-        setContent(state.markdown);
+        const serialized = serializeNoteDocument({
+          body: state.markdown,
+          managed: metadataDraftRef.current,
+          extraYaml: extraMetadataYamlRef.current,
+        });
+        setContent(serialized);
         markDirty(true);
         updateHistoryAvailability();
         updateWikilinkSuggest();
@@ -331,7 +444,8 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
         setWikilinkSuggest((previous) => ({ ...previous, visible: false }));
       },
       initialContent:
-        useEditorStore.getState().content || currentNote.content || initialContentRef.current,
+        getBodyMarkdown(useEditorStore.getState().content || currentNote.content || initialContentRef.current) ||
+        initialContentRef.current,
     });
 
     pmRef.current = pm;
@@ -359,7 +473,15 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       pm.destroy();
       pmRef.current = null;
     };
-  }, [editorMode, currentNote, setContent, markDirty, updateHistoryAvailability, updateWikilinkSuggest]);
+  }, [
+    editorMode,
+    currentNote,
+    getBodyMarkdown,
+    markDirty,
+    setContent,
+    updateHistoryAvailability,
+    updateWikilinkSuggest,
+  ]);
 
   const runCommand = useCallback((command: Command) => {
     if (!pmRef.current) return;
@@ -528,16 +650,16 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
 
     // Only update if content is different (avoid loops)
     const currentMarkdown = pmRef.current.getMarkdown();
-    if (currentMarkdown !== currentNote.content) {
-      pmRef.current.setMarkdown(currentNote.content);
+    const currentBody = getBodyMarkdown(currentNote.content);
+    if (currentMarkdown !== currentBody) {
+      pmRef.current.setMarkdown(currentBody);
       reset();
     }
-  }, [currentNote, editorMode, isDirty, reset]);
+  }, [currentNote, editorMode, getBodyMarkdown, isDirty, reset]);
 
-  const effectiveMarkdown = content || currentNote?.content || "";
   const renderedHtml = useMemo(
-    () => renderMarkdownToHtml(effectiveMarkdown),
-    [effectiveMarkdown]
+    () => renderMarkdownToHtml(parsedDocument.body),
+    [parsedDocument.body]
   );
 
   useEffect(() => {
@@ -547,10 +669,14 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
 
   // Save note handler
   const handleSave = useCallback(async () => {
-    if (!currentNote || !isDirty) return;
+    if (!currentNote || !isDirty || metaValidationError) return;
 
     try {
-      await api.saveNote(currentNote.path, content);
+      await api.saveNote(currentNote.path, effectiveRawMarkdown);
+      useEditorStore.setState((previous) => ({
+        ...previous,
+        isDirty: false,
+      }));
       markDirty(false);
 
       // Update current note in store
@@ -565,7 +691,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       console.error("Failed to save note:", error);
       alert(`Failed to save: ${error}`);
     }
-  }, [currentNote, content, isDirty, markDirty, setCurrentNote]);
+  }, [currentNote, effectiveRawMarkdown, isDirty, markDirty, metaValidationError, setCurrentNote]);
 
   useEffect(() => {
     const handleManagedKeyDown = (event: KeyboardEvent) => {
@@ -708,9 +834,18 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
             <button
               type="button"
               role="tab"
+              aria-selected={editorMode === "meta"}
+              className={`editor-toolbar__mode-btn ${editorMode === "meta" ? "is-active" : ""}`}
+              onClick={() => handleModeChange("meta")}
+            >
+              Meta
+            </button>
+            <button
+              type="button"
+              role="tab"
               aria-selected={editorMode === "source"}
               className={`editor-toolbar__mode-btn ${editorMode === "source" ? "is-active" : ""}`}
-              onClick={() => setEditorMode("source")}
+              onClick={() => handleModeChange("source")}
             >
               Source
             </button>
@@ -719,7 +854,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
               role="tab"
               aria-selected={editorMode === "edit"}
               className={`editor-toolbar__mode-btn ${editorMode === "edit" ? "is-active" : ""}`}
-              onClick={() => setEditorMode("edit")}
+              onClick={() => handleModeChange("edit")}
             >
               Edit
             </button>
@@ -728,7 +863,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
               role="tab"
               aria-selected={editorMode === "view"}
               className={`editor-toolbar__mode-btn ${editorMode === "view" ? "is-active" : ""}`}
-              onClick={() => setEditorMode("view")}
+              onClick={() => handleModeChange("view")}
             >
               View
             </button>
@@ -738,11 +873,91 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
             label={isDirty ? "Save" : "Saved"}
             className="editor-toolbar__save"
             showLabel={shell.showTextLabels}
-            disabled={!isDirty}
+            disabled={!isDirty || Boolean(metaValidationError)}
             onClick={handleSave}
           />
         </div>
       </div>
+      {editorMode === "meta" && (
+        <div className="editor-container editor-container--meta">
+          <form className="editor-meta-form" onSubmit={(event) => event.preventDefault()}>
+            <label className="editor-meta-form__field">
+              <span>Description</span>
+              <textarea
+                aria-label="Description"
+                value={metadataDraft.description}
+                onChange={(event) =>
+                  commitMetadataToContent(
+                    { ...metadataDraft, description: event.target.value },
+                    extraMetadataYaml
+                  )
+                }
+              />
+            </label>
+            <label className="editor-meta-form__field">
+              <span>Author</span>
+              <input
+                aria-label="Author"
+                value={metadataDraft.author}
+                onChange={(event) =>
+                  commitMetadataToContent(
+                    { ...metadataDraft, author: event.target.value },
+                    extraMetadataYaml
+                  )
+                }
+              />
+            </label>
+            <label className="editor-meta-form__field">
+              <span>Email</span>
+              <input
+                aria-label="Email"
+                value={metadataDraft.email}
+                onChange={(event) =>
+                  commitMetadataToContent(
+                    { ...metadataDraft, email: event.target.value },
+                    extraMetadataYaml
+                  )
+                }
+              />
+            </label>
+            <label className="editor-meta-form__field">
+              <span>Version</span>
+              <input
+                aria-label="Version"
+                value={metadataDraft.version}
+                onChange={(event) =>
+                  commitMetadataToContent(
+                    { ...metadataDraft, version: event.target.value },
+                    extraMetadataYaml
+                  )
+                }
+              />
+            </label>
+            <label className="editor-meta-form__field">
+              <span>Tags</span>
+              <input
+                aria-label="Tags"
+                value={metadataDraft.tagsText}
+                onChange={(event) =>
+                  commitMetadataToContent(
+                    { ...metadataDraft, tagsText: event.target.value },
+                    extraMetadataYaml
+                  )
+                }
+              />
+            </label>
+            <label className="editor-meta-form__field editor-meta-form__field--wide">
+              <span>Extra YAML</span>
+              <textarea
+                aria-label="Extra YAML"
+                value={extraMetadataYaml}
+                onChange={(event) => commitMetadataToContent(metadataDraft, event.target.value)}
+              />
+            </label>
+            {metaValidationError && <p className="editor-meta-form__error">{metaValidationError}</p>}
+          </form>
+        </div>
+      )}
       {editorMode === "edit" && (
         <div ref={editContainerRef} className="editor-container editor-container--edit">
           <div ref={editorRef} className="editor-edit-host" />
@@ -1032,7 +1247,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
           <textarea
             className="editor-source-textarea"
             aria-label="Source markdown editor"
-            value={effectiveMarkdown}
+            value={effectiveRawMarkdown}
             onChange={(event) => {
               setContent(event.target.value);
               markDirty(true);

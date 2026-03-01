@@ -1,0 +1,33 @@
+trace: DESIGN-note-metadata-frontmatter-011
+tasks:
+  - id: FM-001
+    title: "Add failing parsing and editor-mode regression tests for front matter, Meta mode, and save validation"
+    status: planned
+    size: M
+    spec_refs: [FM-001, FM-004, FM-005, FM-006]
+    dependencies: []
+    acceptance: "Tests fail until front matter is parsed separately and Meta mode exists"
+
+  - id: FM-002
+    title: "Implement front matter split/merge/validation utilities with managed field helpers and unknown-key preservation"
+    status: planned
+    size: M
+    spec_refs: [FM-001, FM-002, FM-003, FM-005]
+    dependencies: [FM-001]
+    acceptance: "Utilities split raw source into front matter/body, validate YAML mappings, and merge managed plus extra metadata"
+
+  - id: FM-003
+    title: "Add Meta mode UI and body/front matter integration across Source/Edit/View/Save flows"
+    status: planned
+    size: M
+    spec_refs: [FM-002, FM-004, FM-005, FM-006]
+    dependencies: [FM-002]
+    acceptance: "Meta mode edits front matter safely, Edit/View hide front matter, and save persists merged raw markdown"
+
+  - id: FM-004
+    title: "Run targeted verification and publish audit artifacts"
+    status: planned
+    size: S
+    spec_refs: [FM-001, FM-002, FM-003, FM-004, FM-005, FM-006]
+    dependencies: [FM-003]
+    acceptance: "Targeted tests, typecheck, and docs sync all pass with an audit artifact recorded"

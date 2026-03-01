@@ -122,6 +122,7 @@ describe("Editor Component", () => {
       expect(screen.getByRole("button", { name: "Saved" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Redo" })).toBeInTheDocument();
+      expect(screen.getByRole("tab", { name: "Meta" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "Source" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "Edit" })).toHaveAttribute("aria-selected", "true");
       expect(screen.getByRole("tab", { name: "View" })).toBeInTheDocument();
@@ -269,6 +270,185 @@ describe("Editor Component", () => {
       expect(screen.getByLabelText("Source markdown editor")).toHaveValue(
         "# Preserved\n\nRound trip text"
       );
+    });
+
+    it("shows raw front matter in source mode but hides it in view mode", () => {
+      const raw = [
+        "---",
+        "description: Hidden metadata",
+        "author: Ada",
+        "---",
+        "# Visible",
+        "",
+        "Body text",
+      ].join("\n");
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: raw,
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+      });
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: raw,
+        isDirty: false,
+      });
+
+      render(<Editor />);
+
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      expect(screen.getByLabelText("Source markdown editor")).toHaveValue(raw);
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+      expect(screen.getByRole("heading", { name: "Visible" })).toBeInTheDocument();
+      expect(screen.queryByText("Hidden metadata")).not.toBeInTheDocument();
+      expect(screen.queryByText("author: Ada")).not.toBeInTheDocument();
+    });
+
+    it("initializes edit mode with body markdown when front matter exists", () => {
+      const raw = [
+        "---",
+        "description: Hidden metadata",
+        "author: Ada",
+        "---",
+        "# Visible",
+        "",
+        "Body text",
+      ].join("\n");
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: raw,
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+      });
+
+      render(<Editor />);
+
+      const initCall = mockInitProseMirrorEditor.mock.calls[0];
+      const options = initCall?.[1] as { initialContent?: string };
+      expect(options.initialContent).toBe("# Visible\n\nBody text");
+    });
+
+    it("shows a meta form and saves merged front matter", async () => {
+      const raw = [
+        "---",
+        "description: Existing summary",
+        "custom_field: preserved",
+        "---",
+        "# Visible",
+        "",
+        "Body text",
+      ].join("\n");
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: raw,
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+      });
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: raw,
+        isDirty: false,
+      });
+      vi.mocked(api.saveNote).mockResolvedValue(undefined);
+      vi.mocked(api.getNote).mockResolvedValue({
+        id: "1",
+        path: "test.md",
+        title: "Test Note",
+        content: raw,
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 2,
+        headings: [],
+        backlinks: [],
+      });
+      vi.mocked(useVaultStore.getState().loadNotes).mockResolvedValue();
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Meta" }));
+
+      fireEvent.change(screen.getByLabelText("Description"), { target: { value: "Updated summary" } });
+      fireEvent.change(screen.getByLabelText("Author"), { target: { value: "Ada Lovelace" } });
+      fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+      fireEvent.change(screen.getByLabelText("Version"), { target: { value: "0.2.0" } });
+      fireEvent.change(screen.getByLabelText("Tags"), { target: { value: "docs, metadata" } });
+
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+      await waitFor(() => {
+        expect(api.saveNote).toHaveBeenCalled();
+      });
+
+      const savedContent = vi.mocked(api.saveNote).mock.calls.at(-1)?.[1];
+      expect(savedContent).toContain("description: Updated summary");
+      expect(savedContent).toContain("author: Ada Lovelace");
+      expect(savedContent).toContain("email: ada@example.com");
+      expect(savedContent).toContain("version: 0.2.0");
+      expect(savedContent).toContain("custom_field: preserved");
+      expect(savedContent).toContain("- docs");
+      expect(savedContent).toContain("- metadata");
+      expect(savedContent?.trimEnd().endsWith("Body text")).toBe(true);
+    });
+
+    it("blocks save when extra metadata yaml is invalid", async () => {
+      const raw = "# Visible\n\nBody text";
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: raw,
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+      });
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: raw,
+        isDirty: false,
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "Meta" }));
+
+      fireEvent.change(screen.getByLabelText("Extra YAML"), { target: { value: "invalid: [" } });
+
+      expect(screen.getByText(/valid yaml mapping/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+      fireEvent.click(screen.getByRole("button", { name: "Save" }));
+      expect(api.saveNote).not.toHaveBeenCalled();
     });
 
     it("preserves unsaved source edits when moving source -> view -> edit", () => {
