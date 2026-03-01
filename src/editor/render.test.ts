@@ -7,10 +7,12 @@ describe("renderMarkdownToHtml", () => {
     const container = document.createElement("div");
     container.innerHTML = html;
 
+    const taskList = container.querySelector("ul.task-list");
     const checkboxes = container.querySelectorAll<HTMLInputElement>(
       'input[type="checkbox"][data-task-checkbox="true"]'
     );
 
+    expect(taskList).not.toBeNull();
     expect(checkboxes).toHaveLength(2);
     expect(checkboxes[0]?.checked).toBe(true);
     expect(checkboxes[0]?.disabled).toBe(true);

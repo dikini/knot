@@ -1,0 +1,25 @@
+trace: BUG-view-mode-list-styling-009
+tasks:
+  - id: VLS-001
+    title: "Add render regression for task-list container classing"
+    status: planned
+    size: S
+    spec_refs: [FR-2]
+    dependencies: []
+    acceptance: "Render test fails until task-list parent containers are marked"
+
+  - id: VLS-002
+    title: "Mark task-list parent containers during view rendering"
+    status: planned
+    size: S
+    spec_refs: [FR-2]
+    dependencies: [VLS-001]
+    acceptance: "Rendered task lists expose a stable parent class for CSS hooks"
+
+  - id: VLS-003
+    title: "Add explicit view-mode list spacing and task-list layout styles"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-3]
+    dependencies: [VLS-002]
+    acceptance: "View mode lists use compact spacing and task checkboxes align without browser-default artifacts"

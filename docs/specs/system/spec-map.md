@@ -59,6 +59,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-APP-KEYMAP-006 | app-keymap-settings | designed | component/app-keymap-settings-006.md | [CONF, REL] | implemented (verified targeted) |
 | COMP-MANAGED-SHORTCUTS-007 | managed-shortcuts | designed | component/managed-shortcuts-007.md | [CONF, REL] | implemented (verified targeted) |
 | COMP-MATH-PLUGIN-008 | math-plugin | designed | component/math-plugin-008.md | [CONF, REL, COMP] | implemented (verified targeted) |
+| COMP-VIEW-LIST-STYLING-009 | view-list-styling | designed | component/view-list-styling-009.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
 | COMP-KNOTD-UI-010 | knotd-ui-daemon | designed | component/knotd-ui-daemon-010.md | [REL, CONF, CAP] | draft |
 | COMP-KNOTD-DEV-LIFECYCLE-011 | knotd-dev-lifecycle | designed | component/knotd-dev-lifecycle-011.md | [REL, CONF, CAP] | draft |
@@ -182,6 +183,7 @@ docs/specs/
 | 2026-02-22 | Implement Mermaid inline insertion boundary normalization and verify with editor + browser journey tests | COMP-MERMAID-INLINE-SPLIT-001 |
 | 2026-03-01 | Expand managed app shortcuts to safe shell + editor command paths and verify | COMP-MANAGED-SHORTCUTS-007 |
 | 2026-03-01 | Integrate upstream math plugin with KaTeX rendering and markdown round-trip verification | COMP-MATH-PLUGIN-008 |
+| 2026-03-01 | Normalize view-mode bullet, ordered, and task list spacing and task checkbox alignment | COMP-VIEW-LIST-STYLING-009 |
 | 2026-02-22 | Start UI QA DX implementation: add journey suite expansion, CI quality workflows, and review-artifact guide | COMP-UI-QA-DX-001 |
 | 2026-02-22 | Complete UI QA DX implementation with design-system token/primitive inventories and formal verification policy integration | COMP-UI-QA-DX-001 |
 | 2026-02-22 | Complete Storybook DX implementation and mark Storybook workflows/docs as operational | COMP-STORYBOOK-DX-001 |

@@ -28,6 +28,8 @@ function rewriteMermaidBlocks(container: HTMLDivElement): void {
 function rewriteTaskListBlocks(container: HTMLDivElement): void {
   const taskItems = container.querySelectorAll<HTMLLIElement>("li[data-task='true']");
   for (const item of taskItems) {
+    item.parentElement?.classList.add("task-list");
+
     if (item.querySelector("[data-task-checkbox='true']")) {
       continue;
     }
