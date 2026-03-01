@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { initProseMirrorEditor } from "@editor/index";
-import { clearBlockFormatting } from "@editor/commands";
+import { canRedoHistory, canUndoHistory, clearBlockFormatting, redoHistory, undoHistory } from "@editor/commands";
 import { renderMarkdownToHtml, renderMermaidDiagrams } from "@editor/render";
 import {
   buildKnownWikilinkTargets,
@@ -20,6 +20,7 @@ import {
   Plus,
   X,
   FileCode2,
+  Redo2,
   TextQuote,
   Strikethrough,
   Heading1,
@@ -29,6 +30,7 @@ import {
   ListOrdered,
   Minus,
   Pilcrow,
+  Undo2,
 } from "lucide-react";
 import { toggleMark, wrapIn, setBlockType } from "prosemirror-commands";
 import { Selection, TextSelection, type Command } from "prosemirror-state";
@@ -92,8 +94,30 @@ export function Editor() {
     items: [],
     hasMore: false,
   });
+  const [historyAvailability, setHistoryAvailability] = useState({
+    undo: false,
+    redo: false,
+  });
 
   const noteScopedModeKey = currentNote ? `knot:editor-mode:${currentNote.path}` : null;
+
+  const updateHistoryAvailability = useCallback((next?: { undo: boolean; redo: boolean }) => {
+    if (next) {
+      setHistoryAvailability(next);
+      return;
+    }
+
+    const viewState = pmRef.current?.view.state;
+    if (!viewState) {
+      setHistoryAvailability({ undo: false, redo: false });
+      return;
+    }
+
+    setHistoryAvailability({
+      undo: canUndoHistory(viewState),
+      redo: canRedoHistory(viewState),
+    });
+  }, []);
 
   if (currentNote?.content && initialContentRef.current === "# New Note\n\nStart writing...") {
     initialContentRef.current = currentNote.content;
@@ -228,6 +252,7 @@ export function Editor() {
   // Initialize editor
   useEffect(() => {
     if (editorMode !== "edit") {
+      updateHistoryAvailability({ undo: false, redo: false });
       if (pmRef.current) {
         pmRef.current.destroy();
         pmRef.current = null;
@@ -240,6 +265,7 @@ export function Editor() {
       onChange: (state) => {
         setContent(state.markdown);
         markDirty(true);
+        updateHistoryAvailability();
         updateWikilinkSuggest();
       },
       onSelectionChange: (selection) => {
@@ -293,6 +319,7 @@ export function Editor() {
     });
 
     pmRef.current = pm;
+    updateHistoryAvailability();
 
     if (editContainerRef.current) {
       const { view } = pm;
@@ -312,10 +339,11 @@ export function Editor() {
     }
 
     return () => {
+      updateHistoryAvailability({ undo: false, redo: false });
       pm.destroy();
       pmRef.current = null;
     };
-  }, [editorMode, currentNote, setContent, markDirty, updateWikilinkSuggest]);
+  }, [editorMode, currentNote, setContent, markDirty, updateHistoryAvailability, updateWikilinkSuggest]);
 
   const runCommand = useCallback((command: Command) => {
     if (!pmRef.current) return;
@@ -323,6 +351,16 @@ export function Editor() {
     command(state, dispatch, pmRef.current.view);
     pmRef.current.view.focus();
   }, []);
+
+  const handleHistoryCommand = useCallback((command: Command) => {
+    if (!pmRef.current) return;
+    const { state, dispatch } = pmRef.current.view;
+    const handled = command(state, dispatch, pmRef.current.view);
+    if (handled) {
+      updateHistoryAvailability();
+      pmRef.current.view.focus();
+    }
+  }, [updateHistoryAvailability]);
 
   const handleToggleLink = useCallback(() => {
     if (!pmRef.current) return;
@@ -610,6 +648,22 @@ export function Editor() {
           </>
         </div>
         <div className="editor-toolbar__actions">
+          <div className="editor-toolbar__history" role="group" aria-label="Editor history">
+            <IconButton
+              icon={Undo2}
+              label="Undo"
+              showLabel={shell.showTextLabels}
+              disabled={!historyAvailability.undo}
+              onClick={() => handleHistoryCommand(undoHistory)}
+            />
+            <IconButton
+              icon={Redo2}
+              label="Redo"
+              showLabel={shell.showTextLabels}
+              disabled={!historyAvailability.redo}
+              onClick={() => handleHistoryCommand(redoHistory)}
+            />
+          </div>
           <div className="editor-toolbar__modes" role="tablist" aria-label="Editor mode">
             <button
               type="button"

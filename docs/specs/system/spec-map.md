@@ -55,6 +55,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-TYPECHECK-CLEANUP-002 | typecheck-cleanup | designed | component/typecheck-cleanup-002.md | [COMP, REL] | implemented (verified targeted) |
 | COMP-TASK-LIST-UI-003 | task-list-ui | designed | component/task-list-ui-003.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-LIST-CONTINUATION-004 | list-continuation | designed | component/list-continuation-004.md | [CONF, REL] | implemented (verified targeted) |
+| COMP-EDITOR-HISTORY-005 | editor-history | designed | component/editor-history-005.md | [CONF, REL] | implemented (verified targeted) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
 | COMP-KNOTD-UI-010 | knotd-ui-daemon | designed | component/knotd-ui-daemon-010.md | [REL, CONF, CAP] | draft |
 | COMP-KNOTD-DEV-LIFECYCLE-011 | knotd-dev-lifecycle | designed | component/knotd-dev-lifecycle-011.md | [REL, CONF, CAP] | draft |
@@ -185,3 +186,4 @@ docs/specs/
 | 2026-03-01 | Implement targeted frontend typecheck cleanup for daemon smoke mock typing and SearchBox story null narrowing | COMP-TYPECHECK-CLEANUP-002 |
 | 2026-03-01 | Implement task list checkbox UI in view/edit modes with transaction-safe toggling and markdown fidelity verification | COMP-TASK-LIST-UI-003 |
 | 2026-03-01 | Restore live editor Enter list continuation for bullet, ordered, and task lists with plugin-stack regression coverage | COMP-LIST-CONTINUATION-004 |
+| 2026-03-01 | Restore edit-mode undo/redo and add shared toolbar history controls wired through a single command path | COMP-EDITOR-HISTORY-005 |

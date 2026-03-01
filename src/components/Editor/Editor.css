@@ -85,6 +85,12 @@
   gap: var(--spacing-sm);
 }
 
+.editor-toolbar__history {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .editor-toolbar__modes {
   display: inline-flex;
   gap: 4px;

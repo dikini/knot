@@ -60,6 +60,61 @@ function withSelectionAtFirstParagraphEnd(state: EditorState): EditorState {
 }
 
 describe("Editor key bindings", () => {
+  it("routes Mod-z through shared undo history behavior", () => {
+    let state = EditorState.create({
+      schema,
+      plugins: [history()],
+      doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Alpha")])]),
+    });
+
+    state = state.apply(state.tr.insertText(" beta", 6));
+
+    const handled = keyBindings["Mod-z"]?.(state, (tr) => {
+      state = state.apply(tr);
+    });
+
+    expect(handled).toBe(true);
+    expect(state.doc.textContent).toBe("Alpha");
+  });
+
+  it("routes Mod-y and Mod-Shift-z through shared redo history behavior", () => {
+    let state = EditorState.create({
+      schema,
+      plugins: [history()],
+      doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Alpha")])]),
+    });
+
+    state = state.apply(state.tr.insertText(" beta", 6));
+
+    const undid = undo(state, (tr) => {
+      state = state.apply(tr);
+    });
+
+    expect(undid).toBe(true);
+    expect(state.doc.textContent).toBe("Alpha");
+
+    const handledModY = keyBindings["Mod-y"]?.(state, (tr) => {
+      state = state.apply(tr);
+    });
+
+    expect(handledModY).toBe(true);
+    expect(state.doc.textContent).toBe("Alpha beta");
+
+    const undidAgain = undo(state, (tr) => {
+      state = state.apply(tr);
+    });
+
+    expect(undidAgain).toBe(true);
+    expect(state.doc.textContent).toBe("Alpha");
+
+    const handledShiftModZ = keyBindings["Mod-Shift-z"]?.(state, (tr) => {
+      state = state.apply(tr);
+    });
+
+    expect(handledShiftModZ).toBe(true);
+    expect(state.doc.textContent).toBe("Alpha beta");
+  });
+
   it("converts heading markers on Space into heading node", () => {
     let state = EditorState.create({
       schema,

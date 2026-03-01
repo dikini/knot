@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
+import { history, undo } from "prosemirror-history";
+import { EditorState } from "prosemirror-state";
 import { Editor } from "./index";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import * as api from "@lib/api";
@@ -118,9 +120,119 @@ describe("Editor Component", () => {
         screen.getByText((content) => content.includes("2") && content.includes("words"))
       ).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "Saved" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Redo" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "Source" })).toBeInTheDocument();
       expect(screen.getByRole("tab", { name: "Edit" })).toHaveAttribute("aria-selected", "true");
       expect(screen.getByRole("tab", { name: "View" })).toBeInTheDocument();
+    });
+
+    it("disables toolbar history buttons when edit history is unavailable", () => {
+      render(<Editor />);
+
+      expect(screen.getByRole("button", { name: "Undo" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Redo" })).toBeDisabled();
+    });
+
+    it("runs toolbar undo against the live editor view", () => {
+      const focus = vi.fn();
+      let state = EditorState.create({
+        schema,
+        plugins: [history()],
+        doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Alpha")])]),
+      });
+
+      state = state.apply(state.tr.insertText(" beta", 6));
+
+      const view = {
+        dom: {
+          getBoundingClientRect: vi.fn(() => ({
+            left: 120,
+            right: 720,
+            top: 80,
+            bottom: 520,
+            width: 600,
+            height: 440,
+            x: 120,
+            y: 80,
+            toJSON: () => ({}),
+          })),
+        },
+        state,
+        dispatch: vi.fn((tr) => {
+          state = state.apply(tr);
+          view.state = state;
+        }),
+        focus,
+        coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+      };
+
+      mockInitProseMirrorEditor.mockImplementationOnce(() => ({
+        destroy: vi.fn(),
+        getMarkdown: vi.fn(() => "# Initial\n\nContent"),
+        setMarkdown: vi.fn(),
+        view,
+      }));
+
+      render(<Editor />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+      expect(view.dispatch).toHaveBeenCalledTimes(1);
+      expect(state.doc.textContent).toBe("Alpha");
+      expect(focus).toHaveBeenCalledTimes(1);
+    });
+
+    it("runs toolbar redo against the live editor view", () => {
+      const focus = vi.fn();
+      let state = EditorState.create({
+        schema,
+        plugins: [history()],
+        doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Alpha")])]),
+      });
+
+      state = state.apply(state.tr.insertText(" beta", 6));
+      undo(state, (tr) => {
+        state = state.apply(tr);
+      });
+
+      const view = {
+        dom: {
+          getBoundingClientRect: vi.fn(() => ({
+            left: 120,
+            right: 720,
+            top: 80,
+            bottom: 520,
+            width: 600,
+            height: 440,
+            x: 120,
+            y: 80,
+            toJSON: () => ({}),
+          })),
+        },
+        state,
+        dispatch: vi.fn((tr) => {
+          state = state.apply(tr);
+          view.state = state;
+        }),
+        focus,
+        coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+      };
+
+      mockInitProseMirrorEditor.mockImplementationOnce(() => ({
+        destroy: vi.fn(),
+        getMarkdown: vi.fn(() => "# Initial\n\nContent"),
+        setMarkdown: vi.fn(),
+        view,
+      }));
+
+      render(<Editor />);
+
+      fireEvent.click(screen.getByRole("button", { name: "Redo" }));
+
+      expect(view.dispatch).toHaveBeenCalledTimes(1);
+      expect(state.doc.textContent).toBe("Alpha beta");
+      expect(focus).toHaveBeenCalledTimes(1);
     });
 
     it("switches to source mode and edits markdown live", () => {

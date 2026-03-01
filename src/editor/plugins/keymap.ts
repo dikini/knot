@@ -7,6 +7,7 @@
 import { EditorState, Transaction } from "prosemirror-state";
 import { canSplit } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
+import { redoHistory, undoHistory } from "../commands";
 import { schema } from "../schema";
 
 /**
@@ -34,6 +35,21 @@ export interface Keymap {
  * - Custom commands
  */
 export const keyBindings: Keymap = {
+  // SPEC: COMP-EDITOR-HISTORY-005 EH-002
+  "Mod-z": (state, dispatch, view): boolean => {
+    return undoHistory(state, dispatch, view);
+  },
+
+  // SPEC: COMP-EDITOR-HISTORY-005 EH-002
+  "Mod-y": (state, dispatch, view): boolean => {
+    return redoHistory(state, dispatch, view);
+  },
+
+  // SPEC: COMP-EDITOR-HISTORY-005 EH-002
+  "Mod-Shift-z": (state, dispatch, view): boolean => {
+    return redoHistory(state, dispatch, view);
+  },
+
   // Heading shortcut: typing "## " at paragraph start transforms to heading level 2, etc.
   "Space": (state, dispatch): boolean => {
     const { selection } = state;

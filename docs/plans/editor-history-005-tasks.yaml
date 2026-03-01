@@ -1,0 +1,32 @@
+tasks:
+  - id: EH-001A
+    title: "Add failing tests for shared undo/redo helpers in the editor command layer"
+    status: completed
+    size: S
+    spec_refs: [EH-001]
+    dependencies: []
+    acceptance: "Undo/redo helpers are required by tests in the shared editor command layer before implementation"
+
+  - id: EH-002A
+    title: "Add failing keymap and editor component tests for keyboard and toolbar history flows"
+    status: completed
+    size: M
+    spec_refs: [EH-002, EH-003]
+    dependencies: [EH-001A]
+    acceptance: "Shortcut handling and toolbar history controls fail before the fix and pass after wiring the shared helpers"
+
+  - id: EH-003B
+    title: "Implement shared history helpers and wire edit-mode shortcuts plus toolbar buttons through them"
+    status: completed
+    size: S
+    spec_refs: [EH-001, EH-002, EH-003]
+    dependencies: [EH-002A]
+    acceptance: "Keyboard shortcuts and toolbar buttons invoke the same shared ProseMirror history command path"
+
+  - id: EH-005V
+    title: "Run targeted verification, update workstream artifacts, and publish audit"
+    status: completed
+    size: M
+    spec_refs: [EH-001, EH-002, EH-003]
+    dependencies: [EH-003B]
+    acceptance: "Verification report, roadmap/spec-map updates, targeted tests, and typecheck are all recorded for the workstream"
