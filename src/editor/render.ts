@@ -172,12 +172,14 @@ export async function renderMermaidDiagrams(root: HTMLElement): Promise<void> {
 
       try {
         const id = `knot-mermaid-${Math.random().toString(36).slice(2)}`;
-        const { svg } = await mermaid.render(id, source);
         const output = document.createElement("div");
         output.className = "editor-mermaid__diagram";
+        const { svg, bindFunctions } = await mermaid.render(id, source, target);
         output.innerHTML = svg;
         target.replaceChildren(output);
+        bindFunctions?.(output);
         target.dataset.mermaidRendered = "true";
+        delete target.dataset.mermaidError;
       } catch {
         target.dataset.mermaidError = "true";
       }

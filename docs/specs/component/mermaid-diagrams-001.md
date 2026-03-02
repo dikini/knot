@@ -7,7 +7,7 @@
 - Parent: `COMP-MARKDOWN-ENGINE-001`, `COMP-EDITOR-MODES-001`, `COMP-EDITOR-WYSIWYM-002`
 - Concerns: `[REL, SEC, CAP, COMP, CONF]`
 - Created: `2026-02-22`
-- Updated: `2026-02-22`
+- Updated: `2026-03-02`
 
 ## Purpose
 Add Mermaid diagram support for markdown notes while preserving markdown as the canonical source and maintaining existing source/edit/view mode fidelity.
@@ -76,6 +76,9 @@ Add Mermaid diagram support for markdown notes while preserving markdown as the 
 - Add editor component tests for source/view/edit fidelity with Mermaid fences.
 - Add editor block-menu test asserting Mermaid insertion action.
 - Typecheck and run focused editor/markdown test suites.
+
+## Revision History
+- `2026-03-02`: Correct Mermaid runtime rendering to pass the target wrapper as the explicit Mermaid render container, addressing a view-mode regression where diagrams fell back instead of producing SVG output.
 
 ## Related
 - Depends on: `COMP-MARKDOWN-ENGINE-001`, `COMP-EDITOR-MODES-001`

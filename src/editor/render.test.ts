@@ -1,7 +1,22 @@
-import { describe, expect, it } from "vitest";
-import { renderMarkdownToHtml, toggleTaskListItemInMarkdown } from "./render";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderMarkdownToHtml, renderMermaidDiagrams, toggleTaskListItemInMarkdown } from "./render";
+
+const mermaidRenderMock = vi.fn();
+const mermaidInitializeMock = vi.fn();
+
+vi.mock("mermaid", () => ({
+  default: {
+    initialize: mermaidInitializeMock,
+    render: mermaidRenderMock,
+  },
+}));
 
 describe("renderMarkdownToHtml", () => {
+  beforeEach(() => {
+    mermaidInitializeMock.mockReset();
+    mermaidRenderMock.mockReset();
+  });
+
   it("renders markdown task lists as checkbox UI", () => {
     const html = renderMarkdownToHtml("- [x] Done\n- [ ] Todo");
     const container = document.createElement("div");
@@ -45,5 +60,30 @@ describe("renderMarkdownToHtml", () => {
 
     expect(container.querySelector(".katex-display")).not.toBeNull();
     expect(container.textContent).toContain("x2+y2=z2");
+  });
+
+  it("renders Mermaid diagrams with the wrapper as explicit container", async () => {
+    mermaidRenderMock.mockResolvedValue({
+      svg: "<svg><g></g></svg>",
+      bindFunctions: vi.fn(),
+    });
+
+    const root = document.createElement("div");
+    root.innerHTML = renderMarkdownToHtml("```mermaid\nflowchart TD\n  A[Start] --> B[End]\n```");
+
+    const target = root.querySelector<HTMLElement>(".editor-mermaid[data-mermaid-diagram='true']");
+    expect(target).not.toBeNull();
+
+    await renderMermaidDiagrams(root);
+
+    expect(mermaidInitializeMock).toHaveBeenCalledWith({
+      startOnLoad: false,
+      securityLevel: "strict",
+    });
+    expect(mermaidRenderMock).toHaveBeenCalledTimes(1);
+    expect(mermaidRenderMock.mock.calls[0]?.[1]).toContain("flowchart TD");
+    expect(mermaidRenderMock.mock.calls[0]?.[2]).toBe(target);
+    expect(root.querySelector(".editor-mermaid__diagram svg")).not.toBeNull();
+    expect(target?.dataset.mermaidRendered).toBe("true");
   });
 });

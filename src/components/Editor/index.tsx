@@ -921,7 +921,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
   useEffect(() => {
     if (editorMode !== "view" || !viewArticleRef.current) return;
     void renderMermaidDiagrams(viewArticleRef.current);
-  }, [editorMode, renderedHtml]);
+  });
 
   // Save note handler
   const handleSave = useCallback(async () => {
