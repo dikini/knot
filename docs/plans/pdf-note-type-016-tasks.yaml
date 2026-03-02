@@ -1,0 +1,17 @@
+tasks:
+  - id: PDF-001
+    title: Add/update backend and frontend tests for PDF note typing, mode availability, and viewer rendering
+    status: pending
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7]
+  - id: PDF-002
+    title: Implement backend pdf note-type plugin, media metadata, and known-file resolution
+    status: pending
+    spec_refs: [FR-1, FR-2, FR-5, FR-6, FR-7]
+  - id: PDF-003
+    title: Integrate react-pdf viewer rendering and view-only mode behavior in the editor shell
+    status: pending
+    spec_refs: [FR-2, FR-3, FR-4, FR-6, FR-8]
+  - id: PDF-004
+    title: Run targeted verification and publish audit/spec registry updates
+    status: pending
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8]

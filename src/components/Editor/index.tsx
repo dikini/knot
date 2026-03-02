@@ -1,6 +1,8 @@
 import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { open as openExternal } from "@tauri-apps/plugin-shell";
+import "@lib/pdfjsCompat";
+import * as pdfjs from "@lib/pdfjsLegacy";
 import { initProseMirrorEditor } from "@editor/index";
 import {
   canRedoHistory,
@@ -92,6 +94,12 @@ interface EditorProps {
   appKeymapSettings?: AppKeymapSettings;
 }
 
+async function loadPdfDocument(data: Uint8Array) {
+  return await pdfjs.getDocument({ data }).promise;
+}
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL("../../lib/pdfjsWorkerEntry.ts", import.meta.url).toString();
+
 export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: EditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const editContainerRef = useRef<HTMLDivElement>(null);
@@ -100,6 +108,8 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
   const blockMenuRef = useRef<HTMLDivElement>(null);
   const blockToggleRef = useRef<HTMLButtonElement>(null);
   const viewArticleRef = useRef<HTMLElement>(null);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+  const pdfCanvasRef = useRef<HTMLCanvasElement>(null);
   const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
   const metadataDraftRef = useRef<NoteMetadataDraft>(emptyMetadataDraft());
   const extraMetadataYamlRef = useRef("");
@@ -155,6 +165,14 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     undo: false,
     redo: false,
   });
+  const [pdfPageCount, setPdfPageCount] = useState<number>(0);
+  const [pdfPageNumber, setPdfPageNumber] = useState<number>(1);
+  const [pdfZoom, setPdfZoom] = useState<number>(1);
+  const [pdfFitWidth, setPdfFitWidth] = useState<number>(0);
+  const [pdfData, setPdfData] = useState<Uint8Array | null>(null);
+  const [pdfDocument, setPdfDocument] = useState<Awaited<ReturnType<typeof loadPdfDocument>> | null>(null);
+  const [pdfStatus, setPdfStatus] = useState<"idle" | "reading" | "document_loading" | "document_ready" | "rendering" | "ready" | "error">("idle");
+  const [pdfLoadError, setPdfLoadError] = useState<string | null>(null);
   const managedShortcuts = useMemo(() => expandManagedShortcutMap(appKeymapSettings), [appKeymapSettings]);
 
   const noteScopedModeKey = currentNote ? `knot:editor-mode:${currentNote.path}` : null;
@@ -169,7 +187,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     [currentNote]
   );
   const currentNoteType = currentNote?.note_type ?? "markdown";
-  const isViewOnlyNoteType = currentNoteType === "image" || currentNoteType === "unknown";
+  const isViewOnlyNoteType = currentNoteType === "pdf" || currentNoteType === "image" || currentNoteType === "unknown";
   const youtubeMetadata = useMemo(() => {
     const extra = currentNote?.metadata?.extra ?? {};
     if (currentNoteType !== "youtube") {
@@ -253,6 +271,173 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     if (!noteScopedModeKey) return;
     localStorage.setItem(noteScopedModeKey, editorMode);
   }, [editorMode, noteScopedModeKey]);
+
+  useEffect(() => {
+    setPdfPageCount(0);
+    setPdfPageNumber(1);
+    setPdfZoom(1);
+    setPdfData(null);
+    setPdfDocument(null);
+    setPdfStatus("idle");
+    setPdfLoadError(null);
+  }, [currentNote?.path]);
+
+  useEffect(() => {
+    if (editorMode !== "view" || currentNoteType !== "pdf" || !pdfContainerRef.current) {
+      return;
+    }
+
+    const syncWidth = () => {
+      const width = pdfContainerRef.current?.clientWidth ?? 0;
+      if (width > 0) {
+        setPdfFitWidth(width);
+      }
+    };
+
+    syncWidth();
+
+    const observer =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => syncWidth()) : undefined;
+    if (pdfContainerRef.current) {
+      observer?.observe(pdfContainerRef.current);
+    }
+
+    return () => observer?.disconnect();
+  }, [currentNoteType, editorMode]);
+
+  useEffect(() => {
+    if (currentNoteType !== "pdf" || !currentNote?.media?.file_path) {
+      return;
+    }
+
+    let cancelled = false;
+    setPdfStatus("reading");
+    setPdfLoadError(null);
+
+    const mediaUrl = toRenderableFileSrc(currentNote.media.file_path);
+
+    void fetch(mediaUrl)
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error(`Media fetch failed with status ${response.status}`);
+        }
+        const buffer = await response.arrayBuffer();
+        if (cancelled) {
+          return;
+        }
+        setPdfData(new Uint8Array(buffer));
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setPdfData(null);
+        setPdfStatus("error");
+        setPdfLoadError(error instanceof Error ? error.message : "Failed to load PDF file.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentNote?.media?.file_path, currentNoteType]);
+
+  useEffect(() => {
+    if (!pdfData) {
+      setPdfDocument(null);
+      return;
+    }
+
+    let cancelled = false;
+    setPdfStatus("document_loading");
+    setPdfLoadError(null);
+
+    void loadPdfDocument(pdfData)
+      .then((document) => {
+        if (cancelled) {
+          void document.destroy();
+          return;
+        }
+        setPdfDocument(document);
+        setPdfPageCount(document.numPages);
+        setPdfPageNumber((page) => Math.min(page, document.numPages || 1));
+        setPdfStatus("document_ready");
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+        setPdfDocument(null);
+        setPdfPageCount(0);
+        setPdfStatus("error");
+        setPdfLoadError(error instanceof Error ? error.message : "Failed to load PDF file.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfData]);
+
+  useEffect(() => {
+    if (currentNoteType !== "pdf" || editorMode !== "view" || !pdfDocument || !pdfCanvasRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+    let currentRenderTask: { cancel?: () => void; promise?: Promise<unknown> } | null = null;
+
+    const renderPage = async () => {
+      try {
+        setPdfStatus("rendering");
+        const page = await pdfDocument.getPage(pdfPageNumber);
+        if (cancelled || !pdfCanvasRef.current) {
+          return;
+        }
+
+        const unscaledViewport = page.getViewport({ scale: 1 });
+        const fitScale = pdfFitWidth > 0 ? pdfFitWidth / unscaledViewport.width : 1;
+        const scale = Math.max(0.1, fitScale * pdfZoom);
+        const viewport = page.getViewport({ scale });
+        const canvas = pdfCanvasRef.current;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          throw new Error("Canvas 2D context is unavailable");
+        }
+
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        canvas.style.width = `${Math.ceil(viewport.width)}px`;
+        canvas.style.height = `${Math.ceil(viewport.height)}px`;
+
+        currentRenderTask = page.render({
+          canvas,
+          canvasContext: context,
+          viewport,
+        });
+        await currentRenderTask.promise;
+
+        if (!cancelled) {
+          setPdfStatus("ready");
+          setPdfLoadError(null);
+        }
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+        const message = error instanceof Error ? error.message : "Failed to render PDF page.";
+        if (!message.toLowerCase().includes("cancelled")) {
+          setPdfStatus("error");
+          setPdfLoadError(message);
+        }
+      }
+    };
+
+    void renderPage();
+
+    return () => {
+      cancelled = true;
+      currentRenderTask?.cancel?.();
+    };
+  }, [currentNoteType, editorMode, pdfDocument, pdfFitWidth, pdfPageNumber, pdfZoom]);
 
   useEffect(() => {
     if (!currentNote) return;
@@ -1571,6 +1756,69 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
                 src={imageSrc}
                 alt={currentNote.title || currentNote.path}
               />
+            </div>
+          ) : currentNoteType === "pdf" && currentNote?.media?.file_path ? (
+            <div
+              ref={pdfContainerRef}
+              className="editor-pdf-view"
+              data-ui-automation-pdf-status={pdfStatus}
+              data-ui-automation-pdf-error={pdfLoadError ?? ""}
+              data-ui-automation-pdf-page-count={pdfPageCount > 0 ? String(pdfPageCount) : ""}
+              data-ui-automation-pdf-page-number={String(pdfPageNumber)}
+            >
+              <div className="editor-pdf-view__toolbar" role="toolbar" aria-label="PDF controls">
+                <button
+                  type="button"
+                  className="editor-pdf-view__button"
+                  onClick={() => setPdfPageNumber((page) => Math.max(1, page - 1))}
+                  disabled={pdfPageNumber <= 1}
+                >
+                  Previous page
+                </button>
+                <span className="editor-pdf-view__status">
+                  Page {pdfPageNumber} of {pdfPageCount || "?"}
+                </span>
+                <button
+                  type="button"
+                  className="editor-pdf-view__button"
+                  onClick={() => setPdfPageNumber((page) => Math.min(pdfPageCount || page, page + 1))}
+                  disabled={pdfPageCount === 0 || pdfPageNumber >= pdfPageCount}
+                >
+                  Next page
+                </button>
+                <div className="editor-pdf-view__spacer" />
+                <button
+                  type="button"
+                  className="editor-pdf-view__button"
+                  onClick={() => setPdfZoom((zoom) => Math.max(0.5, Number((zoom - 0.1).toFixed(2))))}
+                >
+                  Zoom out
+                </button>
+                <span className="editor-pdf-view__status">{Math.round(pdfZoom * 100)}%</span>
+                <button
+                  type="button"
+                  className="editor-pdf-view__button"
+                  onClick={() => setPdfZoom((zoom) => Math.min(3, Number((zoom + 0.1).toFixed(2))))}
+                >
+                  Zoom in
+                </button>
+                <button
+                  type="button"
+                  className="editor-pdf-view__button"
+                  onClick={() => setPdfZoom(1)}
+                >
+                  Fit width
+                </button>
+              </div>
+              <div className="editor-pdf-view__canvas">
+                {pdfLoadError ? (
+                  <div className="editor-pdf-view__loading">Failed to load PDF file: {pdfLoadError}</div>
+                ) : pdfDocument ? (
+                  <canvas ref={pdfCanvasRef} data-testid="pdf-canvas" />
+                ) : (
+                  <div className="editor-pdf-view__loading">Loading PDF…</div>
+                )}
+              </div>
             </div>
           ) : currentNoteType === "unknown" ? (
             <div className="editor-meta-empty">

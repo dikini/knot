@@ -63,6 +63,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-UI-AUTOMATION-RUNTIME-013 | ui-automation-runtime | designed | component/ui-automation-runtime-013.md | [REL, CONF, COMP, CAP] | implemented (verified targeted) |
 | COMP-TASK-TOGGLE-ROUNDTRIP-014 | task-toggle-roundtrip | designed | component/task-toggle-roundtrip-014.md | [REL, CONF, COMP] | implemented (verified targeted) |
 | COMP-YOUTUBE-NOTE-TYPE-015 | youtube-note-type | designed | component/youtube-note-type-015.md | [REL, CONF, COMP, CAP] | draft |
+| COMP-PDF-NOTE-TYPE-016 | pdf-note-type | designed | component/pdf-note-type-016.md | [REL, CONF, COMP, CAP] | draft |
 | COMP-VIEW-LIST-STYLING-009 | view-list-styling | designed | component/view-list-styling-009.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-NOTE-METADATA-FRONTMATTER-011 | note-metadata-frontmatter | designed | component/note-metadata-frontmatter-011.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |

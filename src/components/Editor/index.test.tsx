@@ -9,10 +9,20 @@ import { schema } from "@editor/schema";
 
 const mockInitProseMirrorEditor = vi.fn();
 const mockShellOpen = vi.fn();
+const mockPdfGetDocument = vi.fn();
+const mockCanvasGetContext = vi.fn();
+const mockFetch = vi.fn();
 
 vi.mock("@lib/api");
 vi.mock("@editor/index", () => ({
   initProseMirrorEditor: (...args: unknown[]) => mockInitProseMirrorEditor(...args),
+}));
+vi.mock("@lib/pdfjsLegacy", () => ({
+  getDocument: (...args: unknown[]) => mockPdfGetDocument(...args),
+  PDFWorker: class MockPdfWorker {
+    destroy() {}
+  },
+  GlobalWorkerOptions: {},
 }));
 vi.mock("@tauri-apps/plugin-shell", () => ({
   open: (...args: unknown[]) => mockShellOpen(...args),
@@ -56,6 +66,37 @@ describe("Editor Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      arrayBuffer: async () => Uint8Array.from([0x25, 0x50, 0x44, 0x46]).buffer,
+    });
+    vi.stubGlobal("fetch", mockFetch);
+    mockCanvasGetContext.mockReturnValue({
+      canvas: document.createElement("canvas"),
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation((contextId: string) => {
+      if (contextId === "2d") {
+        return mockCanvasGetContext() as CanvasRenderingContext2D;
+      }
+      return null;
+    });
+    mockPdfGetDocument.mockReturnValue({
+      promise: Promise.resolve({
+        numPages: 61,
+        destroy: vi.fn(),
+        getPage: vi.fn(async (pageNumber: number) => ({
+          getViewport: ({ scale }: { scale: number }) => ({
+            width: 600 * scale,
+            height: 800 * scale,
+          }),
+          render: vi.fn(() => ({
+            promise: Promise.resolve(),
+            cancel: vi.fn(),
+          })),
+          pageNumber,
+        })),
+      }),
+    });
     mockInitProseMirrorEditor.mockImplementation(() => ({
       destroy: vi.fn(),
       getMarkdown: vi.fn(() => "# Initial\n\nContent"),
@@ -239,6 +280,54 @@ describe("Editor Component", () => {
       expect(screen.getByRole("tab", { name: "View" })).toHaveAttribute("aria-selected", "true");
       expect(screen.queryByLabelText("Description")).not.toBeInTheDocument();
       expect(screen.getByRole("img", { name: "photo" })).toBeInTheDocument();
+    });
+
+    it("disables meta, source, and edit modes for pdf notes and renders the viewer", async () => {
+      localStorage.setItem("knot:editor-mode:paper.pdf", "source");
+
+      const pdfNote = {
+        id: "pdf-1",
+        path: "paper.pdf",
+        title: "paper",
+        content: "",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 0,
+        headings: [],
+        backlinks: [],
+        note_type: "pdf",
+        media: {
+          mime_type: "application/pdf",
+          file_path: "/tmp/paper.pdf",
+        },
+        available_modes: {
+          meta: false,
+          source: false,
+          edit: false,
+          view: true,
+        },
+      };
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: pdfNote as never,
+      });
+
+      render(<Editor />);
+
+      expect(screen.getByRole("tab", { name: "Meta" })).toBeDisabled();
+      expect(screen.getByRole("tab", { name: "Source" })).toBeDisabled();
+      expect(screen.getByRole("tab", { name: "Edit" })).toBeDisabled();
+      expect(screen.getByRole("tab", { name: "View" })).toHaveAttribute("aria-selected", "true");
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith("/tmp/paper.pdf");
+        expect(screen.getByText("Page 1 of 61")).toBeInTheDocument();
+        expect(screen.getByTestId("pdf-canvas")).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
+      expect(mockPdfGetDocument).toHaveBeenCalled();
     });
 
     it("renders a thumbnail header in edit mode for YouTube notes", () => {

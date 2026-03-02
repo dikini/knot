@@ -42,6 +42,7 @@ export interface UiAutomationStateSnapshot {
   vault_open: boolean;
   view_frames: Record<string, UiAutomationViewFrame>;
   window_pixel_ratio: number;
+  diagnostics?: Record<string, unknown>;
 }
 
 export interface UiAutomationCompletion {
@@ -205,6 +206,7 @@ export function buildUiAutomationState(input: {
   inspectorOpen: boolean;
   vaultOpen: boolean;
   viewFrames: Record<string, UiAutomationViewFrame>;
+  diagnostics?: Record<string, unknown>;
 }): UiAutomationStateSnapshot {
   return {
     active_view: `view.${input.viewMode}`,
@@ -213,6 +215,7 @@ export function buildUiAutomationState(input: {
     inspector_open: input.inspectorOpen,
     vault_open: input.vaultOpen,
     view_frames: input.viewFrames,
+    diagnostics: input.diagnostics ?? {},
     window_pixel_ratio:
       typeof window !== "undefined" && Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1,
   };

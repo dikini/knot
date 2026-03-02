@@ -36,6 +36,7 @@
         "connect-src": "'self' ipc://localhost",
         "img-src": "'self' asset: http://asset.localhost blob: data: https://i.ytimg.com",
         "style-src": "'self' 'unsafe-inline'",
+        "worker-src": "'self' blob:",
         "frame-src": "'self' https://www.youtube.com https://www.youtube-nocookie.com"
       }
     }

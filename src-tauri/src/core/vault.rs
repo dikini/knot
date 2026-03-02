@@ -954,6 +954,31 @@ mod tests {
     }
 
     #[test]
+    fn note_type_registry_recognizes_pdf_files_as_known_view_only_notes() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let vault = VaultManager::create(&vault_path).unwrap();
+
+        std::fs::write(vault.root_path().join("paper.pdf"), b"%PDF-1.5").unwrap();
+
+        let files = vault.scan_visible_files().unwrap();
+        assert!(files.contains(&"paper.pdf".to_string()));
+
+        let note_types = NoteTypeRegistry::default();
+        let resolved = note_types.resolve_path(&vault.root_path().join("paper.pdf"));
+        assert_eq!(resolved.note_type, NoteTypeId::Pdf);
+        assert_eq!(resolved.type_badge.as_deref(), Some("PDF"));
+        assert!(!resolved.available_modes.meta);
+        assert!(!resolved.available_modes.source);
+        assert!(!resolved.available_modes.edit);
+        assert!(resolved.available_modes.view);
+        assert_eq!(
+            resolved.media.as_ref().map(|media| media.mime_type.as_str()),
+            Some("application/pdf")
+        );
+    }
+
+    #[test]
     fn list_notes_includes_non_markdown_files_as_synthetic_notes() {
         let temp = TempDir::new().unwrap();
         let vault_path = temp.path().join("test-vault");

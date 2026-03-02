@@ -5,6 +5,7 @@
 
 use crate::commands::emit_event;
 use crate::note_type::{note_type_has_text_content, NoteTypeId, NoteTypeRegistry};
+use base64::Engine;
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -74,6 +75,36 @@ pub async fn get_note(path: String, state: State<'_, AppState>) -> Result<NoteDa
         }
         None => Err("No vault is open".to_string()),
     }
+}
+
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn read_note_media_base64(file_path: String, state: State<'_, AppState>) -> Result<String, String> {
+    let requested_path =
+        PathBuf::from(&file_path).canonicalize().map_err(|e| format!("Failed to resolve media path: {e}"))?;
+
+    let vault_root = if state.is_daemon_mode() {
+        state
+            .current_asset_scope_path()
+            .await
+            .ok_or_else(|| "No vault is open".to_string())?
+    } else {
+        let vault_guard = state.vault().lock().await;
+        vault_guard
+            .as_ref()
+            .map(|vault| vault.root_path().to_path_buf())
+            .ok_or_else(|| "No vault is open".to_string())?
+    };
+
+    let resolved_root =
+        vault_root.canonicalize().map_err(|e| format!("Failed to resolve current vault path: {e}"))?;
+
+    if !requested_path.starts_with(&resolved_root) {
+        return Err("Requested media path is outside the current vault".to_string());
+    }
+
+    let bytes = std::fs::read(&requested_path).map_err(|e| format!("Failed to read media file: {e}"))?;
+    Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
 }
 
 /// SPEC: COMP-NOTE-001 FR-3

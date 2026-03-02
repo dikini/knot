@@ -40,7 +40,7 @@ export interface NoteData {
   is_dimmed?: boolean;
 }
 
-export type NoteType = "markdown" | "youtube" | "image" | "unknown";
+export type NoteType = "markdown" | "youtube" | "pdf" | "image" | "unknown";
 
 export interface NoteModeAvailability {
   meta: boolean;

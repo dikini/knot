@@ -63,6 +63,8 @@ pub struct UiAutomationStateSnapshot {
     pub vault_open: bool,
     #[serde(default)]
     pub view_frames: BTreeMap<String, UiAutomationViewFrame>,
+    #[serde(default)]
+    pub diagnostics: Value,
     #[serde(default = "default_window_pixel_ratio")]
     pub window_pixel_ratio: f64,
 }
@@ -80,6 +82,7 @@ impl Default for UiAutomationStateSnapshot {
             inspector_open: false,
             vault_open: false,
             view_frames: BTreeMap::new(),
+            diagnostics: json!({}),
             window_pixel_ratio: 1.0,
         }
     }

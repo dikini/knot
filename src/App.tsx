@@ -103,6 +103,31 @@ function collectUiAutomationViewFrames(): Record<string, UiAutomationViewFrame> 
   return Object.fromEntries(entries);
 }
 
+function collectUiAutomationDiagnostics(): Record<string, unknown> {
+  if (typeof document === "undefined") {
+    return {};
+  }
+
+  const pdfElement = document.querySelector<HTMLElement>("[data-ui-automation-pdf-status]");
+  if (!pdfElement) {
+    return {};
+  }
+
+  const pdfStatus = pdfElement.dataset.uiAutomationPdfStatus;
+  const pdfError = pdfElement.dataset.uiAutomationPdfError;
+  const pdfPageCount = pdfElement.dataset.uiAutomationPdfPageCount;
+  const pdfPageNumber = pdfElement.dataset.uiAutomationPdfPageNumber;
+
+  return {
+    pdf: {
+      status: pdfStatus ?? null,
+      error: pdfError ?? null,
+      page_count: pdfPageCount ? Number(pdfPageCount) : null,
+      page_number: pdfPageNumber ? Number(pdfPageNumber) : null,
+    },
+  };
+}
+
 function nextAnimationFrame(): Promise<void> {
   return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
 }
@@ -233,6 +258,7 @@ function App() {
         inspectorOpen: shell.isInspectorRailOpen,
         vaultOpen: Boolean(vault),
         viewFrames: collectUiAutomationViewFrames(),
+        diagnostics: collectUiAutomationDiagnostics(),
       });
       void api.syncUiAutomationState(snapshot).catch(console.error);
     };

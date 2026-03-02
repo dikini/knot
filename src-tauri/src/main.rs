@@ -348,6 +348,7 @@ fn main() {
             // Note commands
             knot::commands::notes::list_notes,
             knot::commands::notes::get_note,
+            knot::commands::notes::read_note_media_base64,
             knot::commands::notes::save_note,
             knot::commands::notes::delete_note,
             knot::commands::notes::rename_note,

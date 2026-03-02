@@ -7,6 +7,7 @@ pub enum NoteTypeId {
     Markdown,
     #[serde(rename = "youtube")]
     YouTube,
+    Pdf,
     Image,
     Unknown,
 }
@@ -159,6 +160,38 @@ impl NoteTypePlugin for ImageNoteTypePlugin {
     }
 }
 
+struct PdfNoteTypePlugin;
+
+impl NoteTypePlugin for PdfNoteTypePlugin {
+    fn note_type(&self) -> NoteTypeId {
+        NoteTypeId::Pdf
+    }
+
+    fn matches_path(&self, _path: &Path, extension: &str) -> bool {
+        extension.eq_ignore_ascii_case("pdf")
+    }
+
+    fn badge_for_extension(&self, _extension: &str) -> Option<String> {
+        Some("PDF".to_string())
+    }
+
+    fn media_for_path(&self, path: &Path) -> Option<NoteMediaData> {
+        Some(NoteMediaData {
+            mime_type: "application/pdf".to_string(),
+            file_path: path.to_string_lossy().to_string(),
+        })
+    }
+
+    fn available_modes(&self) -> NoteModeAvailability {
+        NoteModeAvailability {
+            meta: false,
+            source: false,
+            edit: false,
+            view: true,
+        }
+    }
+}
+
 pub struct NoteTypeRegistry {
     plugins: Vec<Box<dyn NoteTypePlugin>>,
 }
@@ -169,6 +202,7 @@ impl Default for NoteTypeRegistry {
             plugins: vec![
                 Box::new(YouTubeNoteTypePlugin),
                 Box::new(MarkdownNoteTypePlugin),
+                Box::new(PdfNoteTypePlugin),
                 Box::new(ImageNoteTypePlugin),
             ],
         }

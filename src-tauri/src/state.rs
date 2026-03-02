@@ -87,6 +87,10 @@ impl AppState {
         let mut guard = self.asset_scope_path.lock().await;
         std::mem::replace(&mut *guard, next_path)
     }
+
+    pub async fn current_asset_scope_path(&self) -> Option<PathBuf> {
+        self.asset_scope_path.lock().await.clone()
+    }
 }
 
 impl Default for AppState {

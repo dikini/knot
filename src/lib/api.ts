@@ -110,6 +110,7 @@ export interface UiAutomationStateSnapshot {
   vault_open: boolean;
   view_frames: Record<string, UiAutomationViewFrame>;
   window_pixel_ratio: number;
+  diagnostics?: Record<string, unknown>;
 }
 
 export interface UiAutomationCompletion {
@@ -405,6 +406,14 @@ export async function listNotes(): Promise<NoteSummary[]> {
 export async function getNote(path: string): Promise<NoteData> {
   try {
     return await invoke<NoteData>("get_note", { path });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+export async function readNoteMediaBase64(filePath: string): Promise<string> {
+  try {
+    return await invoke<string>("read_note_media_base64", { filePath });
   } catch (error) {
     handleError(error);
   }
