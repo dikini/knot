@@ -32,6 +32,18 @@ pub struct UiAutomationView {
     pub visible: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct UiAutomationBehavior {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+    pub origin: String,
+    #[serde(default)]
+    pub input_schema: Value,
+    #[serde(default)]
+    pub available: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct UiAutomationViewFrame {
     pub x: f64,
@@ -82,6 +94,12 @@ pub enum UiAutomationFrontendRequest {
         #[serde(default)]
         args: Value,
     },
+    InvokeBehavior {
+        request_id: String,
+        behavior_id: String,
+        #[serde(default)]
+        args: Value,
+    },
     CaptureScreenshot {
         request_id: String,
         target: String,
@@ -107,6 +125,7 @@ struct PendingUiRequest {
 
 enum PendingUiRequestKind {
     InvokeAction,
+    InvokeBehavior,
     CaptureScreenshot {
         name: Option<String>,
         target: String,
@@ -118,6 +137,7 @@ enum PendingUiRequestKind {
 struct UiAutomationInner {
     actions: Vec<UiAutomationAction>,
     views: Vec<UiAutomationView>,
+    behaviors: Vec<UiAutomationBehavior>,
     snapshot: UiAutomationStateSnapshot,
     pending: HashMap<String, PendingUiRequest>,
 }
@@ -132,12 +152,15 @@ impl UiAutomationRuntime {
         &self,
         mut actions: Vec<UiAutomationAction>,
         mut views: Vec<UiAutomationView>,
+        mut behaviors: Vec<UiAutomationBehavior>,
     ) {
         actions.sort_by(|a, b| a.id.cmp(&b.id));
         views.sort_by(|a, b| a.id.cmp(&b.id));
+        behaviors.sort_by(|a, b| a.id.cmp(&b.id));
         let mut guard = self.inner.lock().await;
         guard.actions = actions;
         guard.views = views;
+        guard.behaviors = behaviors;
     }
 
     pub async fn update_state(&self, snapshot: UiAutomationStateSnapshot) {
@@ -156,6 +179,10 @@ impl UiAutomationRuntime {
         self.inner.lock().await.snapshot.clone()
     }
 
+    pub async fn behaviors(&self) -> Vec<UiAutomationBehavior> {
+        self.inner.lock().await.behaviors.clone()
+    }
+
     pub async fn register_pending_invoke(
         &self,
         request_id: String,
@@ -166,6 +193,20 @@ impl UiAutomationRuntime {
             PendingUiRequest {
                 response_tx,
                 kind: PendingUiRequestKind::InvokeAction,
+            },
+        );
+    }
+
+    pub async fn register_pending_behavior(
+        &self,
+        request_id: String,
+        response_tx: Sender<AppCommandResult>,
+    ) {
+        self.inner.lock().await.pending.insert(
+            request_id,
+            PendingUiRequest {
+                response_tx,
+                kind: PendingUiRequestKind::InvokeBehavior,
             },
         );
     }

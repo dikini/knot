@@ -25,4 +25,5 @@
 | view-list-styling-009 | component | implemented | codex | [task-list-ui-003, markdown-engine-001] | [COMP-VIEW-LIST-STYLING-009] |
 | note-metadata-frontmatter-011 | component | implemented | codex | [markdown-engine-001, editor-modes-001] | [COMP-NOTE-METADATA-FRONTMATTER-011] |
 | ui-automation-runtime-013 | component | planned | codex | [ui-automation-dx-001, knotd-ui-daemon-010] | [COMP-UI-AUTOMATION-RUNTIME-013] |
+| task-toggle-roundtrip-014 | component | implemented | codex | [task-list-ui-003, ui-automation-runtime-013] | [COMP-TASK-TOGGLE-ROUNDTRIP-014] |
 | settings-pane-001 | component | planned | - | [tool-rail-context-001, vault-unsaved-changes-001] | [COMP-SETTINGS-PANE-001] |

@@ -58,8 +58,7 @@ class TaskListItemView implements NodeView {
       this.checkbox.addEventListener("mousedown", (event) => {
         event.preventDefault();
       });
-      this.checkbox.addEventListener("click", (event) => {
-        event.preventDefault();
+      this.checkbox.addEventListener("click", () => {
         this.toggleChecked();
       });
       this.dom.insertBefore(this.checkbox, this.contentDOM);
@@ -83,12 +82,32 @@ class TaskListItemView implements NodeView {
       return;
     }
 
+    const nextChecked = node.attrs.checked !== true;
     const transaction = this.view.state.tr.setNodeMarkup(position, undefined, {
       ...node.attrs,
-      checked: node.attrs.checked !== true,
+      checked: nextChecked,
     });
     this.view.dispatch(transaction);
+    if (this.checkbox) {
+      this.checkbox.checked = nextChecked;
+    }
+    this.dom.dataset.checked = nextChecked ? "true" : "false";
+    this.syncCheckboxFromState(position);
     this.view.focus();
+  }
+
+  private syncCheckboxFromState(position: number): void {
+    if (!this.checkbox) {
+      return;
+    }
+
+    const updatedNode = this.view.state.doc.nodeAt(position);
+    if (!updatedNode || updatedNode.type !== schema.nodes.list_item || updatedNode.attrs.task !== true) {
+      return;
+    }
+
+    this.checkbox.checked = updatedNode.attrs.checked === true;
+    this.dom.dataset.checked = this.checkbox.checked ? "true" : "false";
   }
 }
 

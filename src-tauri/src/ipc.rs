@@ -259,8 +259,10 @@ impl IpcServer {
                 UiCommand::TakeScreenshot { .. } => "ui.take_screenshot".to_string(),
                 UiCommand::ListAutomationActions => "ui.list_automation_actions".to_string(),
                 UiCommand::ListAutomationViews => "ui.list_automation_views".to_string(),
+                UiCommand::ListAutomationBehaviors => "ui.list_automation_behaviors".to_string(),
                 UiCommand::GetAutomationState => "ui.get_automation_state".to_string(),
                 UiCommand::InvokeAutomationAction { .. } => "ui.invoke_automation_action".to_string(),
+                UiCommand::InvokeAutomationBehavior { .. } => "ui.invoke_automation_behavior".to_string(),
                 UiCommand::CaptureAutomationScreenshot { .. } => {
                     "ui.capture_automation_screenshot".to_string()
                 }
@@ -281,6 +283,7 @@ impl IpcServer {
                 UiCommand::SwitchPanel { panel } => Some(panel.clone()),
                 UiCommand::TakeScreenshot { name } => Some(name.clone()),
                 UiCommand::InvokeAutomationAction { action_id, .. } => Some(action_id.clone()),
+                UiCommand::InvokeAutomationBehavior { behavior_id, .. } => Some(behavior_id.clone()),
                 UiCommand::CaptureAutomationScreenshot { target, target_id, .. } => {
                     target_id.clone().or_else(|| Some(target.clone()))
                 }
@@ -292,6 +295,7 @@ impl IpcServer {
                 | UiCommand::SetWindowState { .. }
                 | UiCommand::ListAutomationActions
                 | UiCommand::ListAutomationViews
+                | UiCommand::ListAutomationBehaviors
                 | UiCommand::GetAutomationState => None,
             },
             AppCommand::Resource(_) | AppCommand::Settings(_) => None,

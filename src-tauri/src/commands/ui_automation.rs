@@ -1,7 +1,7 @@
 use crate::state::AppState;
 use crate::ui_automation::{
-    UiAutomationAction, UiAutomationCompletion, UiAutomationFrontendRequest, UiAutomationStateSnapshot,
-    UiAutomationView, UiAutomationViewFrame,
+    UiAutomationAction, UiAutomationBehavior, UiAutomationCompletion, UiAutomationFrontendRequest,
+    UiAutomationStateSnapshot, UiAutomationView, UiAutomationViewFrame,
 };
 use image::{GenericImageView, ImageFormat};
 use serde_json::json;
@@ -12,9 +12,13 @@ use tauri::{Emitter, Manager, State};
 pub async fn ui_automation_sync_registry(
     actions: Vec<UiAutomationAction>,
     views: Vec<UiAutomationView>,
+    behaviors: Vec<UiAutomationBehavior>,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
-    state.ui_automation().sync_registry(actions, views).await;
+    state
+        .ui_automation()
+        .sync_registry(actions, views, behaviors)
+        .await;
     Ok(())
 }
 

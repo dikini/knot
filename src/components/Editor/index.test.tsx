@@ -14,6 +14,40 @@ vi.mock("@editor/index", () => ({
   initProseMirrorEditor: (...args: unknown[]) => mockInitProseMirrorEditor(...args),
 }));
 
+function installTaskRoundtripStore(markdown: string, path = "test.md") {
+  useVaultStore.setState({
+    ...useVaultStore.getState(),
+    currentNote: {
+      id: "1",
+      path,
+      title: "Test Note",
+      content: markdown,
+      created_at: Date.now() / 1000,
+      modified_at: Date.now() / 1000,
+      word_count: 2,
+      headings: [],
+      backlinks: [],
+    },
+    hasNote: () => true,
+  });
+
+  useEditorStore.setState({
+    ...useEditorStore.getState(),
+    content: markdown,
+    isDirty: false,
+    setContent: (next) =>
+      useEditorStore.setState((prev) => ({
+        ...prev,
+        content: next,
+      })),
+    markDirty: (next) =>
+      useEditorStore.setState((prev) => ({
+        ...prev,
+        isDirty: next,
+      })),
+  });
+}
+
 describe("Editor Component", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -675,6 +709,148 @@ describe("Editor Component", () => {
       fireEvent.click(screen.getByRole("tab", { name: "Source" }));
       expect(screen.getByLabelText("Source markdown editor")).toHaveValue("- [x] Done\n\n- [x] Todo");
       expect(useEditorStore.getState().isDirty).toBe(true);
+    });
+
+    it("reflects a view-mode task toggle after switching to edit mode", async () => {
+      installTaskRoundtripStore("- [x] Done\n- [ ] Todo");
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+      fireEvent.click(screen.getAllByRole("checkbox")[1]);
+
+      await waitFor(() => {
+        expect(useEditorStore.getState().content).toContain("- [x] Todo");
+      });
+
+      fireEvent.click(screen.getByRole("tab", { name: "Edit" }));
+
+      const initCall = mockInitProseMirrorEditor.mock.calls.at(-1);
+      const options = initCall?.[1] as { initialContent?: string };
+      expect(options.initialContent).toBe("- [x] Done\n\n- [x] Todo");
+    });
+
+    it("reflects a view-mode task toggle after switching to source mode", async () => {
+      installTaskRoundtripStore("- [x] Done\n- [ ] Todo");
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+      fireEvent.click(screen.getAllByRole("checkbox")[1]);
+
+      await waitFor(() => {
+        expect(useEditorStore.getState().content).toContain("- [x] Todo");
+      });
+
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      expect(screen.getByLabelText("Source markdown editor")).toHaveValue("- [x] Done\n\n- [x] Todo");
+    });
+
+    it("reflects an edit-mode task toggle after switching to view mode", async () => {
+      installTaskRoundtripStore("- [x] Done\n- [ ] Todo");
+
+      let latestOnChange:
+        | ((payload: { markdown: string; selection?: { from: number; to: number; empty: boolean } }) => void)
+        | undefined;
+      mockInitProseMirrorEditor.mockImplementationOnce((_container, options) => {
+        latestOnChange = (options as { onChange?: typeof latestOnChange }).onChange;
+        return {
+          destroy: vi.fn(),
+          getMarkdown: vi.fn(() => useEditorStore.getState().content),
+          setMarkdown: vi.fn(),
+          view: {
+            dom: {
+              getBoundingClientRect: vi.fn(() => ({
+                left: 120,
+                right: 720,
+                top: 80,
+                bottom: 520,
+                width: 600,
+                height: 440,
+                x: 120,
+                y: 80,
+                toJSON: () => ({}),
+              })),
+            },
+            state: {
+              selection: {
+                from: 1,
+                to: 1,
+                empty: true,
+              },
+            },
+            dispatch: vi.fn(),
+            focus: vi.fn(),
+            coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+          },
+        };
+      });
+
+      render(<Editor />);
+
+      act(() => {
+        latestOnChange?.({
+          markdown: "- [x] Done\n- [x] Todo",
+          selection: { from: 1, to: 1, empty: true },
+        });
+      });
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      await waitFor(() => {
+        expect(screen.getAllByRole("checkbox")[1]).toBeChecked();
+      });
+    });
+
+    it("reflects an edit-mode task toggle after switching to source mode", async () => {
+      installTaskRoundtripStore("- [x] Done\n- [ ] Todo");
+
+      let latestOnChange:
+        | ((payload: { markdown: string; selection?: { from: number; to: number; empty: boolean } }) => void)
+        | undefined;
+      mockInitProseMirrorEditor.mockImplementationOnce((_container, options) => {
+        latestOnChange = (options as { onChange?: typeof latestOnChange }).onChange;
+        return {
+          destroy: vi.fn(),
+          getMarkdown: vi.fn(() => useEditorStore.getState().content),
+          setMarkdown: vi.fn(),
+          view: {
+            dom: {
+              getBoundingClientRect: vi.fn(() => ({
+                left: 120,
+                right: 720,
+                top: 80,
+                bottom: 520,
+                width: 600,
+                height: 440,
+                x: 120,
+                y: 80,
+                toJSON: () => ({}),
+              })),
+            },
+            state: {
+              selection: {
+                from: 1,
+                to: 1,
+                empty: true,
+              },
+            },
+            dispatch: vi.fn(),
+            focus: vi.fn(),
+            coordsAtPos: vi.fn(() => ({ left: 200, right: 260, top: 220, bottom: 240 })),
+          },
+        };
+      });
+
+      render(<Editor />);
+
+      act(() => {
+        latestOnChange?.({
+          markdown: "- [x] Done\n- [x] Todo",
+          selection: { from: 1, to: 1, empty: true },
+        });
+      });
+
+      fireEvent.click(screen.getByRole("tab", { name: "Source" }));
+      expect(screen.getByLabelText("Source markdown editor")).toHaveValue("- [x] Done\n- [x] Todo");
     });
 
     it("renders Mermaid fences as diagram containers in view mode", () => {
@@ -1351,6 +1527,47 @@ describe("Editor Component", () => {
 
       await waitFor(() => {
         expect(useVaultStore.getState().loadNote).toHaveBeenCalledWith("Project Alpha.md");
+      });
+    });
+
+    it("toggles a task through the UI automation behavior event and reports success", async () => {
+      installTaskRoundtripStore("- [x] Done\n- [ ] Todo", "knot/issues.md");
+
+      render(<Editor />);
+
+      const resultPromise = new Promise<CustomEvent<{ success: boolean; payload?: { editor_mode?: string } }>>(
+        (resolve) => {
+          const handler = (event: Event) => {
+            window.removeEventListener("ui-automation-editor-result", handler);
+            resolve(event as CustomEvent<{ success: boolean; payload?: { editor_mode?: string } }>);
+          };
+          window.addEventListener("ui-automation-editor-result", handler);
+        }
+      );
+
+      await act(async () => {
+        window.dispatchEvent(
+          new CustomEvent("ui-automation-editor-request", {
+            detail: {
+              requestId: "req-1",
+              behaviorId: "core.task.toggle",
+              path: "knot/issues.md",
+              taskIndex: 1,
+              mode: "view",
+            },
+          })
+        );
+
+        await resultPromise;
+      });
+
+      const resultEvent = await resultPromise;
+
+      expect(resultEvent.detail.success).toBe(true);
+      expect(resultEvent.detail.payload?.editor_mode).toBe("view");
+      expect(useEditorStore.getState().content).toBe("- [x] Done\n\n- [x] Todo");
+      await waitFor(() => {
+        expect(screen.getByRole("tab", { name: "View" })).toHaveAttribute("aria-selected", "true");
       });
     });
 

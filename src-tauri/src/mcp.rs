@@ -348,6 +348,11 @@ impl McpServer {
                     "inputSchema": { "type": "object", "properties": {} }
                 },
                 {
+                    "name": "list_ui_behaviors",
+                    "description": "List discoverable semantic UI automation behaviors.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
                     "name": "get_ui_state",
                     "description": "Return compact UI automation state for the running app.",
                     "inputSchema": { "type": "object", "properties": {} }
@@ -362,6 +367,18 @@ impl McpServer {
                             "args": { "type": "object" }
                         },
                         "required": ["action_id"]
+                    }
+                },
+                {
+                    "name": "invoke_ui_behavior",
+                    "description": "Invoke a semantic UI automation behavior in the running app.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "behavior_id": { "type": "string" },
+                            "args": { "type": "object" }
+                        },
+                        "required": ["behavior_id"]
                     }
                 },
                 {
@@ -972,6 +989,7 @@ impl McpServer {
             }
             "list_ui_actions" => self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationActions)),
             "list_ui_views" => self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationViews)),
+            "list_ui_behaviors" => self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationBehaviors)),
             "get_ui_state" => self.execute_ui_tool(AppCommand::Ui(UiCommand::GetAutomationState)),
             "invoke_ui_action" => {
                 let action_id = arguments
@@ -981,6 +999,17 @@ impl McpServer {
                 let args = arguments.get("args").cloned().unwrap_or_else(|| json!({}));
                 self.execute_ui_tool(AppCommand::Ui(UiCommand::InvokeAutomationAction {
                     action_id: action_id.to_string(),
+                    args,
+                }))
+            }
+            "invoke_ui_behavior" => {
+                let behavior_id = arguments
+                    .get("behavior_id")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: behavior_id".to_string()))?;
+                let args = arguments.get("args").cloned().unwrap_or_else(|| json!({}));
+                self.execute_ui_tool(AppCommand::Ui(UiCommand::InvokeAutomationBehavior {
+                    behavior_id: behavior_id.to_string(),
                     args,
                 }))
             }
@@ -1833,6 +1862,13 @@ mod tests {
         assert!(names.contains(&"remove_directory"));
         assert!(names.contains(&"rename_directory"));
         assert!(names.contains(&"list_directory"));
+        assert!(names.contains(&"list_ui_actions"));
+        assert!(names.contains(&"list_ui_views"));
+        assert!(names.contains(&"list_ui_behaviors"));
+        assert!(names.contains(&"get_ui_state"));
+        assert!(names.contains(&"invoke_ui_action"));
+        assert!(names.contains(&"invoke_ui_behavior"));
+        assert!(names.contains(&"capture_ui_screenshot"));
     }
 
     #[test]

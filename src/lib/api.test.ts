@@ -305,6 +305,22 @@ describe("API Client", () => {
       expect(invoke).toHaveBeenCalledWith("update_ui_automation_settings", { settings });
       expect(result).toEqual(settings);
     });
+
+    it("should sync UI automation registry with behaviors", async () => {
+      vi.mocked(invoke).mockResolvedValue(undefined);
+
+      await api.syncUiAutomationRegistry(
+        [{ id: "core.navigate.view", label: "Open view", description: "desc", origin: "core" }],
+        [{ id: "view.editor", label: "Editor", description: "desc", origin: "core" }],
+        [{ id: "core.task.toggle", label: "Toggle task", description: "desc", origin: "core" }]
+      );
+
+      expect(invoke).toHaveBeenCalledWith("ui_automation_sync_registry", {
+        actions: [{ id: "core.navigate.view", label: "Open view", description: "desc", origin: "core" }],
+        views: [{ id: "view.editor", label: "Editor", description: "desc", origin: "core" }],
+        behaviors: [{ id: "core.task.toggle", label: "Toggle task", description: "desc", origin: "core" }],
+      });
+    });
   });
 
   describe("Note Operations", () => {

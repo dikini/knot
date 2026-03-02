@@ -1,0 +1,32 @@
+tasks:
+  - id: TT-001
+    title: "Add failing editor roundtrip tests for task toggle mode transitions"
+    status: planned
+    size: M
+    spec_refs: [TR-001, TR-002, TR-003, TR-004]
+    dependencies: []
+    acceptance: "Editor tests fail before fix and cover all four view/edit/source roundtrips"
+
+  - id: TT-002
+    title: "Add UI automation behavior registry/types and MCP tools"
+    status: planned
+    size: M
+    spec_refs: [TR-005, TR-006]
+    dependencies: [TT-001]
+    acceptance: "Behavior discovery and invocation tools exist with a task-toggle behavior contract"
+
+  - id: TT-003
+    title: "Fix editor task toggle hydration across mode transitions"
+    status: planned
+    size: M
+    spec_refs: [TR-001, TR-002, TR-003, TR-004]
+    dependencies: [TT-001]
+    acceptance: "Task state stays visually consistent across source/edit/view after toggles"
+
+  - id: TT-004
+    title: "Gate behaviors with UI automation policy and verify live workflow"
+    status: planned
+    size: M
+    spec_refs: [TR-005, TR-006, TR-007]
+    dependencies: [TT-002, TT-003]
+    acceptance: "Behavior surface obeys policy flags and can visually drive task toggles in the live app"

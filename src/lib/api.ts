@@ -86,6 +86,15 @@ export interface UiAutomationView {
   visible?: boolean;
 }
 
+export interface UiAutomationBehavior {
+  id: string;
+  label: string;
+  description: string;
+  origin: string;
+  input_schema?: Record<string, unknown>;
+  available?: boolean;
+}
+
 export interface UiAutomationViewFrame {
   x: number;
   y: number;
@@ -275,10 +284,11 @@ export async function getVaultSettings(): Promise<VaultSettings> {
 
 export async function syncUiAutomationRegistry(
   actions: UiAutomationAction[],
-  views: UiAutomationView[]
+  views: UiAutomationView[],
+  behaviors: UiAutomationBehavior[]
 ): Promise<void> {
   try {
-    await invoke("ui_automation_sync_registry", { actions, views });
+    await invoke("ui_automation_sync_registry", { actions, views, behaviors });
   } catch (error) {
     handleError(error);
   }

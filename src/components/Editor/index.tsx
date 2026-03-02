@@ -58,6 +58,27 @@ import type { ProseMirrorEditor } from "../../types/editor";
 import type { NoteModeAvailability } from "../../types/vault";
 import "./Editor.css";
 
+const UI_AUTOMATION_EDITOR_REQUEST_EVENT = "ui-automation-editor-request";
+const UI_AUTOMATION_EDITOR_RESULT_EVENT = "ui-automation-editor-result";
+
+type UiAutomationEditorMode = "view" | "edit" | "source";
+
+interface UiAutomationEditorRequestDetail {
+  requestId: string;
+  behaviorId: string;
+  path: string;
+  taskIndex: number;
+  mode?: UiAutomationEditorMode;
+}
+
+interface UiAutomationEditorResultDetail {
+  requestId: string;
+  success: boolean;
+  message: string;
+  payload?: Record<string, unknown>;
+  errorCode?: string;
+}
+
 // SPEC: COMP-UI-LAYOUT-002 FR-4
 // SPEC: COMP-FRONTEND-001 FR-3, FR-6
 // SPEC: COMP-ICON-CHROME-001 FR-2, FR-5
@@ -784,6 +805,97 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     window.addEventListener("wikilink-click", handleWikilinkClick as EventListener);
     return () => window.removeEventListener("wikilink-click", handleWikilinkClick as EventListener);
   }, [followOrCreateWikilinkTarget]);
+
+  useEffect(() => {
+    const emitResult = (detail: UiAutomationEditorResultDetail) => {
+      window.dispatchEvent(new CustomEvent<UiAutomationEditorResultDetail>(UI_AUTOMATION_EDITOR_RESULT_EVENT, { detail }));
+    };
+
+    const handleUiAutomationRequest = async (event: Event) => {
+      const custom = event as CustomEvent<UiAutomationEditorRequestDetail>;
+      const detail = custom.detail;
+      if (!detail || detail.behaviorId !== "core.task.toggle") {
+        return;
+      }
+
+      if (!currentNote || currentNote.path !== detail.path) {
+        emitResult({
+          requestId: detail.requestId,
+          success: false,
+          message: "Editor note context is not ready for task automation",
+          errorCode: "UI_TARGET_UNAVAILABLE",
+        });
+        return;
+      }
+
+      const targetMode = detail.mode ?? "view";
+      if (targetMode !== "view" && targetMode !== "edit" && targetMode !== "source") {
+        emitResult({
+          requestId: detail.requestId,
+          success: false,
+          message: "Invalid editor mode",
+          errorCode: "UI_ACTION_INVALID_ARGUMENTS",
+        });
+        return;
+      }
+      if (!noteModeAvailability[targetMode]) {
+        emitResult({
+          requestId: detail.requestId,
+          success: false,
+          message: `Editor mode is unavailable: ${targetMode}`,
+          errorCode: "UI_TARGET_UNAVAILABLE",
+        });
+        return;
+      }
+
+      const sourceMarkdown = useEditorStore.getState().content || currentNote.content || "";
+      const nextBody = toggleTaskListItemInMarkdown(getBodyMarkdown(sourceMarkdown), detail.taskIndex);
+      if (!nextBody) {
+        emitResult({
+          requestId: detail.requestId,
+          success: false,
+          message: `Task index not found: ${detail.taskIndex}`,
+          errorCode: "UI_TARGET_NOT_FOUND",
+        });
+        return;
+      }
+
+      const serialized = serializeNoteDocument({
+        body: nextBody,
+        managed: metadataDraftRef.current,
+        extraYaml: extraMetadataYamlRef.current,
+      });
+      handleModeChange(targetMode);
+      setContent(serialized);
+      useEditorStore.setState((previous) => ({
+        ...previous,
+        content: serialized,
+        isDirty: true,
+      }));
+      markDirty(true);
+
+      if (targetMode === "edit" && pmRef.current) {
+        pmRef.current.setMarkdown(nextBody);
+      }
+
+      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+
+      emitResult({
+        requestId: detail.requestId,
+        success: true,
+        message: `Toggled task ${detail.taskIndex} in ${currentNote.path}`,
+        payload: {
+          active_note_path: currentNote.path,
+          editor_mode: targetMode,
+          task_index: detail.taskIndex,
+        },
+      });
+    };
+
+    window.addEventListener(UI_AUTOMATION_EDITOR_REQUEST_EVENT, handleUiAutomationRequest as EventListener);
+    return () =>
+      window.removeEventListener(UI_AUTOMATION_EDITOR_REQUEST_EVENT, handleUiAutomationRequest as EventListener);
+  }, [currentNote, getBodyMarkdown, handleModeChange, markDirty, noteModeAvailability, setContent]);
 
   const handleRenderedMarkdownClick = useCallback(
     (event: React.MouseEvent<HTMLElement>) => {

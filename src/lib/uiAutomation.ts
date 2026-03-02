@@ -18,6 +18,15 @@ export interface UiAutomationView {
   visible?: boolean;
 }
 
+export interface UiAutomationBehavior {
+  id: string;
+  label: string;
+  description: string;
+  origin: string;
+  input_schema?: Record<string, unknown>;
+  available?: boolean;
+}
+
 export interface UiAutomationViewFrame {
   x: number;
   y: number;
@@ -50,6 +59,12 @@ export type UiAutomationFrontendRequest =
       args?: Record<string, unknown>;
     }
   | {
+      kind: "invoke_behavior";
+      request_id: string;
+      behavior_id: string;
+      args?: Record<string, unknown>;
+    }
+  | {
       kind: "capture_screenshot";
       request_id: string;
       target: string;
@@ -68,6 +83,7 @@ function supportsNativeWindowScreenshot(): boolean {
 export function buildUiAutomationRegistry(): {
   actions: UiAutomationAction[];
   views: UiAutomationView[];
+  behaviors: UiAutomationBehavior[];
 } {
   const nativeWindowScreenshot = supportsNativeWindowScreenshot();
 
@@ -145,6 +161,24 @@ export function buildUiAutomationRegistry(): {
         description: "Application and vault settings surface.",
         origin: "core",
         screenshotable: nativeWindowScreenshot,
+      },
+    ],
+    behaviors: [
+      {
+        id: "core.task.toggle",
+        label: "Toggle task",
+        description: "Toggle a markdown task list item in a note by visible task order.",
+        origin: "core",
+        available: true,
+        input_schema: {
+          type: "object",
+          properties: {
+            path: { type: "string" },
+            taskIndex: { type: "integer", minimum: 0 },
+            mode: { type: "string", enum: ["view", "edit", "source"] },
+          },
+          required: ["path", "taskIndex"],
+        },
       },
     ],
   };

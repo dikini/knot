@@ -77,15 +77,24 @@ describe("task list plugin", () => {
 
     expect(view.state.doc.child(0)?.child(0)?.attrs.checked).toBe(true);
     expect(serializeMarkdown(view.state.doc)).toContain("- [x] Todo");
+    expect(
+      host.querySelector<HTMLInputElement>('input[type="checkbox"][data-task-checkbox="true"]')?.checked
+    ).toBe(true);
 
     const undid = undo(view.state, view.dispatch);
     expect(undid).toBe(true);
     expect(view.state.doc.child(0)?.child(0)?.attrs.checked).toBe(false);
     expect(serializeMarkdown(view.state.doc)).toContain("- [ ] Todo");
+    expect(
+      host.querySelector<HTMLInputElement>('input[type="checkbox"][data-task-checkbox="true"]')?.checked
+    ).toBe(false);
 
     const redid = redo(view.state, view.dispatch);
     expect(redid).toBe(true);
     expect(view.state.doc.child(0)?.child(0)?.attrs.checked).toBe(true);
+    expect(
+      host.querySelector<HTMLInputElement>('input[type="checkbox"][data-task-checkbox="true"]')?.checked
+    ).toBe(true);
 
     view.destroy();
     host.remove();

@@ -47,10 +47,14 @@ pub enum UiCommand {
     ListAutomationActions,
     /// List registered automation views.
     ListAutomationViews,
+    /// List registered automation behaviors.
+    ListAutomationBehaviors,
     /// Return compact UI automation state.
     GetAutomationState,
     /// Invoke a semantic UI automation action.
     InvokeAutomationAction { action_id: String, args: Value },
+    /// Invoke a semantic UI automation behavior.
+    InvokeAutomationBehavior { behavior_id: String, args: Value },
     /// Capture a UI screenshot for a semantic target.
     CaptureAutomationScreenshot {
         target: String,

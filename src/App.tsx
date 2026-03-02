@@ -51,6 +51,26 @@ const TOOL_PANEL_POLICY: Record<ShellToolMode, ToolPanelPolicy> = {
 };
 const STARTUP_VAULT_ATTACH_MAX_ATTEMPTS = 20;
 const STARTUP_VAULT_ATTACH_RETRY_MS = 500;
+const UI_AUTOMATION_EDITOR_REQUEST_EVENT = "ui-automation-editor-request";
+const UI_AUTOMATION_EDITOR_RESULT_EVENT = "ui-automation-editor-result";
+
+type UiAutomationEditorMode = "view" | "edit" | "source";
+
+interface UiAutomationEditorRequestDetail {
+  requestId: string;
+  behaviorId: string;
+  path: string;
+  taskIndex: number;
+  mode?: UiAutomationEditorMode;
+}
+
+interface UiAutomationEditorResultDetail {
+  requestId: string;
+  success: boolean;
+  message: string;
+  payload?: Record<string, unknown>;
+  errorCode?: string;
+}
 
 function collectUiAutomationViewFrames(): Record<string, UiAutomationViewFrame> {
   if (typeof document === "undefined") {
@@ -80,6 +100,50 @@ function collectUiAutomationViewFrames(): Record<string, UiAutomationViewFrame> 
     .filter((entry): entry is readonly [string, UiAutomationViewFrame] => entry !== null);
 
   return Object.fromEntries(entries);
+}
+
+function nextAnimationFrame(): Promise<void> {
+  return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+}
+
+async function waitForEditorUiStabilization(): Promise<void> {
+  await nextAnimationFrame();
+  await nextAnimationFrame();
+}
+
+async function dispatchEditorUiAutomationRequest(
+  detail: UiAutomationEditorRequestDetail
+): Promise<Record<string, unknown> | undefined> {
+  return await new Promise((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      window.removeEventListener(UI_AUTOMATION_EDITOR_RESULT_EVENT, handleResult as EventListener);
+      reject(new Error("Timed out waiting for editor UI automation response"));
+    }, 3000);
+
+    const handleResult = (event: Event) => {
+      const custom = event as CustomEvent<UiAutomationEditorResultDetail>;
+      if (custom.detail?.requestId !== detail.requestId) {
+        return;
+      }
+
+      window.clearTimeout(timeoutId);
+      window.removeEventListener(UI_AUTOMATION_EDITOR_RESULT_EVENT, handleResult as EventListener);
+
+      if (custom.detail.success) {
+        resolve(custom.detail.payload);
+        return;
+      }
+
+      const error = new Error(custom.detail.message);
+      (error as Error & { code?: string }).code = custom.detail.errorCode;
+      reject(error);
+    };
+
+    window.addEventListener(UI_AUTOMATION_EDITOR_RESULT_EVENT, handleResult as EventListener);
+    window.dispatchEvent(
+      new CustomEvent<UiAutomationEditorRequestDetail>(UI_AUTOMATION_EDITOR_REQUEST_EVENT, { detail })
+    );
+  });
 }
 
 function App() {
@@ -150,8 +214,8 @@ function App() {
   const { toasts, removeToast, success, error } = useToast();
 
   useEffect(() => {
-    const { actions, views } = buildUiAutomationRegistry();
-    void api.syncUiAutomationRegistry(actions, views).catch(console.error);
+    const { actions, views, behaviors } = buildUiAutomationRegistry();
+    void api.syncUiAutomationRegistry(actions, views, behaviors).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -280,6 +344,76 @@ function App() {
           return;
         }
 
+        if (request.kind === "invoke_behavior") {
+          try {
+            if (request.behavior_id === "core.task.toggle") {
+              const notePath = request.args?.path;
+              const taskIndex = request.args?.taskIndex;
+              const mode = request.args?.mode;
+
+              if (typeof notePath !== "string" || notePath.trim().length === 0) {
+                await completeWithError(
+                  request.request_id,
+                  "Missing note path",
+                  "UI_ACTION_INVALID_ARGUMENTS"
+                );
+                return;
+              }
+              if (!Number.isInteger(taskIndex) || Number(taskIndex) < 0) {
+                await completeWithError(
+                  request.request_id,
+                  "taskIndex must be a non-negative integer",
+                  "UI_ACTION_INVALID_ARGUMENTS"
+                );
+                return;
+              }
+              if (mode !== undefined && mode !== "view" && mode !== "edit" && mode !== "source") {
+                await completeWithError(
+                  request.request_id,
+                  "Invalid editor mode",
+                  "UI_ACTION_INVALID_ARGUMENTS"
+                );
+                return;
+              }
+
+              if (currentNote?.path !== notePath) {
+                await loadNote(notePath);
+              }
+              setViewMode("editor");
+              await waitForEditorUiStabilization();
+
+              const payload = await dispatchEditorUiAutomationRequest({
+                requestId: request.request_id,
+                behaviorId: request.behavior_id,
+                path: notePath,
+                taskIndex: Number(taskIndex),
+                mode,
+              });
+
+              await api.completeUiAutomationRequest(request.request_id, {
+                success: true,
+                message: `Toggled task ${taskIndex} in ${notePath}`,
+                payload,
+              });
+              return;
+            }
+
+            await completeWithError(
+              request.request_id,
+              `Unknown behavior: ${request.behavior_id}`,
+              "UI_TARGET_NOT_FOUND"
+            );
+          } catch (invokeError) {
+            const codedError = invokeError as Error & { code?: string };
+            await completeWithError(
+              request.request_id,
+              invokeError instanceof Error ? invokeError.message : "Failed to invoke UI behavior",
+              codedError.code ?? "UI_ACTION_EXECUTION_FAILED"
+            );
+          }
+          return;
+        }
+
         await completeWithError(
           request.request_id,
           "Frontend-driven screenshot capture is disabled in this runtime",
@@ -293,7 +427,7 @@ function App() {
         unlisten();
       }
     };
-  }, [handleToolModeSelect, loadNote]);
+  }, [currentNote?.path, handleToolModeSelect, loadNote]);
 
   const resolveUnsavedBeforeVaultSwitch = async (): Promise<boolean> => {
     const editorState = useEditorStore.getState();

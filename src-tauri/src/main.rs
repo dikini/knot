@@ -109,6 +109,32 @@ fn main() {
                                 payload: Some(serde_json::to_value(views).unwrap_or_else(|_| serde_json::json!([]))),
                             });
                         }
+                        knot::app_command::AppCommand::Ui(
+                            knot::app_command::UiCommand::ListAutomationBehaviors,
+                        ) => {
+                            if !policy.enabled {
+                                let _ = response_tx.send(ui_automation_disabled_result(envelope.seq));
+                                continue;
+                            }
+                            let behaviors = tauri::async_runtime::block_on(state.ui_automation().behaviors());
+                            let behaviors = behaviors
+                                .into_iter()
+                                .map(|mut behavior| {
+                                    behavior.available = behavior.available && policy.groups.behaviors;
+                                    behavior
+                                })
+                                .collect::<Vec<_>>();
+                            let _ = response_tx.send(knot::ipc::AppCommandResult {
+                                success: true,
+                                message: "ok".to_string(),
+                                seq: Some(envelope.seq),
+                                error_code: None,
+                                payload: Some(
+                                    serde_json::to_value(behaviors)
+                                        .unwrap_or_else(|_| serde_json::json!([])),
+                                ),
+                            });
+                        }
                         knot::app_command::AppCommand::Ui(knot::app_command::UiCommand::GetAutomationState) => {
                             if !policy.enabled {
                                 let _ = response_tx.send(ui_automation_disabled_result(envelope.seq));
@@ -150,6 +176,44 @@ fn main() {
                                 knot::ui_automation::UiAutomationFrontendRequest::InvokeAction {
                                     request_id: request_id.clone(),
                                     action_id,
+                                    args,
+                                },
+                            ) {
+                                let _ = tauri::async_runtime::block_on(state.ui_automation().complete_request(
+                                    &request_id,
+                                    knot::ui_automation::UiAutomationCompletion {
+                                        success: false,
+                                        message: err,
+                                        payload: None,
+                                        error_code: Some("UI_ACTION_EXECUTION_FAILED".to_string()),
+                                    },
+                                ));
+                            }
+                        }
+                        knot::app_command::AppCommand::Ui(
+                            knot::app_command::UiCommand::InvokeAutomationBehavior { behavior_id, args },
+                        ) => {
+                            if !policy.enabled {
+                                let _ = response_tx.send(ui_automation_disabled_result(envelope.seq));
+                                continue;
+                            }
+                            if !policy.groups.behaviors {
+                                let _ = response_tx.send(ui_automation_group_disabled_result(
+                                    envelope.seq,
+                                    "behaviors",
+                                ));
+                                continue;
+                            }
+                            tauri::async_runtime::block_on(
+                                state
+                                    .ui_automation()
+                                    .register_pending_behavior(request_id.clone(), response_tx),
+                            );
+                            if let Err(err) = knot::commands::ui_automation::dispatch_frontend_request(
+                                &dispatch_handle,
+                                knot::ui_automation::UiAutomationFrontendRequest::InvokeBehavior {
+                                    request_id: request_id.clone(),
+                                    behavior_id,
                                     args,
                                 },
                             ) {
