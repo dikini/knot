@@ -52,6 +52,7 @@ vi.mock("@lib/store", () => ({
 const mockGetExplorerTree = vi.fn();
 const mockSetFolderExpanded = vi.fn();
 const mockCreateNoteApi = vi.fn();
+const mockCreateYouTubeNoteApi = vi.fn();
 const mockRenameNoteApi = vi.fn();
 const mockListen = vi.fn();
 let treeEventHandler: (() => void) | null = null;
@@ -60,6 +61,7 @@ const createDataTransfer = (): DataTransfer =>
   ({
     effectAllowed: "all",
     dropEffect: "move",
+    types: [],
     setData: vi.fn(),
     getData: vi.fn(),
     clearData: vi.fn(),
@@ -73,6 +75,7 @@ vi.mock("@lib/api", () => ({
   getExplorerTree: (...args: unknown[]) => mockGetExplorerTree(...args),
   setFolderExpanded: (...args: unknown[]) => mockSetFolderExpanded(...args),
   createNote: (...args: unknown[]) => mockCreateNoteApi(...args),
+  createYouTubeNote: (...args: unknown[]) => mockCreateYouTubeNoteApi(...args),
   createDirectory: vi.fn(),
   renameDirectory: vi.fn(),
   renameNote: (...args: unknown[]) => mockRenameNoteApi(...args),
@@ -141,6 +144,28 @@ describe("Sidebar Explorer M1", () => {
       headings: [],
       backlinks: [],
     });
+    mockCreateYouTubeNoteApi.mockResolvedValue({
+      id: "yt-created",
+      path: "Programming/sample-video.youtube.md",
+      title: "Sample Video",
+      content: "# Sample Video\n\nTranscript",
+      created_at: 1,
+      modified_at: 1,
+      word_count: 2,
+      headings: [],
+      backlinks: [],
+      note_type: "youtube",
+      available_modes: { meta: true, source: true, edit: true, view: true },
+      metadata: {
+        extra: {
+          youtube_url: "https://www.youtube.com/watch?v=abc123xyz00",
+          youtube_video_id: "abc123xyz00",
+        },
+      },
+      type_badge: "YT",
+      media: null,
+      is_dimmed: false,
+    });
     mockRenameNoteApi.mockResolvedValue(undefined);
   });
 
@@ -162,6 +187,7 @@ describe("Sidebar Explorer M1", () => {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "New Note" })).toBeInTheDocument();
     });
+    expect(screen.getByRole("button", { name: "New YouTube Note" })).toBeInTheDocument();
     expect(screen.queryByText("+ New Note")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "New Folder" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse" })).toBeInTheDocument();
@@ -213,6 +239,34 @@ describe("Sidebar Explorer M1", () => {
     });
     expect(mockSetCurrentNote).toHaveBeenCalledWith(
       expect.objectContaining({ path: "Programming/draft.md" })
+    );
+  });
+
+  it("creates a YouTube note inside the selected folder", async () => {
+    vi.mocked(window.prompt).mockReturnValue("https://www.youtube.com/watch?v=abc123xyz00");
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const folderButton = await screen.findByRole("treeitem", { name: "Programming" });
+    fireEvent.contextMenu(folderButton);
+    fireEvent.click(await screen.findByRole("menuitem", { name: "New YouTube note here" }));
+
+    await waitFor(() => {
+      expect(mockCreateYouTubeNoteApi).toHaveBeenCalledWith(
+        "Programming",
+        "https://www.youtube.com/watch?v=abc123xyz00"
+      );
+    });
+    expect(mockSetCurrentNote).toHaveBeenCalledWith(
+      expect.objectContaining({ path: "Programming/sample-video.youtube.md", note_type: "youtube" })
     );
   });
 
@@ -639,5 +693,37 @@ describe("Sidebar Explorer M1", () => {
     });
 
     expect(mockSetFolderExpanded).not.toHaveBeenCalledWith("Archive", true);
+  });
+
+  it("creates a YouTube note when a YouTube URL is dropped on a folder row", async () => {
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const targetFolder = await screen.findByRole("treeitem", { name: "Programming" });
+    const dataTransfer = createDataTransfer();
+    Object.assign(dataTransfer, {
+      types: ["text/uri-list"],
+      getData: vi.fn((type: string) =>
+        type === "text/uri-list" ? "https://www.youtube.com/watch?v=abc123xyz00" : ""
+      ),
+    });
+
+    fireEvent.dragEnter(targetFolder, { dataTransfer });
+    fireEvent.dragOver(targetFolder, { dataTransfer });
+    fireEvent.drop(targetFolder, { dataTransfer });
+
+    await waitFor(() => {
+      expect(mockCreateYouTubeNoteApi).toHaveBeenCalledWith(
+        "Programming",
+        "https://www.youtube.com/watch?v=abc123xyz00"
+      );
+    });
   });
 });

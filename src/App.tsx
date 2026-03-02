@@ -54,13 +54,14 @@ const STARTUP_VAULT_ATTACH_RETRY_MS = 500;
 const UI_AUTOMATION_EDITOR_REQUEST_EVENT = "ui-automation-editor-request";
 const UI_AUTOMATION_EDITOR_RESULT_EVENT = "ui-automation-editor-result";
 
-type UiAutomationEditorMode = "view" | "edit" | "source";
+type UiAutomationEditorMode = "meta" | "view" | "edit" | "source";
 
 interface UiAutomationEditorRequestDetail {
   requestId: string;
-  behaviorId: string;
+  actionId?: string;
+  behaviorId?: string;
   path: string;
-  taskIndex: number;
+  taskIndex?: number;
   mode?: UiAutomationEditorMode;
 }
 
@@ -325,6 +326,47 @@ function App() {
                 success: true,
                 message: `Switched tool mode to ${toolMode}`,
                 payload: { tool_mode: toolMode },
+              });
+              return;
+            }
+
+            if (request.action_id === "core.select.editor-mode") {
+              const mode = request.args?.mode;
+              if (mode !== "meta" && mode !== "source" && mode !== "edit" && mode !== "view") {
+                await completeWithError(
+                  request.request_id,
+                  "Invalid editor mode",
+                  "UI_ACTION_INVALID_ARGUMENTS"
+                );
+                return;
+              }
+              const activeNotePath =
+                currentNote?.path ??
+                useVaultStore.getState?.().currentNote?.path ??
+                null;
+              if (!activeNotePath) {
+                await completeWithError(
+                  request.request_id,
+                  "No note is open",
+                  "UI_TARGET_UNAVAILABLE"
+                );
+                return;
+              }
+
+              setViewMode("editor");
+              await waitForEditorUiStabilization();
+
+              const payload = await dispatchEditorUiAutomationRequest({
+                requestId: request.request_id,
+                actionId: request.action_id,
+                path: activeNotePath,
+                mode,
+              });
+
+              await api.completeUiAutomationRequest(request.request_id, {
+                success: true,
+                message: `Switched editor mode to ${mode}`,
+                payload: payload ?? { active_view: "view.editor", editor_mode: mode, active_note_path: activeNotePath },
               });
               return;
             }

@@ -352,6 +352,7 @@ fn main() {
             knot::commands::notes::delete_note,
             knot::commands::notes::rename_note,
             knot::commands::notes::create_note,
+            knot::commands::notes::create_youtube_note,
             knot::commands::notes::get_graph_layout,
             knot::commands::notes::get_explorer_tree,
             knot::commands::notes::set_folder_expanded,

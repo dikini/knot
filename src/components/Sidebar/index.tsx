@@ -5,7 +5,7 @@ import { VaultSwitcher } from "@components/VaultSwitcher";
 import type { RecentVault } from "@lib/api";
 import * as api from "@lib/api";
 import type { ExplorerFolderNode } from "@/types/vault";
-import { FolderPlus, FilePlus, ChevronDown, ChevronUp, RefreshCcw } from "lucide-react";
+import { FolderPlus, FilePlus, ChevronDown, ChevronUp, RefreshCcw, PlaySquare } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import "./Sidebar.css";
 
@@ -461,6 +461,31 @@ export function Sidebar({
     );
   };
 
+  const extractDroppedUrl = (event: DragEvent<HTMLElement>) => {
+    for (const type of ["text/uri-list", "text/plain"]) {
+      const value = event.dataTransfer.getData(type).trim();
+      if (value) {
+        return value.split("\n").find((entry) => entry.trim().length > 0)?.trim() ?? "";
+      }
+    }
+    return "";
+  };
+
+  const isYouTubeUrl = (value: string) =>
+    /^(https?:\/\/)(www\.)?(youtube\.com|m\.youtube\.com|youtu\.be)\//i.test(value.trim());
+
+  const handleNewYouTubeNote = async (baseFolderPath: string) => {
+    const url = (prompt("YouTube URL:") ?? "").trim();
+    if (!url) return;
+    await withOptimisticTree(
+      (root) => root,
+      async () => {
+        const note = await api.createYouTubeNote(baseFolderPath, url);
+        setCurrentNote(note);
+      }
+    );
+  };
+
   const handleDeleteTarget = async (targetType: "folder" | "note", targetPath: string) => {
     const confirmed = confirm(
       targetType === "folder"
@@ -580,10 +605,25 @@ export function Sidebar({
     event.preventDefault();
     event.stopPropagation();
 
-    const notePath = draggedNotePath || event.dataTransfer.getData("text/plain");
+    const externalUrl = draggedNotePath ? "" : extractDroppedUrl(event);
     clearAutoExpandTimer();
     setDropTarget(null);
     setDraggedNotePath(null);
+    if (externalUrl) {
+      if (isYouTubeUrl(externalUrl)) {
+        const baseFolderPath = resolveDropParentPath(targetType, targetPath);
+        await withOptimisticTree(
+          (root) => root,
+          async () => {
+            const note = await api.createYouTubeNote(baseFolderPath, externalUrl);
+            setCurrentNote(note);
+          }
+        );
+      }
+      return;
+    }
+
+    const notePath = draggedNotePath || event.dataTransfer.getData("text/plain");
     if (!notePath) return;
 
     await moveNoteToParentPath(notePath, resolveDropParentPath(targetType, targetPath));
@@ -765,6 +805,12 @@ export function Sidebar({
                 className="sidebar__action-btn"
               />
               <IconButton
+                icon={PlaySquare}
+                label="New YouTube Note"
+                onClick={() => handleNewYouTubeNote("")}
+                className="sidebar__action-btn"
+              />
+              <IconButton
                 icon={FolderPlus}
                 label="New Folder"
                 onClick={() => handleNewFolder("")}
@@ -836,6 +882,9 @@ export function Sidebar({
             <>
               <button type="button" role="menuitem" onClick={() => void handleNewNote(contextMenu.path)}>
                 New note here
+              </button>
+              <button type="button" role="menuitem" onClick={() => void handleNewYouTubeNote(contextMenu.path)}>
+                New YouTube note here
               </button>
               <button type="button" role="menuitem" onClick={() => void handleNewFolder(contextMenu.path)}>
                 New folder

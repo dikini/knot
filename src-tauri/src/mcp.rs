@@ -5,11 +5,13 @@
 //! TRACE: DESIGN-mcp-server-core-tools-resources
 
 use crate::app_command::{AppCommand, UiCommand};
+use crate::commands::notes::build_note_data;
 use crate::core::VaultManager;
 use crate::ipc::IpcClient;
-use crate::note_type::{NoteTypeId, NoteTypeRegistry};
+use crate::note_type::NoteTypeRegistry;
 use crate::runtime::RuntimeHost;
 use crate::ui_automation::ui_automation_socket_path;
+use crate::youtube::{build_youtube_note_markdown, build_youtube_note_path, import_youtube_note};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::OpenOptions;
@@ -69,6 +71,7 @@ impl McpServer {
         matches!(
             name,
             "create_note"
+                | "create_youtube_note"
                 | "delete_note"
                 | "replace_note"
                 | "create_directory"
@@ -101,6 +104,7 @@ impl McpServer {
             "recursive",
             "expanded",
             "limit",
+            "base_folder_path",
         ] {
             if let Some(v) = obj.get(key) {
                 out.insert(key.to_string(), v.clone());
@@ -262,6 +266,18 @@ impl McpServer {
                             "content": { "type": "string" }
                         },
                         "required": ["path"]
+                    }
+                },
+                {
+                    "name": "create_youtube_note",
+                    "description": "Create a YouTube transcript note from a YouTube URL.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "base_folder_path": { "type": "string" },
+                            "url": { "type": "string" }
+                        },
+                        "required": ["base_folder_path", "url"]
                     }
                 },
                 {
@@ -645,57 +661,8 @@ impl McpServer {
                     let note = vault
                         .get_note(path)
                         .map_err(|e| (-32000, e.to_response_string()))?;
-                    let resolved =
-                        NoteTypeRegistry::default().resolve_path(&vault.root_path().join(path));
-                    let (headings, backlinks, content) = if resolved.note_type == NoteTypeId::Markdown {
-                        let note_headings = note.headings();
-                        let backlinks = vault
-                            .graph()
-                            .backlinks(path)
-                            .into_iter()
-                            .map(|(source, context)| {
-                                let source_title = vault
-                                    .get_note(&source)
-                                    .map(|source_note| source_note.title().to_string())
-                                    .unwrap_or_else(|_| {
-                                        std::path::PathBuf::from(&source)
-                                            .file_stem()
-                                            .map(|v| v.to_string_lossy().to_string())
-                                            .unwrap_or(source.clone())
-                                    });
-                                json!({
-                                    "source_path": source,
-                                    "source_title": source_title,
-                                    "context": context
-                                })
-                            })
-                            .collect::<Vec<_>>();
-                        let headings = note_headings
-                            .iter()
-                            .map(|h| json!({"level": h.level as u8, "text": h.text, "position": 0}))
-                            .collect::<Vec<_>>();
-                        (headings, backlinks, note.content().to_string())
-                    } else {
-                        (Vec::new(), Vec::new(), String::new())
-                    };
-
-                    Ok(json!({
-                        "id": note.id(),
-                        "path": note.path(),
-                        "title": note.title(),
-                        "content": content,
-                        "created_at": note.created_at(),
-                        "modified_at": note.modified_at(),
-                        "word_count": note.word_count(),
-                        "headings": headings,
-                        "backlinks": backlinks,
-                        "note_type": resolved.note_type,
-                        "available_modes": resolved.available_modes,
-                        "metadata": resolved.metadata,
-                        "type_badge": resolved.type_badge,
-                        "media": resolved.media,
-                        "is_dimmed": !resolved.is_known
-                    }))
+                    let data = build_note_data(vault.root_path(), vault, note);
+                    serde_json::to_value(data).map_err(|e| (-32000, e.to_string()))
                 })?;
 
                 Ok(json!({
@@ -787,21 +754,56 @@ impl McpServer {
                     let note = vault
                         .get_note(path)
                         .map_err(|e| (-32000, e.to_response_string()))?;
-                    Ok(json!({
-                        "id": note.id(),
-                        "path": note.path(),
-                        "title": note.title(),
-                        "content": note.content(),
-                        "created_at": note.created_at(),
-                        "modified_at": note.modified_at(),
-                        "word_count": note.word_count(),
-                        "headings": note
-                            .headings()
-                            .into_iter()
-                            .map(|h| json!({"level": h.level as u8, "text": h.text, "position": 0}))
-                            .collect::<Vec<_>>(),
-                        "backlinks": []
-                    }))
+                    let data = build_note_data(vault.root_path(), vault, note);
+                    serde_json::to_value(data).map_err(|e| (-32000, e.to_string()))
+                })?;
+
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "create_youtube_note" => {
+                let base_folder_path = arguments
+                    .get("base_folder_path")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: base_folder_path".to_string()))?;
+                let url = arguments
+                    .get("url")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: url".to_string()))?;
+
+                let imported = import_youtube_note(url).map_err(|message| (-32000, message))?;
+                let path = self.with_vault_mut(|vault| {
+                    let path = build_youtube_note_path(
+                        base_folder_path,
+                        &imported.title,
+                        &imported.parsed_url.video_id,
+                        |candidate| vault.get_note(candidate).is_ok(),
+                    );
+                    let markdown = build_youtube_note_markdown(
+                        &imported.title,
+                        &imported.description,
+                        &imported.parsed_url.watch_url,
+                        &imported.parsed_url.video_id,
+                        &imported.parsed_url.embed_url,
+                        &imported.parsed_url.thumbnail_url,
+                        &imported.transcript_language,
+                        &imported.transcript_source,
+                        &imported.transcript,
+                    );
+                    vault
+                        .save_note(&path, &markdown)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    Ok(path)
+                })?;
+
+                let payload = self.with_vault(|vault| {
+                    let note = vault
+                        .get_note(&path)
+                        .map_err(|e| (-32000, e.to_response_string()))?;
+                    let data = build_note_data(vault.root_path(), vault, note);
+                    serde_json::to_value(data).map_err(|e| (-32000, e.to_string()))
                 })?;
 
                 Ok(json!({
@@ -1856,6 +1858,7 @@ mod tests {
         assert!(names.contains(&"list_tags"));
         assert!(names.contains(&"graph_neighbors"));
         assert!(names.contains(&"create_note"));
+        assert!(names.contains(&"create_youtube_note"));
         assert!(names.contains(&"delete_note"));
         assert!(names.contains(&"replace_note"));
         assert!(names.contains(&"create_directory"));

@@ -930,6 +930,30 @@ mod tests {
     }
 
     #[test]
+    fn note_type_registry_recognizes_youtube_markdown_suffix() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let vault = VaultManager::create(&vault_path).unwrap();
+        std::fs::create_dir_all(vault.root_path().join("clips")).unwrap();
+
+        std::fs::write(
+            vault.root_path().join("clips/sample-video.youtube.md"),
+            "# Sample Video\n\nTranscript",
+        )
+        .unwrap();
+
+        let files = vault.scan_visible_files().unwrap();
+        assert!(files.contains(&"clips/sample-video.youtube.md".to_string()));
+
+        let note_types = NoteTypeRegistry::default();
+        let resolved = note_types.resolve_path(&vault.root_path().join("clips/sample-video.youtube.md"));
+        assert_eq!(resolved.note_type, NoteTypeId::YouTube);
+        assert_eq!(resolved.type_badge.as_deref(), Some("YT"));
+        assert!(resolved.available_modes.edit);
+        assert!(resolved.available_modes.view);
+    }
+
+    #[test]
     fn list_notes_includes_non_markdown_files_as_synthetic_notes() {
         let temp = TempDir::new().unwrap();
         let vault_path = temp.path().join("test-vault");

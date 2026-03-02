@@ -28,6 +28,7 @@ pub mod search;
 pub mod state;
 pub mod ui_automation;
 pub mod watcher;
+pub mod youtube;
 
 // Plugin system (conditionally compiled)
 #[cfg(feature = "plugins")]

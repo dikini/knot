@@ -5,6 +5,8 @@ use std::path::Path;
 #[serde(rename_all = "snake_case")]
 pub enum NoteTypeId {
     Markdown,
+    #[serde(rename = "youtube")]
+    YouTube,
     Image,
     Unknown,
 }
@@ -30,7 +32,7 @@ pub struct NoteTypeMetadata {
 
 pub trait NoteTypePlugin: Send + Sync {
     fn note_type(&self) -> NoteTypeId;
-    fn supports_extension(&self, extension: &str) -> bool;
+    fn matches_path(&self, path: &Path, extension: &str) -> bool;
     fn badge_for_extension(&self, extension: &str) -> Option<String>;
     fn media_for_path(&self, path: &Path) -> Option<NoteMediaData>;
     fn available_modes(&self) -> NoteModeAvailability;
@@ -43,12 +45,54 @@ impl NoteTypePlugin for MarkdownNoteTypePlugin {
         NoteTypeId::Markdown
     }
 
-    fn supports_extension(&self, extension: &str) -> bool {
+    fn matches_path(&self, path: &Path, extension: &str) -> bool {
+        if path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .map(|value| value.to_ascii_lowercase().ends_with(".youtube.md"))
+            .unwrap_or(false)
+        {
+            return false;
+        }
         extension.eq_ignore_ascii_case("md")
     }
 
     fn badge_for_extension(&self, _extension: &str) -> Option<String> {
         None
+    }
+
+    fn media_for_path(&self, _path: &Path) -> Option<NoteMediaData> {
+        None
+    }
+
+    fn available_modes(&self) -> NoteModeAvailability {
+        NoteModeAvailability {
+            meta: true,
+            source: true,
+            edit: true,
+            view: true,
+        }
+    }
+}
+
+struct YouTubeNoteTypePlugin;
+
+impl NoteTypePlugin for YouTubeNoteTypePlugin {
+    fn note_type(&self) -> NoteTypeId {
+        NoteTypeId::YouTube
+    }
+
+    fn matches_path(&self, path: &Path, extension: &str) -> bool {
+        extension.eq_ignore_ascii_case("md")
+            && path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .map(|value| value.to_ascii_lowercase().ends_with(".youtube.md"))
+                .unwrap_or(false)
+    }
+
+    fn badge_for_extension(&self, _extension: &str) -> Option<String> {
+        Some("YT".to_string())
     }
 
     fn media_for_path(&self, _path: &Path) -> Option<NoteMediaData> {
@@ -87,7 +131,7 @@ impl NoteTypePlugin for ImageNoteTypePlugin {
         NoteTypeId::Image
     }
 
-    fn supports_extension(&self, extension: &str) -> bool {
+    fn matches_path(&self, _path: &Path, extension: &str) -> bool {
         Self::mime_for_extension(extension).is_some()
     }
 
@@ -123,6 +167,7 @@ impl Default for NoteTypeRegistry {
     fn default() -> Self {
         Self {
             plugins: vec![
+                Box::new(YouTubeNoteTypePlugin),
                 Box::new(MarkdownNoteTypePlugin),
                 Box::new(ImageNoteTypePlugin),
             ],
@@ -149,7 +194,7 @@ impl NoteTypeRegistry {
             .to_ascii_lowercase();
 
         for plugin in &self.plugins {
-            if plugin.supports_extension(&extension) {
+            if plugin.matches_path(path, &extension) {
                 return ResolvedNoteType {
                     note_type: plugin.note_type(),
                     type_badge: plugin.badge_for_extension(&extension),
@@ -181,4 +226,8 @@ impl NoteTypeRegistry {
             metadata: NoteTypeMetadata::default(),
         }
     }
+}
+
+pub fn note_type_has_text_content(note_type: NoteTypeId) -> bool {
+    matches!(note_type, NoteTypeId::Markdown | NoteTypeId::YouTube)
 }

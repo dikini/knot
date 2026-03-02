@@ -34,8 +34,9 @@
       "csp": {
         "default-src": "'self'",
         "connect-src": "'self' ipc://localhost",
-        "img-src": "'self' asset: http://asset.localhost blob: data:",
-        "style-src": "'self' 'unsafe-inline'"
+        "img-src": "'self' asset: http://asset.localhost blob: data: https://i.ytimg.com",
+        "style-src": "'self' 'unsafe-inline'",
+        "frame-src": "'self' https://www.youtube.com https://www.youtube-nocookie.com"
       }
     }
   },

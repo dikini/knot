@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
+import { open as openExternal } from "@tauri-apps/plugin-shell";
 import { initProseMirrorEditor } from "@editor/index";
 import {
   canRedoHistory,
@@ -53,6 +54,7 @@ import {
 } from "lucide-react";
 import { toggleMark, wrapIn, setBlockType } from "prosemirror-commands";
 import { Selection, TextSelection, type Command } from "prosemirror-state";
+import { flushSync } from "react-dom";
 import { schema } from "@editor/schema";
 import type { ProseMirrorEditor } from "../../types/editor";
 import type { NoteModeAvailability } from "../../types/vault";
@@ -61,13 +63,14 @@ import "./Editor.css";
 const UI_AUTOMATION_EDITOR_REQUEST_EVENT = "ui-automation-editor-request";
 const UI_AUTOMATION_EDITOR_RESULT_EVENT = "ui-automation-editor-result";
 
-type UiAutomationEditorMode = "view" | "edit" | "source";
+type UiAutomationEditorMode = "meta" | "view" | "edit" | "source";
 
 interface UiAutomationEditorRequestDetail {
   requestId: string;
-  behaviorId: string;
+  actionId?: string;
+  behaviorId?: string;
   path: string;
-  taskIndex: number;
+  taskIndex?: number;
   mode?: UiAutomationEditorMode;
 }
 
@@ -166,6 +169,21 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     [currentNote]
   );
   const currentNoteType = currentNote?.note_type ?? "markdown";
+  const isViewOnlyNoteType = currentNoteType === "image" || currentNoteType === "unknown";
+  const youtubeMetadata = useMemo(() => {
+    const extra = currentNote?.metadata?.extra ?? {};
+    if (currentNoteType !== "youtube") {
+      return null;
+    }
+    return {
+      title:
+        typeof extra.youtube_title === "string" && extra.youtube_title.trim().length > 0
+          ? extra.youtube_title
+          : currentNote?.title ?? "YouTube Video",
+      watchUrl: typeof extra.youtube_url === "string" ? extra.youtube_url : "",
+      thumbnailUrl: typeof extra.youtube_thumbnail_url === "string" ? extra.youtube_thumbnail_url : "",
+    };
+  }, [currentNote?.metadata?.extra, currentNote?.title, currentNoteType]);
   const imageSrc =
     currentNoteType === "image" && currentNote?.media?.file_path
       ? toRenderableFileSrc(currentNote.media.file_path)
@@ -216,7 +234,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       setEditorMode(defaultEditorMode(noteModeAvailability));
       return;
     }
-    if (currentNoteType !== "markdown") {
+    if (isViewOnlyNoteType) {
       setEditorMode("view");
       return;
     }
@@ -229,7 +247,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       return;
     }
     setEditorMode(defaultEditorMode(noteModeAvailability));
-  }, [currentNoteType, noteModeAvailability, noteScopedModeKey]);
+  }, [isViewOnlyNoteType, noteModeAvailability, noteScopedModeKey]);
 
   useEffect(() => {
     if (!noteScopedModeKey) return;
@@ -746,6 +764,18 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     }
   }, [currentNote, effectiveRawMarkdown, isDirty, markDirty, metaValidationError, setCurrentNote]);
 
+  const handleOpenYouTube = useCallback(async () => {
+    const watchUrl = youtubeMetadata?.watchUrl;
+    if (!watchUrl) {
+      return;
+    }
+    try {
+      await openExternal(watchUrl);
+    } catch (error) {
+      console.error("Failed to open YouTube video externally", error);
+    }
+  }, [youtubeMetadata?.watchUrl]);
+
   useEffect(() => {
     const handleManagedKeyDown = (event: KeyboardEvent) => {
       if (matchesShortcutEvent(event, appKeymapSettings.keymaps.general.save_note)) {
@@ -814,7 +844,59 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     const handleUiAutomationRequest = async (event: Event) => {
       const custom = event as CustomEvent<UiAutomationEditorRequestDetail>;
       const detail = custom.detail;
-      if (!detail || detail.behaviorId !== "core.task.toggle") {
+      if (!detail) {
+        return;
+      }
+
+      if (detail.actionId === "core.select.editor-mode") {
+        if (!currentNote || currentNote.path !== detail.path) {
+          emitResult({
+            requestId: detail.requestId,
+            success: false,
+            message: "Editor note context is not ready for mode automation",
+            errorCode: "UI_TARGET_UNAVAILABLE",
+          });
+          return;
+        }
+
+        const targetMode = detail.mode;
+        if (targetMode !== "meta" && targetMode !== "view" && targetMode !== "edit" && targetMode !== "source") {
+          emitResult({
+            requestId: detail.requestId,
+            success: false,
+            message: "Invalid editor mode",
+            errorCode: "UI_ACTION_INVALID_ARGUMENTS",
+          });
+          return;
+        }
+        if (!noteModeAvailability[targetMode]) {
+          emitResult({
+            requestId: detail.requestId,
+            success: false,
+            message: `Editor mode is unavailable: ${targetMode}`,
+            errorCode: "UI_TARGET_UNAVAILABLE",
+          });
+          return;
+        }
+
+        flushSync(() => {
+          handleModeChange(targetMode);
+        });
+        await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
+        emitResult({
+          requestId: detail.requestId,
+          success: true,
+          message: `Switched editor mode to ${targetMode}`,
+          payload: {
+            active_note_path: currentNote.path,
+            active_view: "view.editor",
+            editor_mode: targetMode,
+          },
+        });
+        return;
+      }
+
+      if (detail.behaviorId !== "core.task.toggle") {
         return;
       }
 
@@ -829,7 +911,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       }
 
       const targetMode = detail.mode ?? "view";
-      if (targetMode !== "view" && targetMode !== "edit" && targetMode !== "source") {
+      if (targetMode !== "meta" && targetMode !== "view" && targetMode !== "edit" && targetMode !== "source") {
         emitResult({
           requestId: detail.requestId,
           success: false,
@@ -849,12 +931,23 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       }
 
       const sourceMarkdown = useEditorStore.getState().content || currentNote.content || "";
-      const nextBody = toggleTaskListItemInMarkdown(getBodyMarkdown(sourceMarkdown), detail.taskIndex);
+      if (!Number.isInteger(detail.taskIndex) || Number(detail.taskIndex) < 0) {
+        emitResult({
+          requestId: detail.requestId,
+          success: false,
+          message: "taskIndex must be a non-negative integer",
+          errorCode: "UI_ACTION_INVALID_ARGUMENTS",
+        });
+        return;
+      }
+
+      const taskIndex = Number(detail.taskIndex);
+      const nextBody = toggleTaskListItemInMarkdown(getBodyMarkdown(sourceMarkdown), taskIndex);
       if (!nextBody) {
         emitResult({
           requestId: detail.requestId,
           success: false,
-          message: `Task index not found: ${detail.taskIndex}`,
+          message: `Task index not found: ${taskIndex}`,
           errorCode: "UI_TARGET_NOT_FOUND",
         });
         return;
@@ -865,14 +958,16 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
         managed: metadataDraftRef.current,
         extraYaml: extraMetadataYamlRef.current,
       });
-      handleModeChange(targetMode);
-      setContent(serialized);
-      useEditorStore.setState((previous) => ({
-        ...previous,
-        content: serialized,
-        isDirty: true,
-      }));
-      markDirty(true);
+      flushSync(() => {
+        handleModeChange(targetMode);
+        setContent(serialized);
+        useEditorStore.setState((previous) => ({
+          ...previous,
+          content: serialized,
+          isDirty: true,
+        }));
+        markDirty(true);
+      });
 
       if (targetMode === "edit" && pmRef.current) {
         pmRef.current.setMarkdown(nextBody);
@@ -887,7 +982,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
         payload: {
           active_note_path: currentNote.path,
           editor_mode: targetMode,
-          task_index: detail.taskIndex,
+          task_index: taskIndex,
         },
       });
     };
@@ -1053,7 +1148,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       </div>
       {editorMode === "meta" && (
         <div className="editor-container editor-container--meta">
-          {currentNoteType !== "markdown" ? (
+          {isViewOnlyNoteType ? (
             <div className="editor-meta-empty">
               <p>No metadata fields are available for this note type yet.</p>
             </div>
@@ -1140,6 +1235,15 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       )}
       {editorMode === "edit" && (
         <div ref={editContainerRef} className="editor-container editor-container--edit">
+          {currentNoteType === "youtube" && youtubeMetadata?.thumbnailUrl ? (
+            <div className="editor-youtube-card editor-youtube-card--thumbnail editor-youtube-card--edit">
+              <img
+                className="editor-youtube-card__thumbnail"
+                src={youtubeMetadata.thumbnailUrl}
+                alt={`${youtubeMetadata.title} thumbnail`}
+              />
+            </div>
+          ) : null}
           <div ref={editorRef} className="editor-edit-host" />
           {selectionToolbar.visible && (
             <div
@@ -1437,7 +1541,30 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       )}
       {editorMode === "view" && (
         <div className="editor-container editor-container--view">
-          {currentNoteType === "image" && imageSrc ? (
+          {currentNoteType === "youtube" && youtubeMetadata ? (
+            <>
+              {youtubeMetadata.thumbnailUrl ? (
+                <button
+                  type="button"
+                  className="editor-youtube-card editor-youtube-card--link editor-youtube-card--view"
+                  aria-label={`Open ${youtubeMetadata.title} on YouTube`}
+                  onClick={() => void handleOpenYouTube()}
+                >
+                  <img
+                    className="editor-youtube-card__thumbnail"
+                    src={youtubeMetadata.thumbnailUrl}
+                    alt={`${youtubeMetadata.title} thumbnail`}
+                  />
+                </button>
+              ) : null}
+              <article
+                ref={viewArticleRef}
+                className="editor-view-markdown"
+                onClick={handleRenderedMarkdownClick}
+                dangerouslySetInnerHTML={{ __html: renderedHtml }}
+              />
+            </>
+          ) : currentNoteType === "image" && imageSrc ? (
             <div className="editor-media-view">
               <img
                 className="editor-media-view__image"

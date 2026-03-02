@@ -8,10 +8,14 @@ import * as api from "@lib/api";
 import { schema } from "@editor/schema";
 
 const mockInitProseMirrorEditor = vi.fn();
+const mockShellOpen = vi.fn();
 
 vi.mock("@lib/api");
 vi.mock("@editor/index", () => ({
   initProseMirrorEditor: (...args: unknown[]) => mockInitProseMirrorEditor(...args),
+}));
+vi.mock("@tauri-apps/plugin-shell", () => ({
+  open: (...args: unknown[]) => mockShellOpen(...args),
 }));
 
 function installTaskRoundtripStore(markdown: string, path = "test.md") {
@@ -235,6 +239,142 @@ describe("Editor Component", () => {
       expect(screen.getByRole("tab", { name: "View" })).toHaveAttribute("aria-selected", "true");
       expect(screen.queryByLabelText("Description")).not.toBeInTheDocument();
       expect(screen.getByRole("img", { name: "photo" })).toBeInTheDocument();
+    });
+
+    it("renders a thumbnail header in edit mode for YouTube notes", () => {
+      const youtubeNote = {
+        id: "yt-1",
+        path: "clips/sample-video.youtube.md",
+        title: "Sample Video",
+        content: "---\nyoutube_url: https://www.youtube.com/watch?v=abc123xyz00\nyoutube_embed_url: https://www.youtube.com/embed/abc123xyz00\nyoutube_thumbnail_url: https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg\n---\n# Sample Video\n\nTranscript body",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 3,
+        headings: [],
+        backlinks: [],
+        note_type: "youtube",
+        available_modes: {
+          meta: true,
+          source: true,
+          edit: true,
+          view: true,
+        },
+        metadata: {
+          extra: {
+            youtube_url: "https://www.youtube.com/watch?v=abc123xyz00",
+            youtube_embed_url: "https://www.youtube.com/embed/abc123xyz00",
+            youtube_thumbnail_url: "https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg",
+            youtube_title: "Sample Video",
+          },
+        },
+      };
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: youtubeNote as never,
+      });
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: youtubeNote.content,
+        isDirty: false,
+      });
+
+      render(<Editor />);
+
+      expect(screen.getByRole("tab", { name: "Edit" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getByAltText("Sample Video thumbnail")).toBeInTheDocument();
+      expect(screen.queryByTitle("Sample Video player")).not.toBeInTheDocument();
+    });
+
+    it("renders a clickable thumbnail in view mode for YouTube notes", () => {
+      const youtubeNote = {
+        id: "yt-2",
+        path: "clips/sample-video.youtube.md",
+        title: "Sample Video",
+        content: "---\nyoutube_url: https://www.youtube.com/watch?v=abc123xyz00\nyoutube_embed_url: https://www.youtube.com/embed/abc123xyz00\nyoutube_thumbnail_url: https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg\n---\n# Sample Video\n\nTranscript body",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 3,
+        headings: [],
+        backlinks: [],
+        note_type: "youtube",
+        available_modes: {
+          meta: true,
+          source: true,
+          edit: true,
+          view: true,
+        },
+        metadata: {
+          extra: {
+            youtube_url: "https://www.youtube.com/watch?v=abc123xyz00",
+            youtube_embed_url: "https://www.youtube.com/embed/abc123xyz00",
+            youtube_thumbnail_url: "https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg",
+            youtube_title: "Sample Video",
+          },
+        },
+      };
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: youtubeNote as never,
+      });
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: youtubeNote.content,
+        isDirty: false,
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      expect(screen.getByAltText("Sample Video thumbnail")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Open Sample Video on YouTube" })).toBeInTheDocument();
+    });
+
+    it("opens YouTube when the thumbnail is clicked in view mode", async () => {
+      const youtubeNote = {
+        id: "yt-3",
+        path: "clips/sample-video.youtube.md",
+        title: "Sample Video",
+        content: "---\nyoutube_url: https://www.youtube.com/watch?v=abc123xyz00\nyoutube_embed_url: https://www.youtube.com/embed/abc123xyz00\nyoutube_thumbnail_url: https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg\n---\n# Sample Video\n\nTranscript body",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 3,
+        headings: [],
+        backlinks: [],
+        note_type: "youtube",
+        available_modes: {
+          meta: true,
+          source: true,
+          edit: true,
+          view: true,
+        },
+        metadata: {
+          extra: {
+            youtube_url: "https://www.youtube.com/watch?v=abc123xyz00",
+            youtube_embed_url: "https://www.youtube.com/embed/abc123xyz00",
+            youtube_thumbnail_url: "https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg",
+            youtube_title: "Sample Video",
+          },
+        },
+      };
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: youtubeNote as never,
+      });
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: youtubeNote.content,
+        isDirty: false,
+      });
+
+      render(<Editor />);
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      const button = screen.getByRole("button", { name: "Open Sample Video on YouTube" });
+      fireEvent.click(button);
+      expect(mockShellOpen).toHaveBeenCalledWith("https://www.youtube.com/watch?v=abc123xyz00");
     });
 
     it("disables toolbar history buttons when edit history is unavailable", () => {

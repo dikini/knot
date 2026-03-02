@@ -4,7 +4,7 @@
 //! SPEC: COMP-GRAPH-001 FR-6
 
 use crate::commands::emit_event;
-use crate::note_type::{NoteTypeId, NoteTypeRegistry};
+use crate::note_type::{note_type_has_text_content, NoteTypeId, NoteTypeRegistry};
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -18,6 +18,9 @@ use crate::state::response::{
 };
 use crate::knotd_client;
 use crate::state::AppState;
+use crate::youtube::{
+    build_youtube_note_markdown, build_youtube_note_path, extract_youtube_metadata, import_youtube_note,
+};
 
 #[derive(Debug, Clone, Serialize)]
 struct TreeChangedEventPayload {
@@ -276,6 +279,77 @@ pub async fn create_note(
                     changed_count: 1,
                 },
             );
+            Ok(data)
+        }
+        None => Err("No vault is open".to_string()),
+    }
+}
+
+/// SPEC: COMP-YOUTUBE-NOTE-TYPE-015 FR-1, FR-2, FR-3, FR-4
+/// Create a YouTube transcript note from a public YouTube URL.
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn create_youtube_note(
+    base_folder_path: String,
+    url: String,
+    window: Window,
+    state: State<'_, AppState>,
+) -> Result<NoteData, String> {
+    if state.is_daemon_mode() {
+        let payload = knotd_client::call_tool_typed(
+            "create_youtube_note",
+            serde_json::json!({ "base_folder_path": base_folder_path, "url": url }),
+        )
+        .map_err(|e| e.to_response_string())?;
+        emit_event(
+            &window,
+            "vault://tree-changed",
+            TreeChangedEventPayload {
+                reason: "create-youtube-note",
+                changed_count: 1,
+            },
+        );
+        return Ok(payload);
+    }
+
+    let mut vault_guard = state.vault().lock().await;
+    match vault_guard.as_mut() {
+        Some(vault) => {
+            let imported = import_youtube_note(&url)?;
+            let path = build_youtube_note_path(
+                &base_folder_path,
+                &imported.title,
+                &imported.parsed_url.video_id,
+                |candidate| vault.get_note(candidate).is_ok(),
+            );
+            let markdown = build_youtube_note_markdown(
+                &imported.title,
+                &imported.description,
+                &imported.parsed_url.watch_url,
+                &imported.parsed_url.video_id,
+                &imported.parsed_url.embed_url,
+                &imported.parsed_url.thumbnail_url,
+                &imported.transcript_language,
+                &imported.transcript_source,
+                &imported.transcript,
+            );
+
+            vault
+                .save_note(&path, &markdown)
+                .map_err(|e| e.to_response_string())?;
+
+            let note = vault.get_note(&path).map_err(|e| e.to_response_string())?;
+            let data = build_note_data(vault.root_path(), vault, note);
+
+            emit_event(
+                &window,
+                "vault://tree-changed",
+                TreeChangedEventPayload {
+                    reason: "create-youtube-note",
+                    changed_count: 1,
+                },
+            );
+            info!(path, "youtube note created");
             Ok(data)
         }
         None => Err("No vault is open".to_string()),
@@ -788,13 +862,13 @@ fn note_to_summary(vault_root: &Path, meta: crate::note::NoteMeta) -> NoteSummar
     }
 }
 
-fn build_note_data(
+pub(crate) fn build_note_data(
     vault_root: &Path,
     vault: &crate::core::VaultManager,
     note: crate::note::Note,
 ) -> NoteData {
-    let resolved = NoteTypeRegistry::default().resolve_path(&vault_root.join(note.path()));
-    let (headings, backlinks, content) = if resolved.note_type == NoteTypeId::Markdown {
+    let mut resolved = NoteTypeRegistry::default().resolve_path(&vault_root.join(note.path()));
+    let (headings, backlinks, content) = if note_type_has_text_content(resolved.note_type) {
         let note_headings = note.headings();
         let heading_positions = compute_heading_positions(note.content(), &note_headings);
         let headings = note_headings
@@ -823,6 +897,10 @@ fn build_note_data(
     } else {
         (Vec::new(), Vec::new(), String::new())
     };
+
+    if resolved.note_type == NoteTypeId::YouTube {
+        resolved.metadata.extra = extract_youtube_metadata(&content);
+    }
 
     NoteData {
         id: note.id().to_string(),

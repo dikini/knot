@@ -426,6 +426,41 @@ describe("API Client", () => {
       });
       expect(result).toEqual(mockNote);
     });
+
+    it("should create a YouTube note", async () => {
+      const mockNote = {
+        id: "yt-1",
+        path: "clips/sample-video.youtube.md",
+        title: "Sample Video",
+        content: "# Sample Video\n\nTranscript",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 2,
+        headings: [],
+        backlinks: [],
+        note_type: "youtube",
+        available_modes: { meta: true, source: true, edit: true, view: true },
+        metadata: {
+          extra: {
+            youtube_url: "https://www.youtube.com/watch?v=abc123xyz00",
+            youtube_video_id: "abc123xyz00",
+          },
+        },
+        type_badge: "YT",
+        media: null,
+        is_dimmed: false,
+      };
+
+      vi.mocked(invoke).mockResolvedValue(mockNote);
+
+      const result = await api.createYouTubeNote("clips", "https://www.youtube.com/watch?v=abc123xyz00");
+
+      expect(invoke).toHaveBeenCalledWith("create_youtube_note", {
+        baseFolderPath: "clips",
+        url: "https://www.youtube.com/watch?v=abc123xyz00",
+      });
+      expect(result).toEqual(mockNote);
+    });
   });
 
   describe("Search Operations", () => {

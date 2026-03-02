@@ -455,6 +455,17 @@ export async function createNote(path: string, content?: string): Promise<NoteDa
 }
 
 /**
+ * Create a new YouTube transcript note inside a folder.
+ */
+export async function createYouTubeNote(baseFolderPath: string, url: string): Promise<NoteData> {
+  try {
+    return await invoke<NoteData>("create_youtube_note", { baseFolderPath, url });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
  * Get explorer tree (folders + notes).
  */
 export async function getExplorerTree(): Promise<ExplorerTree> {

@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import App from "./App";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
 
+const mockListen = vi.fn(async (..._args: unknown[]) => () => {});
+
 vi.mock("@tauri-apps/api/event", () => ({
-  listen: vi.fn(async () => () => {}),
+  listen: (...args: unknown[]) => mockListen(...args),
 }));
 
 const mockLoadNote = vi.fn();
@@ -201,8 +203,38 @@ vi.mock("@components/Editor", () => ({
   Editor: () => {
     useEffect(() => {
       editorMountCount += 1;
+      const handleUiAutomationRequest = (event: Event) => {
+        const custom = event as CustomEvent<{
+          requestId: string;
+          actionId?: string;
+          path: string;
+          mode?: "meta" | "source" | "edit" | "view";
+        }>;
+
+        if (custom.detail?.actionId !== "core.select.editor-mode") {
+          return;
+        }
+
+        window.dispatchEvent(
+          new CustomEvent("ui-automation-editor-result", {
+            detail: {
+              requestId: custom.detail.requestId,
+              success: true,
+              message: `Switched editor mode to ${custom.detail.mode ?? "view"}`,
+              payload: {
+                active_note_path: custom.detail.path,
+                active_view: "view.editor",
+                editor_mode: custom.detail.mode ?? "view",
+              },
+            },
+          })
+        );
+      };
+
+      window.addEventListener("ui-automation-editor-request", handleUiAutomationRequest as EventListener);
       return () => {
         editorUnmountCount += 1;
+        window.removeEventListener("ui-automation-editor-request", handleUiAutomationRequest as EventListener);
       };
     }, []);
     return <div data-testid="editor-view">Editor</div>;
@@ -251,6 +283,7 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    mockListen.mockClear();
     editorMountCount = 0;
     editorUnmountCount = 0;
     mockStoreState.vault = { path: "/tmp/vault", name: "vault", note_count: 0, last_modified: 0 };
@@ -468,6 +501,64 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
     expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("notes");
     expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("search");
     expect(mockStoreState.setShellToolMode).toHaveBeenCalledWith("graph");
+  });
+
+  it("handles semantic editor mode automation requests", async () => {
+    mockStoreState.currentNote = {
+      id: "n-yt",
+      path: "knot/demo.youtube.md",
+      title: "Demo",
+      content: "body",
+      created_at: 0,
+      modified_at: 0,
+      word_count: 1,
+      headings: [],
+      backlinks: [],
+      available_modes: {
+        meta: true,
+        source: true,
+        edit: true,
+        view: true,
+      },
+    } as typeof mockStoreState.currentNote;
+
+    const api = await import("@lib/api");
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockListen).toHaveBeenCalled();
+    });
+
+    const automationCall = mockListen.mock.calls.find((call) => call[0] === "ui-automation://request");
+    expect(automationCall).toBeTruthy();
+
+    const handler = automationCall?.[1] as unknown as (event: {
+      payload: {
+        kind: "invoke_action";
+        request_id: string;
+        action_id: string;
+        args: Record<string, unknown>;
+      };
+    }) => Promise<void>;
+
+    await handler({
+      payload: {
+        kind: "invoke_action",
+        request_id: "req-editor-mode",
+        action_id: "core.select.editor-mode",
+        args: { mode: "meta" },
+      },
+    });
+
+    expect(api.completeUiAutomationRequest).toHaveBeenCalledWith("req-editor-mode", {
+      success: true,
+      message: "Switched editor mode to meta",
+      payload: {
+        active_note_path: "knot/demo.youtube.md",
+        active_view: "view.editor",
+        editor_mode: "meta",
+      },
+    });
   });
 
   it("uses custom persisted tool-switch shortcuts instead of hard-coded defaults", async () => {

@@ -1,0 +1,37 @@
+spec: docs/specs/component/youtube-note-type-015.md
+tasks:
+  - id: YT-001
+    title: Add failing backend and frontend tests for YouTube note typing, creation, and rendering
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-8, FR-9, FR-10, FR-11, FR-12]
+    dependencies: []
+    acceptance: Targeted tests fail before implementation and cover note-type resolution, creation flows, and mode rendering.
+  - id: YT-002
+    title: Implement backend YouTube import pipeline and .youtube.md note-type resolution
+    status: planned
+    size: L
+    spec_refs: [FR-1, FR-5, FR-6, FR-7, FR-10, FR-11]
+    dependencies: [YT-001]
+    acceptance: Backend imports YouTube notes without downloading video bytes and persists transcript-backed note content.
+  - id: YT-003
+    title: Add Tauri/API command wiring for YouTube note creation in embedded and daemon paths
+    status: planned
+    size: M
+    spec_refs: [FR-3, FR-4, FR-11]
+    dependencies: [YT-002]
+    acceptance: Frontend can invoke YouTube note creation in both runtime modes.
+  - id: YT-004
+    title: Implement sidebar URL creation, external URL drop import, and editor rendering for YouTube notes
+    status: planned
+    size: L
+    spec_refs: [FR-2, FR-3, FR-4, FR-8, FR-9, FR-10]
+    dependencies: [YT-003]
+    acceptance: Users can create/open YouTube notes and see thumbnail/player behavior in the correct modes.
+  - id: YT-005
+    title: Run targeted verification and publish audit artifact updates
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12]
+    dependencies: [YT-004]
+    acceptance: Verification commands and audit artifact record pass/fail status for the workstream.

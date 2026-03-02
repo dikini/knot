@@ -131,6 +131,20 @@ export function buildUiAutomationRegistry(): {
           required: ["toolMode"],
         },
       },
+      {
+        id: "core.select.editor-mode",
+        label: "Select editor mode",
+        description: "Switch the current note surface between metadata, source, edit, and view modes.",
+        origin: "core",
+        available: true,
+        input_schema: {
+          type: "object",
+          properties: {
+            mode: { type: "string", enum: ["meta", "source", "edit", "view"] },
+          },
+          required: ["mode"],
+        },
+      },
     ],
     views: [
       {
