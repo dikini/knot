@@ -39,6 +39,16 @@ const meta = {
     onApplyAppKeymapSettings: fn(),
     onResetAppKeymapField: fn(),
     onResetAllAppKeymaps: fn(),
+    uiAutomationSettings: {
+      enabled: false,
+      groups: {
+        navigation: false,
+        screenshots: false,
+        behaviors: false,
+      },
+    },
+    isUiAutomationSettingsLoading: false,
+    onUpdateUiAutomationSettings: fn(async () => {}),
   },
 } satisfies Meta<typeof SettingsPane>;
 

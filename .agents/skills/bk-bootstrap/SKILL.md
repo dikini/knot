@@ -43,6 +43,12 @@ Do you know exactly what to build?
 | **bk-verify** | Check spec compliance | Compliance report |
 | **bk-ship** | Prepare release | Release artifacts |
 
+### Specialized Research Skills
+
+| Skill | Use When | Output |
+|-------|----------|--------|
+| **tauri-plugin-catalog** | Need a normalized inventory of public Tauri plugins | Catalog with metadata |
+
 ### Implementation Skills (Writing Code)
 
 | Skill | Use When | Output |
@@ -130,6 +136,7 @@ bk-verify --scope=full → bk-ship
 |--------------|-----|
 | Understand what to build | `bk-explore` |
 | Research options | `bk-research` |
+| Catalog public Tauri plugins | `tauri-plugin-catalog` |
 | Evaluate approaches | `bk-ideate` |
 | Write a spec | `bk-design` |
 | Plan implementation | `bk-plan` |

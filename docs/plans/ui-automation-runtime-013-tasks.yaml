@@ -1,0 +1,58 @@
+trace: DESIGN-ui-automation-runtime-013
+spec: docs/specs/component/ui-automation-runtime-013.md
+tasks:
+  - id: UAR-001
+    title: "Register UI automation runtime artifacts in spec map and roadmap"
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-3]
+    dependencies: []
+    acceptance: "Spec registry and roadmap include the new component"
+
+  - id: UAR-002
+    title: "Define registry and dispatcher contracts for actions and views"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-9, FR-10]
+    dependencies: [UAR-001]
+    acceptance: "Runtime can register and enumerate normalized UI automation entries"
+
+  - id: UAR-003
+    title: "Expose MCP UI automation tools with typed errors"
+    status: planned
+    size: M
+    spec_refs: [FR-3, FR-7, FR-8, FR-9]
+    dependencies: [UAR-002]
+    acceptance: "MCP surfaces list/invoke/state/capture UI tools with schema validation and typed failures"
+
+  - id: UAR-004
+    title: "Implement screenshot capture and artifact metadata responses"
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5]
+    dependencies: [UAR-002]
+    acceptance: "Supported targets yield saved screenshot metadata through MCP"
+
+  - id: UAR-005
+    title: "Register core first-party views and navigation actions"
+    status: planned
+    size: M
+    spec_refs: [FR-2, FR-6, FR-10]
+    dependencies: [UAR-002, UAR-003]
+    acceptance: "At least one core navigation flow works through the registry-backed runtime"
+
+  - id: UAR-006
+    title: "Add tests for registry behavior, MCP tooling, and screenshot flow"
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-3, FR-4, FR-5, FR-7, FR-8, FR-9]
+    dependencies: [UAR-003, UAR-004, UAR-005]
+    acceptance: "Failing tests become passing coverage for the new runtime contract"
+
+  - id: UAR-007
+    title: "Verify compliance and update audit artifacts"
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10]
+    dependencies: [UAR-006]
+    acceptance: "Verification artifact documents compliance against the component spec"

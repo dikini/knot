@@ -4,6 +4,7 @@
 //! application.
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 /// Root command namespace for app-level IPC commands.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,6 +43,20 @@ pub enum UiCommand {
     SetWindowState { state: WindowState },
     /// Take a screenshot (placeholder for coordination)
     TakeScreenshot { name: String },
+    /// List registered automation actions.
+    ListAutomationActions,
+    /// List registered automation views.
+    ListAutomationViews,
+    /// Return compact UI automation state.
+    GetAutomationState,
+    /// Invoke a semantic UI automation action.
+    InvokeAutomationAction { action_id: String, args: Value },
+    /// Capture a UI screenshot for a semantic target.
+    CaptureAutomationScreenshot {
+        target: String,
+        target_id: Option<String>,
+        name: Option<String>,
+    },
 }
 
 /// Resource command namespace.
@@ -76,6 +91,7 @@ pub enum WindowState {
 pub struct CommandResult {
     pub success: bool,
     pub message: String,
+    pub payload: Option<Value>,
 }
 
 #[cfg(test)]

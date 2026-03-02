@@ -16,6 +16,36 @@ pub struct AppKeymapSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UiAutomationSettings {
+    #[serde(default)]
+    pub enabled: bool,
+
+    #[serde(default)]
+    pub groups: UiAutomationGroups,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct UiAutomationGroups {
+    #[serde(default)]
+    pub navigation: bool,
+
+    #[serde(default)]
+    pub screenshots: bool,
+
+    #[serde(default)]
+    pub behaviors: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+struct AppConfigFile {
+    #[serde(flatten)]
+    keymap_settings: AppKeymapSettings,
+
+    #[serde(default)]
+    ui_automation: UiAutomationSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ManagedKeymapSections {
     #[serde(default)]
     pub general: GeneralKeymapSettings,
@@ -107,6 +137,22 @@ impl Default for GraphUiSettings {
     }
 }
 
+impl Default for UiAutomationSettings {
+    fn default() -> Self {
+        default_ui_automation_settings()
+    }
+}
+
+impl Default for UiAutomationGroups {
+    fn default() -> Self {
+        Self {
+            navigation: false,
+            screenshots: false,
+            behaviors: false,
+        }
+    }
+}
+
 pub fn default_app_keymap_settings() -> AppKeymapSettings {
     AppKeymapSettings {
         keymaps: ManagedKeymapSections::default(),
@@ -114,23 +160,36 @@ pub fn default_app_keymap_settings() -> AppKeymapSettings {
     }
 }
 
-pub fn load_app_keymap_settings(config_root: &Path) -> Result<AppKeymapSettings> {
-    let path = app_config_path(config_root);
-    if !path.exists() {
-        return Ok(default_app_keymap_settings());
+pub fn default_ui_automation_settings() -> UiAutomationSettings {
+    UiAutomationSettings {
+        enabled: false,
+        groups: UiAutomationGroups::default(),
     }
+}
 
-    let content = std::fs::read_to_string(path)?;
-    let settings = toml::from_str::<AppKeymapSettings>(&content)?;
-    validate_app_keymap_settings(&settings)?;
-    Ok(settings)
+pub fn load_app_keymap_settings(config_root: &Path) -> Result<AppKeymapSettings> {
+    let config = load_app_config_file(config_root)?;
+    validate_app_keymap_settings(&config.keymap_settings)?;
+    Ok(config.keymap_settings)
 }
 
 pub fn save_app_keymap_settings(config_root: &Path, settings: &AppKeymapSettings) -> Result<()> {
     validate_app_keymap_settings(settings)?;
-    std::fs::create_dir_all(config_root)?;
-    let content = toml::to_string_pretty(settings)?;
-    std::fs::write(app_config_path(config_root), content)?;
+    let mut config = load_app_config_file(config_root)?;
+    config.keymap_settings = settings.clone();
+    save_app_config_file(config_root, &config)?;
+    Ok(())
+}
+
+pub fn load_ui_automation_settings(config_root: &Path) -> Result<UiAutomationSettings> {
+    let config = load_app_config_file(config_root)?;
+    Ok(config.ui_automation)
+}
+
+pub fn save_ui_automation_settings(config_root: &Path, settings: &UiAutomationSettings) -> Result<()> {
+    let mut config = load_app_config_file(config_root)?;
+    config.ui_automation = settings.clone();
+    save_app_config_file(config_root, &config)?;
     Ok(())
 }
 
@@ -191,6 +250,32 @@ pub fn validate_app_keymap_settings(settings: &AppKeymapSettings) -> Result<()> 
 
 pub fn app_config_path(config_root: &Path) -> PathBuf {
     config_root.join(APP_CONFIG_FILE)
+}
+
+pub fn app_config_root() -> Result<PathBuf> {
+    let config_dir = dirs::config_dir().ok_or_else(|| KnotError::Config("Could not determine config directory".to_string()))?;
+    Ok(config_dir.join("knot"))
+}
+
+fn load_app_config_file(config_root: &Path) -> Result<AppConfigFile> {
+    let path = app_config_path(config_root);
+    if !path.exists() {
+        return Ok(AppConfigFile {
+            keymap_settings: default_app_keymap_settings(),
+            ui_automation: default_ui_automation_settings(),
+        });
+    }
+
+    let content = std::fs::read_to_string(path)?;
+    let config = toml::from_str::<AppConfigFile>(&content)?;
+    Ok(config)
+}
+
+fn save_app_config_file(config_root: &Path, config: &AppConfigFile) -> Result<()> {
+    std::fs::create_dir_all(config_root)?;
+    let content = toml::to_string_pretty(config)?;
+    std::fs::write(app_config_path(config_root), content)?;
+    Ok(())
 }
 
 fn default_save_note_shortcut() -> String {
@@ -330,9 +415,10 @@ fn normalize_key(raw: &str) -> std::result::Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        default_app_keymap_settings, load_app_keymap_settings, save_app_keymap_settings,
+        default_app_keymap_settings, default_ui_automation_settings, load_app_keymap_settings,
+        load_ui_automation_settings, save_app_keymap_settings, save_ui_automation_settings,
         validate_app_keymap_settings, AppKeymapSettings, EditorKeymapSettings, GraphUiSettings,
-        GeneralKeymapSettings, ManagedKeymapSections,
+        GeneralKeymapSettings, ManagedKeymapSections, UiAutomationGroups, UiAutomationSettings,
     };
     use tempfile::TempDir;
 
@@ -401,5 +487,72 @@ mod tests {
         let result = validate_app_keymap_settings(&duplicate);
 
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn ui_automation_settings_default_when_file_missing() {
+        let temp_dir = TempDir::new().expect("temp dir");
+
+        let loaded = load_ui_automation_settings(temp_dir.path()).expect("load defaults");
+
+        assert_eq!(loaded, default_ui_automation_settings());
+    }
+
+    #[test]
+    fn ui_automation_settings_roundtrip_through_same_app_toml() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let settings = UiAutomationSettings {
+            enabled: true,
+            groups: UiAutomationGroups {
+                navigation: true,
+                screenshots: false,
+                behaviors: true,
+            },
+        };
+
+        save_ui_automation_settings(temp_dir.path(), &settings).expect("save settings");
+        let loaded = load_ui_automation_settings(temp_dir.path()).expect("load settings");
+
+        assert_eq!(loaded, settings);
+    }
+
+    #[test]
+    fn ui_automation_settings_preserve_keymap_content_in_same_file() {
+        let temp_dir = TempDir::new().expect("temp dir");
+        let keymaps = AppKeymapSettings {
+            keymaps: ManagedKeymapSections {
+                general: GeneralKeymapSettings {
+                    save_note: "Alt-s".to_string(),
+                    switch_notes: "Alt-1".to_string(),
+                    switch_search: "Alt-2".to_string(),
+                    switch_graph: "Alt-3".to_string(),
+                },
+                editor: EditorKeymapSettings {
+                    undo: "Alt-z".to_string(),
+                    redo: "Alt-Shift-z".to_string(),
+                    clear_paragraph: "Alt-0".to_string(),
+                },
+            },
+            graph: GraphUiSettings {
+                readability_floor_percent: 85,
+            },
+        };
+
+        save_app_keymap_settings(temp_dir.path(), &keymaps).expect("save keymaps");
+        save_ui_automation_settings(
+            temp_dir.path(),
+            &UiAutomationSettings {
+                enabled: true,
+                groups: UiAutomationGroups {
+                    navigation: true,
+                    screenshots: true,
+                    behaviors: false,
+                },
+            },
+        )
+        .expect("save ui automation settings");
+
+        let reloaded_keymaps = load_app_keymap_settings(temp_dir.path()).expect("reload keymaps");
+        assert_eq!(reloaded_keymaps, keymaps);
     }
 }

@@ -4,6 +4,10 @@ import { useEffect } from "react";
 import App from "./App";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
 
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async () => () => {}),
+}));
+
 const mockLoadNote = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
@@ -165,6 +169,17 @@ vi.mock("@lib/api", () => ({
       readability_floor_percent: 70,
     },
   }),
+  getUiAutomationSettings: vi.fn().mockResolvedValue({
+    enabled: false,
+    groups: { navigation: false, screenshots: false, behaviors: false },
+  }),
+  updateUiAutomationSettings: vi.fn().mockResolvedValue({
+    enabled: false,
+    groups: { navigation: false, screenshots: false, behaviors: false },
+  }),
+  syncUiAutomationRegistry: vi.fn().mockResolvedValue(undefined),
+  syncUiAutomationState: vi.fn().mockResolvedValue(undefined),
+  completeUiAutomationRequest: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@lib/store", () => ({

@@ -10,7 +10,7 @@ use std::io::{Read, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::{Receiver, Sender};
 use std::thread;
 
 /// Socket path for IPC
@@ -29,6 +29,12 @@ pub struct AppCommandResult {
     pub message: String,
     pub seq: Option<u64>,
     pub error_code: Option<String>,
+    pub payload: Option<serde_json::Value>,
+}
+
+pub struct IpcDispatchRequest {
+    pub envelope: AppCommandEnvelope,
+    pub response_tx: Sender<AppCommandResult>,
 }
 
 /// IPC message types
@@ -47,30 +53,21 @@ pub enum IpcMessage {
 /// IPC Server (runs in BotPane Qt app)
 pub struct IpcServer {
     socket_path: PathBuf,
-    envelope_sender: Sender<AppCommandEnvelope>,
+    dispatch_sender: Sender<IpcDispatchRequest>,
     next_seq: AtomicU64,
     event_log: Option<EventLog>,
 }
 
 impl IpcServer {
     /// Create a new IPC server
-    pub fn new(socket_path: impl Into<PathBuf>, command_sender: Sender<AppCommand>) -> Self {
-        let (envelope_sender, envelope_receiver) = std::sync::mpsc::channel::<AppCommandEnvelope>();
-        thread::spawn(move || {
-            while let Ok(envelope) = envelope_receiver.recv() {
-                if command_sender.send(envelope.command).is_err() {
-                    break;
-                }
-            }
-        });
-
+    pub fn new(socket_path: impl Into<PathBuf>, dispatch_sender: Sender<IpcDispatchRequest>) -> Self {
         let socket_path = socket_path.into();
         let event_log = Self::build_event_log(&socket_path);
         let recovered_seq = event_log.as_ref().map(EventLog::last_seq).unwrap_or(0);
 
         Self {
             socket_path,
-            envelope_sender,
+            dispatch_sender,
             next_seq: AtomicU64::new(recovered_seq),
             event_log,
         }
@@ -94,7 +91,7 @@ impl IpcServer {
                     Ok(mut stream) => {
                         if let Err(e) = Self::handle_connection(
                             &mut stream,
-                            &self.envelope_sender,
+                            &self.dispatch_sender,
                             &self.next_seq,
                             &self.event_log,
                         ) {
@@ -113,7 +110,7 @@ impl IpcServer {
 
     fn handle_connection(
         stream: &mut UnixStream,
-        envelope_sender: &Sender<AppCommandEnvelope>,
+        dispatch_sender: &Sender<IpcDispatchRequest>,
         next_seq: &AtomicU64,
         event_log: &Option<EventLog>,
     ) -> Result<()> {
@@ -140,19 +137,34 @@ impl IpcServer {
                     request_id: envelope.request_id,
                     command: envelope.command,
                 };
+                let (response_tx, response_rx): (Sender<AppCommandResult>, Receiver<AppCommandResult>) =
+                    std::sync::mpsc::channel();
 
-                match envelope_sender.send(queued) {
-                    Ok(_) => IpcMessage::Response(AppCommandResult {
-                        success: true,
-                        message: "Command queued".to_string(),
-                        seq: Some(seq),
-                        error_code: None,
-                    }),
+                match dispatch_sender.send(IpcDispatchRequest {
+                    envelope: queued,
+                    response_tx,
+                }) {
+                    Ok(_) => match response_rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                        Ok(mut result) => {
+                            if result.seq.is_none() {
+                                result.seq = Some(seq);
+                            }
+                            IpcMessage::Response(result)
+                        }
+                        Err(e) => IpcMessage::Response(AppCommandResult {
+                            success: false,
+                            message: format!("Timed out waiting for command result: {}", e),
+                            seq: Some(seq),
+                            error_code: Some("IPC_COMMAND_TIMEOUT".to_string()),
+                            payload: None,
+                        }),
+                    },
                     Err(e) => IpcMessage::Response(AppCommandResult {
                         success: false,
-                        message: format!("Failed to queue command: {}", e),
+                        message: format!("Failed to dispatch command: {}", e),
                         seq: Some(seq),
-                        error_code: Some("IPC_QUEUE_SEND_FAILED".to_string()),
+                        error_code: Some("IPC_DISPATCH_SEND_FAILED".to_string()),
+                        payload: None,
                     }),
                 }
             }
@@ -162,6 +174,7 @@ impl IpcServer {
                 message: format!("Unexpected message: {:?}", other),
                 seq: None,
                 error_code: Some("IPC_UNEXPECTED_MESSAGE".to_string()),
+                payload: None,
             }),
         };
 
@@ -244,6 +257,13 @@ impl IpcServer {
                 UiCommand::ShowNotification { .. } => "ui.show_notification".to_string(),
                 UiCommand::SetWindowState { .. } => "ui.set_window_state".to_string(),
                 UiCommand::TakeScreenshot { .. } => "ui.take_screenshot".to_string(),
+                UiCommand::ListAutomationActions => "ui.list_automation_actions".to_string(),
+                UiCommand::ListAutomationViews => "ui.list_automation_views".to_string(),
+                UiCommand::GetAutomationState => "ui.get_automation_state".to_string(),
+                UiCommand::InvokeAutomationAction { .. } => "ui.invoke_automation_action".to_string(),
+                UiCommand::CaptureAutomationScreenshot { .. } => {
+                    "ui.capture_automation_screenshot".to_string()
+                }
             },
             AppCommand::Resource(_) => "resource".to_string(),
             AppCommand::Settings(_) => "settings".to_string(),
@@ -260,12 +280,19 @@ impl IpcServer {
                 UiCommand::SelectNote { path } => Some(path.clone()),
                 UiCommand::SwitchPanel { panel } => Some(panel.clone()),
                 UiCommand::TakeScreenshot { name } => Some(name.clone()),
+                UiCommand::InvokeAutomationAction { action_id, .. } => Some(action_id.clone()),
+                UiCommand::CaptureAutomationScreenshot { target, target_id, .. } => {
+                    target_id.clone().or_else(|| Some(target.clone()))
+                }
                 UiCommand::OpenNewVaultDialog
                 | UiCommand::OpenNewNoteDialog
                 | UiCommand::OpenPluginManagerDialog
                 | UiCommand::OpenLoadPluginDialog
                 | UiCommand::ShowNotification { .. }
-                | UiCommand::SetWindowState { .. } => None,
+                | UiCommand::SetWindowState { .. }
+                | UiCommand::ListAutomationActions
+                | UiCommand::ListAutomationViews
+                | UiCommand::GetAutomationState => None,
             },
             AppCommand::Resource(_) | AppCommand::Settings(_) => None,
         }
@@ -391,8 +418,25 @@ mod tests {
 
         // Create server
         let (tx, rx): (Sender<AppCommand>, std::sync::mpsc::Receiver<AppCommand>) = channel();
-        let server = IpcServer::new(&socket_path, tx);
+        let (dispatch_tx, dispatch_rx): (Sender<IpcDispatchRequest>, std::sync::mpsc::Receiver<IpcDispatchRequest>) =
+            channel();
+        let server = IpcServer::new(&socket_path, dispatch_tx);
         server.start().unwrap();
+        thread::spawn(move || {
+            while let Ok(request) = dispatch_rx.recv() {
+                tx.send(request.envelope.command).unwrap();
+                request
+                    .response_tx
+                    .send(AppCommandResult {
+                        success: true,
+                        message: "ok".to_string(),
+                        seq: None,
+                        error_code: None,
+                        payload: None,
+                    })
+                    .unwrap();
+            }
+        });
 
         // Give server time to start
         thread::sleep(Duration::from_millis(100));
@@ -424,9 +468,24 @@ mod tests {
     fn test_ipc_response_contains_seq_for_command() {
         let socket_path = format!("/tmp/botpane_test_seq_{}.sock", std::process::id());
 
-        let (tx, _rx): (Sender<AppCommand>, std::sync::mpsc::Receiver<AppCommand>) = channel();
-        let server = IpcServer::new(&socket_path, tx);
+        let (dispatch_tx, dispatch_rx): (Sender<IpcDispatchRequest>, std::sync::mpsc::Receiver<IpcDispatchRequest>) =
+            channel();
+        let server = IpcServer::new(&socket_path, dispatch_tx);
         server.start().unwrap();
+        thread::spawn(move || {
+            while let Ok(request) = dispatch_rx.recv() {
+                request
+                    .response_tx
+                    .send(AppCommandResult {
+                        success: true,
+                        message: "ok".to_string(),
+                        seq: None,
+                        error_code: None,
+                        payload: None,
+                    })
+                    .unwrap();
+            }
+        });
         thread::sleep(Duration::from_millis(100));
 
         let client = IpcClient::new(&socket_path);
@@ -447,9 +506,24 @@ mod tests {
     fn test_ipc_response_seq_is_monotonic_for_multiple_commands() {
         let socket_path = format!("/tmp/botpane_test_seq_multi_{}.sock", std::process::id());
 
-        let (tx, _rx): (Sender<AppCommand>, std::sync::mpsc::Receiver<AppCommand>) = channel();
-        let server = IpcServer::new(&socket_path, tx);
+        let (dispatch_tx, dispatch_rx): (Sender<IpcDispatchRequest>, std::sync::mpsc::Receiver<IpcDispatchRequest>) =
+            channel();
+        let server = IpcServer::new(&socket_path, dispatch_tx);
         server.start().unwrap();
+        thread::spawn(move || {
+            while let Ok(request) = dispatch_rx.recv() {
+                request
+                    .response_tx
+                    .send(AppCommandResult {
+                        success: true,
+                        message: "ok".to_string(),
+                        seq: None,
+                        error_code: None,
+                        payload: None,
+                    })
+                    .unwrap();
+            }
+        });
         thread::sleep(Duration::from_millis(100));
 
         let client = IpcClient::new(&socket_path);

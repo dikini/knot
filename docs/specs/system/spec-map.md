@@ -60,6 +60,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-MANAGED-SHORTCUTS-007 | managed-shortcuts | designed | component/managed-shortcuts-007.md | [CONF, REL] | implemented (verified targeted) |
 | COMP-MATH-PLUGIN-008 | math-plugin | designed | component/math-plugin-008.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-NOTE-TYPES-012 | note-types | designed | component/note-types-012.md | [CONF, REL, COMP, CAP] | draft |
+| COMP-UI-AUTOMATION-RUNTIME-013 | ui-automation-runtime | designed | component/ui-automation-runtime-013.md | [REL, CONF, COMP, CAP] | implemented (verified targeted) |
 | COMP-VIEW-LIST-STYLING-009 | view-list-styling | designed | component/view-list-styling-009.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-NOTE-METADATA-FRONTMATTER-011 | note-metadata-frontmatter | designed | component/note-metadata-frontmatter-011.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
@@ -187,6 +188,7 @@ docs/specs/
 | 2026-03-01 | Integrate upstream math plugin with KaTeX rendering and markdown round-trip verification | COMP-MATH-PLUGIN-008 |
 | 2026-03-01 | Normalize view-mode bullet, ordered, and task list spacing and task checkbox alignment | COMP-VIEW-LIST-STYLING-009 |
 | 2026-03-01 | Add YAML front matter note metadata support with a dedicated Meta editor mode | COMP-NOTE-METADATA-FRONTMATTER-011 |
+| 2026-03-02 | Draft semantic MCP UI automation runtime for discoverable actions, views, and screenshot capture | COMP-UI-AUTOMATION-RUNTIME-013 |
 | 2026-02-22 | Start UI QA DX implementation: add journey suite expansion, CI quality workflows, and review-artifact guide | COMP-UI-QA-DX-001 |
 | 2026-02-22 | Complete UI QA DX implementation with design-system token/primitive inventories and formal verification policy integration | COMP-UI-QA-DX-001 |
 | 2026-02-22 | Complete Storybook DX implementation and mark Storybook workflows/docs as operational | COMP-STORYBOOK-DX-001 |

@@ -9,7 +9,8 @@ use tracing::{info, instrument};
 
 use crate::commands::emit_event;
 use crate::app_config::{
-    load_app_keymap_settings, save_app_keymap_settings, AppKeymapSettings,
+    app_config_root, load_app_keymap_settings, load_ui_automation_settings, save_app_keymap_settings,
+    save_ui_automation_settings, AppKeymapSettings, UiAutomationSettings,
 };
 use crate::core::VaultManager;
 use crate::error::KnotError;
@@ -539,12 +540,6 @@ pub async fn sync_external_changes(
     Ok(())
 }
 
-fn app_config_root() -> Result<PathBuf, String> {
-    let config_dir = dirs::config_dir()
-        .ok_or_else(|| "Could not determine config directory".to_string())?;
-    Ok(config_dir.join("knot"))
-}
-
 /// Get vault configuration/settings JSON object.
 #[tauri::command]
 #[instrument(skip(state))]
@@ -591,7 +586,7 @@ pub async fn update_vault_settings(
 #[tauri::command]
 #[instrument]
 pub async fn get_app_keymap_settings() -> Result<AppKeymapSettings, String> {
-    let config_root = app_config_root()?;
+    let config_root = app_config_root().map_err(|error| error.to_response_string())?;
     load_app_keymap_settings(&config_root).map_err(|error| error.to_response_string())
 }
 
@@ -601,9 +596,28 @@ pub async fn get_app_keymap_settings() -> Result<AppKeymapSettings, String> {
 pub async fn update_app_keymap_settings(
     settings: AppKeymapSettings,
 ) -> Result<AppKeymapSettings, String> {
-    let config_root = app_config_root()?;
+    let config_root = app_config_root().map_err(|error| error.to_response_string())?;
     save_app_keymap_settings(&config_root, &settings).map_err(|error| error.to_response_string())?;
     load_app_keymap_settings(&config_root).map_err(|error| error.to_response_string())
+}
+
+/// Read app-level UI automation settings from TOML-backed app config.
+#[tauri::command]
+#[instrument]
+pub async fn get_ui_automation_settings() -> Result<UiAutomationSettings, String> {
+    let config_root = app_config_root().map_err(|error| error.to_response_string())?;
+    load_ui_automation_settings(&config_root).map_err(|error| error.to_response_string())
+}
+
+/// Update app-level UI automation settings through a typed command contract.
+#[tauri::command]
+#[instrument(skip(settings))]
+pub async fn update_ui_automation_settings(
+    settings: UiAutomationSettings,
+) -> Result<UiAutomationSettings, String> {
+    let config_root = app_config_root().map_err(|error| error.to_response_string())?;
+    save_ui_automation_settings(&config_root, &settings).map_err(|error| error.to_response_string())?;
+    load_ui_automation_settings(&config_root).map_err(|error| error.to_response_string())
 }
 
 /// Perform explicit full vault reindex when users suspect metadata drift.

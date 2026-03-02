@@ -4,6 +4,10 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "./App";
 // Trace: DESIGN-daemon-ui-ipc-cutover
 
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async () => () => {}),
+}));
+
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
 
@@ -118,6 +122,17 @@ const apiMock = vi.hoisted(() => ({
   }),
   updateVaultSettings: vi.fn(),
   reindexVault: vi.fn(),
+  getUiAutomationSettings: vi.fn().mockResolvedValue({
+    enabled: false,
+    groups: { navigation: false, screenshots: false, behaviors: false },
+  }),
+  updateUiAutomationSettings: vi.fn().mockResolvedValue({
+    enabled: false,
+    groups: { navigation: false, screenshots: false, behaviors: false },
+  }),
+  syncUiAutomationRegistry: vi.fn().mockResolvedValue(undefined),
+  syncUiAutomationState: vi.fn().mockResolvedValue(undefined),
+  completeUiAutomationRequest: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock("@lib/api", () => apiMock);

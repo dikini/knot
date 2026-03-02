@@ -4,9 +4,12 @@
 //! SPEC: COMP-MCP-SERVER-002 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8
 //! TRACE: DESIGN-mcp-server-core-tools-resources
 
+use crate::app_command::{AppCommand, UiCommand};
 use crate::core::VaultManager;
+use crate::ipc::IpcClient;
 use crate::note_type::{NoteTypeId, NoteTypeRegistry};
 use crate::runtime::RuntimeHost;
+use crate::ui_automation::ui_automation_socket_path;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::OpenOptions;
@@ -333,6 +336,46 @@ impl McpServer {
                     "name": "list_notes",
                     "description": "List notes as UI note summaries.",
                     "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "list_ui_actions",
+                    "description": "List discoverable semantic UI automation actions.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "list_ui_views",
+                    "description": "List discoverable semantic UI automation views.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "get_ui_state",
+                    "description": "Return compact UI automation state for the running app.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
+                    "name": "invoke_ui_action",
+                    "description": "Invoke a semantic UI automation action in the running app.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "action_id": { "type": "string" },
+                            "args": { "type": "object" }
+                        },
+                        "required": ["action_id"]
+                    }
+                },
+                {
+                    "name": "capture_ui_screenshot",
+                    "description": "Capture a semantic UI screenshot from the running app.",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "target": { "type": "string", "enum": ["window", "view"] },
+                            "target_id": { "type": "string" },
+                            "name": { "type": "string" }
+                        },
+                        "required": ["target"]
+                    }
                 },
                 {
                     "name": "save_note",
@@ -927,6 +970,39 @@ impl McpServer {
                     "isError": false
                 }))
             }
+            "list_ui_actions" => self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationActions)),
+            "list_ui_views" => self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationViews)),
+            "get_ui_state" => self.execute_ui_tool(AppCommand::Ui(UiCommand::GetAutomationState)),
+            "invoke_ui_action" => {
+                let action_id = arguments
+                    .get("action_id")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: action_id".to_string()))?;
+                let args = arguments.get("args").cloned().unwrap_or_else(|| json!({}));
+                self.execute_ui_tool(AppCommand::Ui(UiCommand::InvokeAutomationAction {
+                    action_id: action_id.to_string(),
+                    args,
+                }))
+            }
+            "capture_ui_screenshot" => {
+                let target = arguments
+                    .get("target")
+                    .and_then(Value::as_str)
+                    .ok_or((-32602, "Missing argument: target".to_string()))?;
+                let target_id = arguments
+                    .get("target_id")
+                    .and_then(Value::as_str)
+                    .map(ToString::to_string);
+                let name = arguments
+                    .get("name")
+                    .and_then(Value::as_str)
+                    .map(ToString::to_string);
+                self.execute_ui_tool(AppCommand::Ui(UiCommand::CaptureAutomationScreenshot {
+                    target: target.to_string(),
+                    target_id,
+                    name,
+                }))
+            }
             "save_note" => {
                 let path = arguments
                     .get("path")
@@ -1242,6 +1318,31 @@ impl McpServer {
             }
             _ => Err((-32601, format!("Unknown tool: {name}"))),
         }
+    }
+
+    fn execute_ui_tool(&self, command: AppCommand) -> Result<Value, (i32, String)> {
+        let client = IpcClient::new(ui_automation_socket_path());
+        let result = client
+            .send_command(command)
+            .map_err(|err| (-32000, err.to_string()))?;
+
+        if !result.success {
+            let code = result
+                .error_code
+                .unwrap_or_else(|| "UI_ACTION_EXECUTION_FAILED".to_string());
+            return Err((-32000, format!("{} ({code})", result.message)));
+        }
+
+        let payload = result.payload.unwrap_or(Value::Null);
+        Ok(json!({
+            "content": [
+                {
+                    "type": "text",
+                    "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "null".to_string())
+                }
+            ],
+            "isError": false
+        }))
     }
 
     fn resources_read(&self, params: &Value) -> Result<Value, (i32, String)> {

@@ -25,6 +25,15 @@ function createKeymapSettings(
   };
 }
 
+const defaultUiAutomationSettings = {
+  enabled: false,
+  groups: {
+    navigation: false,
+    screenshots: false,
+    behaviors: false,
+  },
+};
+
 describe("SettingsPane keymap settings", () => {
   it("renders the Layout section with graph readability floor control", () => {
     render(
@@ -55,6 +64,9 @@ describe("SettingsPane keymap settings", () => {
         onAppKeymapChange={vi.fn()}
         onResetAppKeymapField={vi.fn()}
         onResetAllAppKeymaps={vi.fn()}
+        uiAutomationSettings={defaultUiAutomationSettings}
+        isUiAutomationSettingsLoading={false}
+        onUpdateUiAutomationSettings={vi.fn()}
       />
     );
 
@@ -94,6 +106,9 @@ describe("SettingsPane keymap settings", () => {
         onAppKeymapChange={vi.fn()}
         onResetAppKeymapField={vi.fn()}
         onResetAllAppKeymaps={vi.fn()}
+        uiAutomationSettings={defaultUiAutomationSettings}
+        isUiAutomationSettingsLoading={false}
+        onUpdateUiAutomationSettings={vi.fn()}
       />
     );
 
@@ -135,6 +150,9 @@ describe("SettingsPane keymap settings", () => {
         onApplyAppKeymapSettings={vi.fn()}
         onResetAppKeymapField={vi.fn()}
         onResetAllAppKeymaps={vi.fn()}
+        uiAutomationSettings={defaultUiAutomationSettings}
+        isUiAutomationSettingsLoading={false}
+        onUpdateUiAutomationSettings={vi.fn()}
       />
     );
 
@@ -175,6 +193,9 @@ describe("SettingsPane keymap settings", () => {
         onApplyAppKeymapSettings={vi.fn()}
         onResetAppKeymapField={vi.fn()}
         onResetAllAppKeymaps={vi.fn()}
+        uiAutomationSettings={defaultUiAutomationSettings}
+        isUiAutomationSettingsLoading={false}
+        onUpdateUiAutomationSettings={vi.fn()}
       />
     );
 
@@ -213,6 +234,9 @@ describe("SettingsPane keymap settings", () => {
         onApplyAppKeymapSettings={vi.fn()}
         onResetAppKeymapField={vi.fn()}
         onResetAllAppKeymaps={vi.fn()}
+        uiAutomationSettings={defaultUiAutomationSettings}
+        isUiAutomationSettingsLoading={false}
+        onUpdateUiAutomationSettings={vi.fn()}
       />
     );
 
@@ -251,6 +275,9 @@ describe("SettingsPane keymap settings", () => {
         onApplyAppKeymapSettings={vi.fn()}
         onResetAppKeymapField={onResetAppKeymapField}
         onResetAllAppKeymaps={vi.fn()}
+        uiAutomationSettings={defaultUiAutomationSettings}
+        isUiAutomationSettingsLoading={false}
+        onUpdateUiAutomationSettings={vi.fn()}
       />
     );
 

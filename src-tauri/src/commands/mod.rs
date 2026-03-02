@@ -6,6 +6,7 @@
 
 pub mod notes;
 pub mod search;
+pub mod ui_automation;
 pub mod vault;
 
 use tauri::{Emitter, Manager};

@@ -59,6 +59,57 @@ export interface AppKeymapSettings {
   };
 }
 
+export interface UiAutomationSettings {
+  enabled: boolean;
+  groups: {
+    navigation: boolean;
+    screenshots: boolean;
+    behaviors: boolean;
+  };
+}
+
+export interface UiAutomationAction {
+  id: string;
+  label: string;
+  description: string;
+  origin: string;
+  input_schema?: Record<string, unknown>;
+  available?: boolean;
+}
+
+export interface UiAutomationView {
+  id: string;
+  label: string;
+  description: string;
+  origin: string;
+  screenshotable?: boolean;
+  visible?: boolean;
+}
+
+export interface UiAutomationViewFrame {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface UiAutomationStateSnapshot {
+  active_view: string;
+  active_note_path: string | null;
+  tool_mode: string | null;
+  inspector_open: boolean;
+  vault_open: boolean;
+  view_frames: Record<string, UiAutomationViewFrame>;
+  window_pixel_ratio: number;
+}
+
+export interface UiAutomationCompletion {
+  success: boolean;
+  message: string;
+  payload?: Record<string, unknown> | null;
+  error_code?: string | null;
+}
+
 // Helper to handle errors consistently
 function handleError(error: unknown): never {
   if (typeof error === "string") {
@@ -222,6 +273,39 @@ export async function getVaultSettings(): Promise<VaultSettings> {
   }
 }
 
+export async function syncUiAutomationRegistry(
+  actions: UiAutomationAction[],
+  views: UiAutomationView[]
+): Promise<void> {
+  try {
+    await invoke("ui_automation_sync_registry", { actions, views });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+export async function syncUiAutomationState(snapshot: UiAutomationStateSnapshot): Promise<void> {
+  try {
+    await invoke("ui_automation_sync_state", { snapshot });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+export async function completeUiAutomationRequest(
+  requestId: string,
+  completion: UiAutomationCompletion
+): Promise<void> {
+  try {
+    await invoke("ui_automation_complete_request", {
+      requestId,
+      completion,
+    });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
 /**
  * Apply merge-patch update to vault settings.
  */
@@ -261,6 +345,30 @@ export async function getAppKeymapSettings(): Promise<AppKeymapSettings> {
 export async function updateAppKeymapSettings(settings: AppKeymapSettings): Promise<AppKeymapSettings> {
   try {
     return await invoke<AppKeymapSettings>("update_app_keymap_settings", { settings });
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Read app-level UI automation settings from TOML-backed app config.
+ */
+export async function getUiAutomationSettings(): Promise<UiAutomationSettings> {
+  try {
+    return await invoke<UiAutomationSettings>("get_ui_automation_settings");
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+/**
+ * Persist app-level UI automation settings through typed Tauri commands.
+ */
+export async function updateUiAutomationSettings(
+  settings: UiAutomationSettings
+): Promise<UiAutomationSettings> {
+  try {
+    return await invoke<UiAutomationSettings>("update_ui_automation_settings", { settings });
   } catch (error) {
     handleError(error);
   }

@@ -7,6 +7,7 @@
 
 use crate::core::VaultManager;
 use crate::runtime::{RuntimeHost, RuntimeMode};
+use crate::ui_automation::UiAutomationRuntime;
 use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -18,6 +19,7 @@ use tokio::sync::Mutex;
 pub struct AppState {
     runtime: RuntimeHost,
     asset_scope_path: Arc<Mutex<Option<PathBuf>>>,
+    ui_automation: UiAutomationRuntime,
 }
 
 impl AppState {
@@ -35,6 +37,7 @@ impl AppState {
         Self {
             runtime: RuntimeHost::new(runtime_mode),
             asset_scope_path: Arc::new(Mutex::new(None)),
+            ui_automation: UiAutomationRuntime::default(),
         }
     }
 
@@ -46,6 +49,10 @@ impl AppState {
     /// Access shared runtime host.
     pub fn runtime(&self) -> &RuntimeHost {
         &self.runtime
+    }
+
+    pub fn ui_automation(&self) -> &UiAutomationRuntime {
+        &self.ui_automation
     }
 
     pub fn is_daemon_mode(&self) -> bool {

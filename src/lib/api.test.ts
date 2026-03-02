@@ -271,6 +271,40 @@ describe("API Client", () => {
       expect(invoke).toHaveBeenCalledWith("update_app_keymap_settings", { settings });
       expect(result).toEqual(settings);
     });
+
+    it("should get UI automation settings", async () => {
+      const settings = {
+        enabled: true,
+        groups: {
+          navigation: true,
+          screenshots: false,
+          behaviors: false,
+        },
+      };
+      vi.mocked(invoke).mockResolvedValue(settings);
+
+      const result = await api.getUiAutomationSettings();
+
+      expect(invoke).toHaveBeenCalledWith("get_ui_automation_settings");
+      expect(result).toEqual(settings);
+    });
+
+    it("should update UI automation settings", async () => {
+      const settings = {
+        enabled: true,
+        groups: {
+          navigation: true,
+          screenshots: true,
+          behaviors: false,
+        },
+      };
+      vi.mocked(invoke).mockResolvedValue(settings);
+
+      const result = await api.updateUiAutomationSettings(settings);
+
+      expect(invoke).toHaveBeenCalledWith("update_ui_automation_settings", { settings });
+      expect(result).toEqual(settings);
+    });
   });
 
   describe("Note Operations", () => {

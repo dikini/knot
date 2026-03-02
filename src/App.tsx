@@ -26,6 +26,13 @@ import {
 import { resolveVaultSwitchWithUnsavedGuard } from "@lib/vaultSwitchGuard";
 import * as api from "@lib/api";
 import type { RecentVault } from "@lib/api";
+import {
+  buildUiAutomationRegistry,
+  buildUiAutomationState,
+  type UiAutomationFrontendRequest,
+  type UiAutomationViewFrame,
+} from "@lib/uiAutomation";
+import { listen } from "@tauri-apps/api/event";
 import { CaseSensitive, CircleEllipsis, Network, SquarePen } from "lucide-react";
 import "./styles/App.css";
 
@@ -44,6 +51,36 @@ const TOOL_PANEL_POLICY: Record<ShellToolMode, ToolPanelPolicy> = {
 };
 const STARTUP_VAULT_ATTACH_MAX_ATTEMPTS = 20;
 const STARTUP_VAULT_ATTACH_RETRY_MS = 500;
+
+function collectUiAutomationViewFrames(): Record<string, UiAutomationViewFrame> {
+  if (typeof document === "undefined") {
+    return {};
+  }
+
+  const entries = Array.from(document.querySelectorAll<HTMLElement>("[data-ui-automation-view-id]"))
+    .map((element) => {
+      const id = element.dataset.uiAutomationViewId;
+      if (!id) {
+        return null;
+      }
+      const rect = element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        return null;
+      }
+      return [
+        id,
+        {
+          x: rect.left,
+          y: rect.top,
+          width: rect.width,
+          height: rect.height,
+        },
+      ] as const;
+    })
+    .filter((entry): entry is readonly [string, UiAutomationViewFrame] => entry !== null);
+
+  return Object.fromEntries(entries);
+}
 
 function App() {
   const [recentVaults, setRecentVaults] = useState<RecentVault[]>([]);
@@ -70,6 +107,15 @@ function App() {
   const [appKeymapDraft, setAppKeymapDraft] = useState<api.AppKeymapSettings>(DEFAULT_APP_KEYMAP_SETTINGS);
   const [appKeymapErrors, setAppKeymapErrors] = useState<Partial<Record<ManagedShortcutFieldPath, string>>>({});
   const [isAppKeymapSettingsLoading, setIsAppKeymapSettingsLoading] = useState(false);
+  const [uiAutomationSettings, setUiAutomationSettings] = useState<api.UiAutomationSettings>({
+    enabled: false,
+    groups: {
+      navigation: false,
+      screenshots: false,
+      behaviors: false,
+    },
+  });
+  const [isUiAutomationSettingsLoading, setIsUiAutomationSettingsLoading] = useState(false);
   const [isReindexing, setIsReindexing] = useState(false);
   const [reindexStatus, setReindexStatus] = useState<string | null>(null);
   const [editorMeasureBand, setEditorMeasureBand] = useState<45 | 54 | 62 | 70>(54);
@@ -102,6 +148,152 @@ function App() {
     setShowTextLabels,
   } = useVaultStore();
   const { toasts, removeToast, success, error } = useToast();
+
+  useEffect(() => {
+    const { actions, views } = buildUiAutomationRegistry();
+    void api.syncUiAutomationRegistry(actions, views).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncSnapshot = () => {
+      if (cancelled) {
+        return;
+      }
+      const snapshot = buildUiAutomationState({
+        viewMode,
+        currentNotePath: currentNote?.path ?? null,
+        toolMode: shell.toolMode,
+        inspectorOpen: shell.isInspectorRailOpen,
+        vaultOpen: Boolean(vault),
+        viewFrames: collectUiAutomationViewFrames(),
+      });
+      void api.syncUiAutomationState(snapshot).catch(console.error);
+    };
+
+    const frameId = window.requestAnimationFrame(syncSnapshot);
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => syncSnapshot()) : undefined;
+
+    for (const element of document.querySelectorAll<HTMLElement>("[data-ui-automation-view-id]")) {
+      resizeObserver?.observe(element);
+    }
+
+    window.addEventListener("resize", syncSnapshot);
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frameId);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", syncSnapshot);
+    };
+  }, [currentNote?.path, shell.isInspectorRailOpen, shell.toolMode, vault, viewMode]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+
+    const completeWithError = async (requestId: string, message: string, errorCode: string) => {
+      await api.completeUiAutomationRequest(requestId, {
+        success: false,
+        message,
+        error_code: errorCode,
+      });
+    };
+
+    void (async () => {
+      unlisten = await listen<UiAutomationFrontendRequest>("ui-automation://request", async (event) => {
+        const request = event.payload;
+
+        if (request.kind === "invoke_action") {
+          try {
+            if (request.action_id === "core.navigate.view") {
+              const nextView = request.args?.view;
+              if (nextView !== "editor" && nextView !== "graph" && nextView !== "settings") {
+                await completeWithError(
+                  request.request_id,
+                  "Invalid view target",
+                  "UI_ACTION_INVALID_ARGUMENTS"
+                );
+                return;
+              }
+              setViewMode(nextView);
+              await api.completeUiAutomationRequest(request.request_id, {
+                success: true,
+                message: `Switched to ${nextView}`,
+                payload: { active_view: `view.${nextView}` },
+              });
+              return;
+            }
+
+            if (request.action_id === "core.navigate.note") {
+              const notePath = request.args?.path;
+              if (typeof notePath !== "string" || notePath.trim().length === 0) {
+                await completeWithError(
+                  request.request_id,
+                  "Missing note path",
+                  "UI_ACTION_INVALID_ARGUMENTS"
+                );
+                return;
+              }
+              await loadNote(notePath);
+              setViewMode("editor");
+              await api.completeUiAutomationRequest(request.request_id, {
+                success: true,
+                message: `Loaded note ${notePath}`,
+                payload: { active_view: "view.editor", active_note_path: notePath },
+              });
+              return;
+            }
+
+            if (request.action_id === "core.select.tool-mode") {
+              const toolMode = request.args?.toolMode;
+              if (toolMode !== "notes" && toolMode !== "search" && toolMode !== "graph") {
+                await completeWithError(
+                  request.request_id,
+                  "Invalid tool mode",
+                  "UI_ACTION_INVALID_ARGUMENTS"
+                );
+                return;
+              }
+              handleToolModeSelect(toolMode);
+              await api.completeUiAutomationRequest(request.request_id, {
+                success: true,
+                message: `Switched tool mode to ${toolMode}`,
+                payload: { tool_mode: toolMode },
+              });
+              return;
+            }
+
+            await completeWithError(
+              request.request_id,
+              `Unknown action: ${request.action_id}`,
+              "UI_TARGET_NOT_FOUND"
+            );
+          } catch (invokeError) {
+            await completeWithError(
+              request.request_id,
+              invokeError instanceof Error ? invokeError.message : "Failed to invoke UI action",
+              "UI_ACTION_EXECUTION_FAILED"
+            );
+          }
+          return;
+        }
+
+        await completeWithError(
+          request.request_id,
+          "Frontend-driven screenshot capture is disabled in this runtime",
+          "UI_CAPTURE_UNSUPPORTED"
+        );
+      });
+    })();
+
+    return () => {
+      if (unlisten) {
+        unlisten();
+      }
+    };
+  }, [handleToolModeSelect, loadNote]);
 
   const resolveUnsavedBeforeVaultSwitch = async (): Promise<boolean> => {
     const editorState = useEditorStore.getState();
@@ -190,6 +382,22 @@ function App() {
     };
 
     void loadAppKeymaps();
+  }, [error]);
+
+  useEffect(() => {
+    const loadUiAutomationSettings = async () => {
+      setIsUiAutomationSettingsLoading(true);
+      try {
+        const nextSettings = await api.getUiAutomationSettings();
+        setUiAutomationSettings(nextSettings);
+      } catch (err) {
+        error(err instanceof Error ? err.message : "Failed to load UI automation settings");
+      } finally {
+        setIsUiAutomationSettingsLoading(false);
+      }
+    };
+
+    void loadUiAutomationSettings();
   }, [error]);
 
   // Poll for external file changes when vault is open
@@ -604,6 +812,19 @@ function App() {
     );
   };
 
+  const handleUpdateUiAutomationSettings = async (settings: api.UiAutomationSettings) => {
+    setIsUiAutomationSettingsLoading(true);
+    try {
+      const persisted = await api.updateUiAutomationSettings(settings);
+      setUiAutomationSettings(persisted);
+      success("UI automation settings updated");
+    } catch (err) {
+      error(err instanceof Error ? err.message : "Failed to update UI automation settings");
+    } finally {
+      setIsUiAutomationSettingsLoading(false);
+    }
+  };
+
   function handleToolModeSelect(nextMode: ShellToolMode): void {
     const currentMode = shell.toolMode;
     const isPanelVisible = !shell.isContextPanelCollapsed;
@@ -660,7 +881,10 @@ function App() {
 
   const graphContextContent = null;
   return (
-    <div className={`app ${shell.densityMode === "comfortable" ? "app--comfortable" : "app--adaptive"}`}>
+    <div
+      className={`app ${shell.densityMode === "comfortable" ? "app--comfortable" : "app--adaptive"}`}
+      data-ui-automation-view-id="window.main"
+    >
       <ToolRail
         mode={shell.toolMode}
         showLabels={shell.showTextLabels}
@@ -711,6 +935,9 @@ function App() {
           <div
             className={`content-area content-area--editor-${editorSurfaceMode} content-area--measure-${editorMeasureBand}`}
             ref={contentAreaRef}
+            data-ui-automation-view-id={
+              viewMode === "editor" ? "view.editor" : viewMode === "graph" ? "view.graph" : "view.settings"
+            }
           >
             <div className="content-mode-toggle">
               <IconButton
@@ -797,6 +1024,9 @@ function App() {
                 onApplyAppKeymapSettings={handleApplyAppKeymapSettings}
                 onResetAppKeymapField={handleResetAppKeymapField}
                 onResetAllAppKeymaps={handleResetAllAppKeymaps}
+                uiAutomationSettings={uiAutomationSettings}
+                isUiAutomationSettingsLoading={isUiAutomationSettingsLoading}
+                onUpdateUiAutomationSettings={handleUpdateUiAutomationSettings}
               />
             )}
           </div>
@@ -874,6 +1104,9 @@ function App() {
             onApplyAppKeymapSettings={handleApplyAppKeymapSettings}
             onResetAppKeymapField={handleResetAppKeymapField}
             onResetAllAppKeymaps={handleResetAllAppKeymaps}
+            uiAutomationSettings={uiAutomationSettings}
+            isUiAutomationSettingsLoading={isUiAutomationSettingsLoading}
+            onUpdateUiAutomationSettings={handleUpdateUiAutomationSettings}
           />
         ) : (
           <>

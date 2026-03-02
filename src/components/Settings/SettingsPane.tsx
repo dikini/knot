@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ShellDensityMode } from "@lib/store";
-import type { AppKeymapSettings, VaultSettings } from "@lib/api";
+import type { AppKeymapSettings, UiAutomationSettings, VaultSettings } from "@lib/api";
 import type { ManagedShortcutFieldPath } from "@lib/keymapSettings";
 import "./SettingsPane.css";
 
@@ -9,6 +9,7 @@ export type SettingsSection =
   | "editor-keymaps"
   | "appearance"
   | "layout"
+  | "ui-automation"
   | "vault"
   | "maintenance";
 
@@ -39,6 +40,9 @@ interface SettingsPaneProps {
   onApplyAppKeymapSettings: () => void;
   onResetAppKeymapField: (field: ManagedShortcutFieldPath) => void;
   onResetAllAppKeymaps: () => void;
+  uiAutomationSettings: UiAutomationSettings;
+  isUiAutomationSettingsLoading: boolean;
+  onUpdateUiAutomationSettings: (settings: UiAutomationSettings) => Promise<void>;
 }
 
 const SECTION_LABELS: Array<{ id: SettingsSection; label: string }> = [
@@ -46,6 +50,7 @@ const SECTION_LABELS: Array<{ id: SettingsSection; label: string }> = [
   { id: "editor-keymaps", label: "Editor keymaps" },
   { id: "appearance", label: "Appearance" },
   { id: "layout", label: "Layout" },
+  { id: "ui-automation", label: "UI Automation" },
   { id: "vault", label: "Vault" },
   { id: "maintenance", label: "Maintenance" },
 ];
@@ -77,6 +82,9 @@ export function SettingsPane({
   onApplyAppKeymapSettings,
   onResetAppKeymapField,
   onResetAllAppKeymaps,
+  uiAutomationSettings,
+  isUiAutomationSettingsLoading,
+  onUpdateUiAutomationSettings,
 }: SettingsPaneProps) {
   const [vaultDraft, setVaultDraft] = useState({
     name: "",
@@ -508,6 +516,132 @@ export function SettingsPane({
                   setVaultDraft((state) => ({ ...state, tab_size: Number(event.target.value) }))
                 }
               />
+            </label>
+          </div>
+        )}
+
+        {section === "ui-automation" && (
+          <div className="settings-pane__group">
+            <div className="settings-pane__field-meta">
+              <span className="settings-pane__field-label">UI automation guardrails</span>
+              <span className="settings-pane__field-help">
+                Controls MCP-driven access to in-app navigation, semantic behaviors, and screenshot capture.
+              </span>
+            </div>
+            <label className="settings-pane__field settings-pane__field--checkbox">
+              <span className="settings-pane__field-meta">
+                <span className="settings-pane__field-label">Enable UI automation</span>
+                <span className="settings-pane__field-help">
+                  Master switch for all UI automation capabilities exposed to external control surfaces.
+                </span>
+              </span>
+              <span className="settings-pane__switch-wrap">
+                <input
+                  type="checkbox"
+                  aria-label="Enable UI automation"
+                  className="settings-pane__switch-input"
+                  checked={uiAutomationSettings.enabled}
+                  disabled={isUiAutomationSettingsLoading}
+                  onChange={(event) => {
+                    void onUpdateUiAutomationSettings({
+                      ...uiAutomationSettings,
+                      enabled: event.target.checked,
+                    });
+                  }}
+                />
+                <span className="settings-pane__switch-track" aria-hidden="true" />
+                <span className="settings-pane__switch-text">{uiAutomationSettings.enabled ? "On" : "Off"}</span>
+              </span>
+            </label>
+            <label className="settings-pane__field settings-pane__field--checkbox">
+              <span className="settings-pane__field-meta">
+                <span className="settings-pane__field-label">Allow navigation</span>
+                <span className="settings-pane__field-help">
+                  Permits semantic view and note navigation actions through the automation registry.
+                </span>
+              </span>
+              <span className="settings-pane__switch-wrap">
+                <input
+                  type="checkbox"
+                  aria-label="Allow UI automation navigation"
+                  className="settings-pane__switch-input"
+                  checked={uiAutomationSettings.groups.navigation}
+                  disabled={isUiAutomationSettingsLoading || !uiAutomationSettings.enabled}
+                  onChange={(event) => {
+                    void onUpdateUiAutomationSettings({
+                      ...uiAutomationSettings,
+                      groups: {
+                        ...uiAutomationSettings.groups,
+                        navigation: event.target.checked,
+                      },
+                    });
+                  }}
+                />
+                <span className="settings-pane__switch-track" aria-hidden="true" />
+                <span className="settings-pane__switch-text">
+                  {uiAutomationSettings.groups.navigation ? "On" : "Off"}
+                </span>
+              </span>
+            </label>
+            <label className="settings-pane__field settings-pane__field--checkbox">
+              <span className="settings-pane__field-meta">
+                <span className="settings-pane__field-label">Allow screenshots</span>
+                <span className="settings-pane__field-help">
+                  Permits window and registered view captures through the automation interface.
+                </span>
+              </span>
+              <span className="settings-pane__switch-wrap">
+                <input
+                  type="checkbox"
+                  aria-label="Allow UI automation screenshots"
+                  className="settings-pane__switch-input"
+                  checked={uiAutomationSettings.groups.screenshots}
+                  disabled={isUiAutomationSettingsLoading || !uiAutomationSettings.enabled}
+                  onChange={(event) => {
+                    void onUpdateUiAutomationSettings({
+                      ...uiAutomationSettings,
+                      groups: {
+                        ...uiAutomationSettings.groups,
+                        screenshots: event.target.checked,
+                      },
+                    });
+                  }}
+                />
+                <span className="settings-pane__switch-track" aria-hidden="true" />
+                <span className="settings-pane__switch-text">
+                  {uiAutomationSettings.groups.screenshots ? "On" : "Off"}
+                </span>
+              </span>
+            </label>
+            <label className="settings-pane__field settings-pane__field--checkbox">
+              <span className="settings-pane__field-meta">
+                <span className="settings-pane__field-label">Allow behaviors</span>
+                <span className="settings-pane__field-help">
+                  Reserves permission for higher-level semantic UI behaviors as they are added later.
+                </span>
+              </span>
+              <span className="settings-pane__switch-wrap">
+                <input
+                  type="checkbox"
+                  aria-label="Allow UI automation behaviors"
+                  className="settings-pane__switch-input"
+                  checked={uiAutomationSettings.groups.behaviors}
+                  disabled={isUiAutomationSettingsLoading || !uiAutomationSettings.enabled}
+                  onChange={(event) => {
+                    void onUpdateUiAutomationSettings({
+                      ...uiAutomationSettings,
+                      groups: {
+                        ...uiAutomationSettings.groups,
+                        behaviors: event.target.checked,
+                      },
+                    });
+                  }}
+                />
+                <span className="settings-pane__switch-track" aria-hidden="true" />
+                <span className="settings-pane__switch-text">
+                  {uiAutomationSettings.groups.behaviors ? "On" : "Off"}
+                </span>
+              </span>
             </label>
           </div>
         )}

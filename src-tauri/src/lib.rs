@@ -26,6 +26,7 @@ pub mod recent_vaults;
 pub mod runtime;
 pub mod search;
 pub mod state;
+pub mod ui_automation;
 pub mod watcher;
 
 // Plugin system (conditionally compiled)
