@@ -192,7 +192,9 @@ function App() {
   const [inspectorMode, setInspectorMode] = useState<"details" | "settings">("details");
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("maintenance");
   const [vaultSettings, setVaultSettings] = useState<api.VaultSettings | null>(null);
+  const [vaultPlugins, setVaultPlugins] = useState<api.VaultPlugin[]>([]);
   const [isVaultSettingsLoading, setIsVaultSettingsLoading] = useState(false);
+  const [isVaultPluginsLoading, setIsVaultPluginsLoading] = useState(false);
   const [appKeymapSettings, setAppKeymapSettings] = useState<api.AppKeymapSettings>(DEFAULT_APP_KEYMAP_SETTINGS);
   const [appKeymapDraft, setAppKeymapDraft] = useState<api.AppKeymapSettings>(DEFAULT_APP_KEYMAP_SETTINGS);
   const [appKeymapErrors, setAppKeymapErrors] = useState<Partial<Record<ManagedShortcutFieldPath, string>>>({});
@@ -619,6 +621,7 @@ function App() {
       setHydratedViewModeVaultPath(null);
       setHydratedShellVaultPath(null);
       setVaultSettings(null);
+      setVaultPlugins([]);
       return;
     }
 
@@ -853,6 +856,19 @@ function App() {
     }
   };
 
+  const loadVaultPlugins = async () => {
+    if (!vault) return;
+    setIsVaultPluginsLoading(true);
+    try {
+      const nextPlugins = await api.listVaultPlugins();
+      setVaultPlugins(nextPlugins);
+    } catch (err) {
+      error(err instanceof Error ? err.message : "Failed to load vault plugins");
+    } finally {
+      setIsVaultPluginsLoading(false);
+    }
+  };
+
   const formatDate = (timestamp: number): string => {
     const date = new Date(timestamp * 1000);
     const now = new Date();
@@ -917,12 +933,18 @@ function App() {
     setInspectorRailOpen(false);
     setViewMode("settings");
     void loadVaultSettings();
+    void loadVaultPlugins();
   };
 
   const handleUpdateVaultSettings = async (patch: Partial<api.VaultSettings>) => {
     try {
       const updated = await api.updateVaultSettings(patch);
       setVaultSettings(updated);
+      await loadVaultPlugins();
+      await loadNotes();
+      if (currentNote?.path) {
+        await loadNote(currentNote.path);
+      }
       success("Vault settings updated");
     } catch (err) {
       error(err instanceof Error ? err.message : "Failed to update vault settings");
@@ -1211,9 +1233,14 @@ function App() {
                 graphReadabilityFloorPercent={appKeymapDraft.graph.readability_floor_percent}
                 onGraphReadabilityFloorPercentChange={handleGraphReadabilityFloorPercentChange}
                 vaultSettings={vaultSettings}
+                vaultPlugins={vaultPlugins}
+                isVaultPluginsLoading={isVaultPluginsLoading}
                 isVaultSettingsLoading={isVaultSettingsLoading}
                 onRefreshVaultSettings={() => {
                   void loadVaultSettings();
+                }}
+                onRefreshVaultPlugins={() => {
+                  void loadVaultPlugins();
                 }}
                 onUpdateVaultSettings={handleUpdateVaultSettings}
                 onReindexVault={handleReindexVault}
@@ -1291,9 +1318,14 @@ function App() {
             graphReadabilityFloorPercent={appKeymapDraft.graph.readability_floor_percent}
             onGraphReadabilityFloorPercentChange={handleGraphReadabilityFloorPercentChange}
             vaultSettings={vaultSettings}
+            vaultPlugins={vaultPlugins}
+            isVaultPluginsLoading={isVaultPluginsLoading}
             isVaultSettingsLoading={isVaultSettingsLoading}
             onRefreshVaultSettings={() => {
               void loadVaultSettings();
+            }}
+            onRefreshVaultPlugins={() => {
+              void loadVaultPlugins();
             }}
             onUpdateVaultSettings={handleUpdateVaultSettings}
             onReindexVault={handleReindexVault}

@@ -29,6 +29,7 @@ export interface RecentVault {
 export interface VaultSettings {
   name: string;
   plugins_enabled: boolean;
+  plugin_overrides: Record<string, boolean>;
   file_visibility: "all_files" | "known_only";
   sync: {
     enabled: boolean;
@@ -38,6 +39,17 @@ export interface VaultSettings {
     font_size: number;
     tab_size: number;
   };
+}
+
+export interface VaultPlugin {
+  name: string;
+  display_name: string;
+  version: string;
+  description?: string | null;
+  author?: string | null;
+  api_version: string;
+  enabled: boolean;
+  effective_enabled: boolean;
 }
 
 export interface AppKeymapSettings {
@@ -256,6 +268,14 @@ export async function addRecentVault(path: string): Promise<void> {
 export async function syncExternalChanges(): Promise<void> {
   try {
     return await invoke("sync_external_changes");
+  } catch (error) {
+    handleError(error);
+  }
+}
+
+export async function listVaultPlugins(): Promise<VaultPlugin[]> {
+  try {
+    return await invoke<VaultPlugin[]>("list_vault_plugins");
   } catch (error) {
     handleError(error);
   }

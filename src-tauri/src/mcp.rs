@@ -8,7 +8,6 @@ use crate::app_command::{AppCommand, UiCommand};
 use crate::commands::notes::build_note_data;
 use crate::core::VaultManager;
 use crate::ipc::IpcClient;
-use crate::note_type::NoteTypeRegistry;
 use crate::runtime::RuntimeHost;
 use crate::ui_automation::ui_automation_socket_path;
 use crate::youtube::{build_youtube_note_markdown, build_youtube_note_path, import_youtube_note};
@@ -501,6 +500,11 @@ impl McpServer {
                     "inputSchema": { "type": "object", "properties": {} }
                 },
                 {
+                    "name": "list_vault_plugins",
+                    "description": "List installed vault plugins and effective enablement state.",
+                    "inputSchema": { "type": "object", "properties": {} }
+                },
+                {
                     "name": "update_vault_settings",
                     "description": "Apply settings merge patch JSON.",
                     "inputSchema": {
@@ -968,7 +972,7 @@ impl McpServer {
                         .into_iter()
                         .map(|n| {
                             let resolved =
-                                NoteTypeRegistry::default().resolve_path(&vault.root_path().join(&n.path));
+                                vault.note_type_registry().resolve_path(&vault.root_path().join(&n.path));
                             json!({
                                 "id": n.id,
                                 "path": n.path,
@@ -1167,7 +1171,7 @@ impl McpServer {
                     Ok(notes
                         .into_iter()
                         .map(|n| {
-                            let resolved = NoteTypeRegistry::default()
+                            let resolved = vault.note_type_registry()
                                 .resolve_path(&vault.root_path().join(&n.path));
                             json!({
                                 "id": n.id,
@@ -1207,6 +1211,17 @@ impl McpServer {
                 })?;
                 Ok(json!({
                     "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
+                    "isError": false
+                }))
+            }
+            "list_vault_plugins" => {
+                let payload = self.with_vault(|vault| {
+                    vault
+                        .list_installed_plugins()
+                        .map_err(|e| (-32000, e.to_response_string()))
+                })?;
+                Ok(json!({
+                    "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "[]".to_string()) }],
                     "isError": false
                 }))
             }
@@ -1316,7 +1331,7 @@ impl McpServer {
                         .map(|note| {
                             let path = note.path.clone();
                             let title = note.title.clone();
-                            let resolved = NoteTypeRegistry::default()
+                            let resolved = vault.note_type_registry()
                                 .resolve_path(&vault.root_path().join(&path));
                             ExplorerTreeNote {
                                 path,

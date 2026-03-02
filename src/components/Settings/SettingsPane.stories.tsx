@@ -22,12 +22,27 @@ const meta = {
     vaultSettings: {
       name: "Canonical",
       plugins_enabled: false,
+      plugin_overrides: {},
       file_visibility: "all_files",
       sync: { enabled: false, peers: [] },
       editor: { font_size: 14, tab_size: 4 },
     },
+    vaultPlugins: [
+      {
+        name: "example-plugin",
+        display_name: "Example Plugin",
+        version: "1.0.0",
+        description: "Example vault plugin",
+        author: "Knot",
+        api_version: "1.0",
+        enabled: true,
+        effective_enabled: false,
+      },
+    ],
+    isVaultPluginsLoading: false,
     isVaultSettingsLoading: false,
     onRefreshVaultSettings: fn(),
+    onRefreshVaultPlugins: fn(),
     onUpdateVaultSettings: fn(async () => {}),
     onReindexVault: fn(async () => {}),
     isReindexing: false,
@@ -72,5 +87,11 @@ export const Vault: Story = {
   play: async ({ canvas }) => {
     await expect(canvas.getByLabelText("Vault name")).toBeInTheDocument();
     await expect(canvas.getByLabelText("Sync peers")).toBeInTheDocument();
+  },
+};
+
+export const Plugins: Story = {
+  args: {
+    section: "plugins",
   },
 };

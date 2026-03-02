@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::path::Path;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,6 +33,15 @@ pub struct NoteTypeMetadata {
 }
 
 pub trait NoteTypePlugin: Send + Sync {
+    fn plugin_id(&self) -> Option<&'static str> {
+        None
+    }
+    fn display_name(&self) -> Option<&'static str> {
+        None
+    }
+    fn description(&self) -> Option<&'static str> {
+        None
+    }
     fn note_type(&self) -> NoteTypeId;
     fn matches_path(&self, path: &Path, extension: &str) -> bool;
     fn badge_for_extension(&self, extension: &str) -> Option<String>;
@@ -79,6 +89,18 @@ impl NoteTypePlugin for MarkdownNoteTypePlugin {
 struct YouTubeNoteTypePlugin;
 
 impl NoteTypePlugin for YouTubeNoteTypePlugin {
+    fn plugin_id(&self) -> Option<&'static str> {
+        Some("youtube")
+    }
+
+    fn display_name(&self) -> Option<&'static str> {
+        Some("YouTube")
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        Some("Render and import YouTube video notes with transcript-backed markdown.")
+    }
+
     fn note_type(&self) -> NoteTypeId {
         NoteTypeId::YouTube
     }
@@ -128,6 +150,18 @@ impl ImageNoteTypePlugin {
 }
 
 impl NoteTypePlugin for ImageNoteTypePlugin {
+    fn plugin_id(&self) -> Option<&'static str> {
+        Some("image")
+    }
+
+    fn display_name(&self) -> Option<&'static str> {
+        Some("Image")
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        Some("Render image files as native viewable notes.")
+    }
+
     fn note_type(&self) -> NoteTypeId {
         NoteTypeId::Image
     }
@@ -163,6 +197,18 @@ impl NoteTypePlugin for ImageNoteTypePlugin {
 struct PdfNoteTypePlugin;
 
 impl NoteTypePlugin for PdfNoteTypePlugin {
+    fn plugin_id(&self) -> Option<&'static str> {
+        Some("pdf")
+    }
+
+    fn display_name(&self) -> Option<&'static str> {
+        Some("PDF")
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        Some("Render PDF files as view-only notes.")
+    }
+
     fn note_type(&self) -> NoteTypeId {
         NoteTypeId::Pdf
     }
@@ -210,6 +256,13 @@ impl Default for NoteTypeRegistry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BuiltInNoteTypePluginInfo {
+    pub name: String,
+    pub display_name: String,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolvedNoteType {
     pub note_type: NoteTypeId,
     pub type_badge: Option<String>,
@@ -220,6 +273,49 @@ pub struct ResolvedNoteType {
 }
 
 impl NoteTypeRegistry {
+    pub fn from_plugin_settings(
+        plugins_enabled: bool,
+        plugin_overrides: &BTreeMap<String, bool>,
+    ) -> Self {
+        let is_enabled = |plugin_id: &str| -> bool {
+            plugins_enabled && plugin_overrides.get(plugin_id).copied().unwrap_or(true)
+        };
+
+        let mut plugins: Vec<Box<dyn NoteTypePlugin>> = vec![Box::new(MarkdownNoteTypePlugin)];
+        if is_enabled("youtube") {
+            plugins.insert(0, Box::new(YouTubeNoteTypePlugin));
+        }
+        if is_enabled("pdf") {
+            plugins.push(Box::new(PdfNoteTypePlugin));
+        }
+        if is_enabled("image") {
+            plugins.push(Box::new(ImageNoteTypePlugin));
+        }
+
+        Self { plugins }
+    }
+
+    pub fn built_in_plugins() -> Vec<BuiltInNoteTypePluginInfo> {
+        vec![
+            BuiltInNoteTypePluginInfo {
+                name: "image".to_string(),
+                display_name: "Image".to_string(),
+                description: "Render image files as native viewable notes.".to_string(),
+            },
+            BuiltInNoteTypePluginInfo {
+                name: "pdf".to_string(),
+                display_name: "PDF".to_string(),
+                description: "Render PDF files as view-only notes.".to_string(),
+            },
+            BuiltInNoteTypePluginInfo {
+                name: "youtube".to_string(),
+                display_name: "YouTube".to_string(),
+                description: "Render and import YouTube video notes with transcript-backed markdown."
+                    .to_string(),
+            },
+        ]
+    }
+
     pub fn resolve_path(&self, path: &Path) -> ResolvedNoteType {
         let extension = path
             .extension()

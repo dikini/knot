@@ -4,7 +4,7 @@
 //! SPEC: COMP-GRAPH-001 FR-6
 
 use crate::commands::emit_event;
-use crate::note_type::{note_type_has_text_content, NoteTypeId, NoteTypeRegistry};
+use crate::note_type::{note_type_has_text_content, NoteTypeId};
 use base64::Engine;
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
@@ -879,7 +879,7 @@ fn build_explorer_tree(
 
 /// Helper to convert NoteMeta to NoteSummary.
 fn note_to_summary(vault_root: &Path, meta: crate::note::NoteMeta) -> NoteSummary {
-    let resolved = NoteTypeRegistry::default().resolve_path(&vault_root.join(&meta.path));
+    let resolved = crate::note_type::NoteTypeRegistry::default().resolve_path(&vault_root.join(&meta.path));
     NoteSummary {
         id: meta.id,
         path: meta.path,
@@ -898,7 +898,7 @@ pub(crate) fn build_note_data(
     vault: &crate::core::VaultManager,
     note: crate::note::Note,
 ) -> NoteData {
-    let mut resolved = NoteTypeRegistry::default().resolve_path(&vault_root.join(note.path()));
+    let mut resolved = vault.note_type_registry().resolve_path(&vault_root.join(note.path()));
     let (headings, backlinks, content) = if note_type_has_text_content(resolved.note_type) {
         let note_headings = note.headings();
         let heading_positions = compute_heading_positions(note.content(), &note_headings);

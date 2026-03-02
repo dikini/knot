@@ -339,6 +339,7 @@ fn main() {
             knot::commands::vault::sync_external_changes,
             knot::commands::vault::set_unsaved_changes,
             knot::commands::vault::get_vault_settings,
+            knot::commands::vault::list_vault_plugins,
             knot::commands::vault::update_vault_settings,
             knot::commands::vault::get_app_keymap_settings,
             knot::commands::vault::update_app_keymap_settings,

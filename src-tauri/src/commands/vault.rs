@@ -2,7 +2,7 @@
 //!
 //! SPEC: COMP-VAULT-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::{Manager, State, Window};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tracing::{info, instrument};
@@ -12,7 +12,7 @@ use crate::app_config::{
     app_config_root, load_app_keymap_settings, load_ui_automation_settings, save_app_keymap_settings,
     save_ui_automation_settings, AppKeymapSettings, UiAutomationSettings,
 };
-use crate::core::VaultManager;
+use crate::core::{VaultManager, VaultPluginInfo};
 use crate::error::KnotError;
 use crate::knotd_client;
 use crate::recent_vaults::{RecentVault, RecentVaults};
@@ -29,6 +29,33 @@ struct TreeChangedEventPayload {
 #[derive(Debug, Clone, Serialize)]
 pub struct ReindexVaultResult {
     pub reindexed_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VaultPluginListItem {
+    pub name: String,
+    pub display_name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub api_version: String,
+    pub enabled: bool,
+    pub effective_enabled: bool,
+}
+
+impl From<VaultPluginInfo> for VaultPluginListItem {
+    fn from(value: VaultPluginInfo) -> Self {
+        Self {
+            name: value.name,
+            display_name: value.display_name,
+            version: value.version,
+            description: value.description,
+            author: value.author,
+            api_version: value.api_version,
+            enabled: value.enabled,
+            effective_enabled: value.effective_enabled,
+        }
+    }
 }
 
 /// Greet command - simple test command.
@@ -553,6 +580,26 @@ pub async fn get_vault_settings(state: State<'_, AppState>) -> Result<serde_json
     match vault_guard.as_ref() {
         Some(vault) => vault
             .get_vault_settings_value()
+            .map_err(|e| e.to_response_string()),
+        None => Err("No vault is open".to_string()),
+    }
+}
+
+#[tauri::command]
+#[instrument(skip(state))]
+pub async fn list_vault_plugins(
+    state: State<'_, AppState>,
+) -> Result<Vec<VaultPluginListItem>, String> {
+    if state.is_daemon_mode() {
+        return knotd_client::call_tool_typed("list_vault_plugins", serde_json::json!({}))
+            .map_err(|e| e.to_response_string());
+    }
+
+    let vault_guard = state.vault().lock().await;
+    match vault_guard.as_ref() {
+        Some(vault) => vault
+            .list_installed_plugins()
+            .map(|plugins| plugins.into_iter().map(VaultPluginListItem::from).collect())
             .map_err(|e| e.to_response_string()),
         None => Err("No vault is open".to_string()),
     }

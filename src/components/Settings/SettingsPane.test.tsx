@@ -52,8 +52,11 @@ describe("SettingsPane keymap settings", () => {
         onGraphReadabilityFloorPercentChange={vi.fn()}
         onApplyAppKeymapSettings={vi.fn()}
         vaultSettings={null}
+        vaultPlugins={[]}
+        isVaultPluginsLoading={false}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
+        onRefreshVaultPlugins={vi.fn()}
         onUpdateVaultSettings={vi.fn()}
         onReindexVault={vi.fn()}
         isReindexing={false}
@@ -94,8 +97,11 @@ describe("SettingsPane keymap settings", () => {
         onGraphReadabilityFloorPercentChange={onGraphReadabilityFloorPercentChange}
         onApplyAppKeymapSettings={onApplyAppKeymapSettings}
         vaultSettings={null}
+        vaultPlugins={[]}
+        isVaultPluginsLoading={false}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
+        onRefreshVaultPlugins={vi.fn()}
         onUpdateVaultSettings={vi.fn()}
         onReindexVault={vi.fn()}
         isReindexing={false}
@@ -137,8 +143,11 @@ describe("SettingsPane keymap settings", () => {
         graphReadabilityFloorPercent={70}
         onGraphReadabilityFloorPercentChange={vi.fn()}
         vaultSettings={null}
+        vaultPlugins={[]}
+        isVaultPluginsLoading={false}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
+        onRefreshVaultPlugins={vi.fn()}
         onUpdateVaultSettings={vi.fn()}
         onReindexVault={vi.fn()}
         isReindexing={false}
@@ -180,8 +189,11 @@ describe("SettingsPane keymap settings", () => {
         graphReadabilityFloorPercent={70}
         onGraphReadabilityFloorPercentChange={vi.fn()}
         vaultSettings={null}
+        vaultPlugins={[]}
+        isVaultPluginsLoading={false}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
+        onRefreshVaultPlugins={vi.fn()}
         onUpdateVaultSettings={vi.fn()}
         onReindexVault={vi.fn()}
         isReindexing={false}
@@ -221,8 +233,11 @@ describe("SettingsPane keymap settings", () => {
         graphReadabilityFloorPercent={70}
         onGraphReadabilityFloorPercentChange={vi.fn()}
         vaultSettings={null}
+        vaultPlugins={[]}
+        isVaultPluginsLoading={false}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
+        onRefreshVaultPlugins={vi.fn()}
         onUpdateVaultSettings={vi.fn()}
         onReindexVault={vi.fn()}
         isReindexing={false}
@@ -262,8 +277,11 @@ describe("SettingsPane keymap settings", () => {
         graphReadabilityFloorPercent={70}
         onGraphReadabilityFloorPercentChange={vi.fn()}
         vaultSettings={null}
+        vaultPlugins={[]}
+        isVaultPluginsLoading={false}
         isVaultSettingsLoading={false}
         onRefreshVaultSettings={vi.fn()}
+        onRefreshVaultPlugins={vi.fn()}
         onUpdateVaultSettings={vi.fn()}
         onReindexVault={vi.fn()}
         isReindexing={false}
@@ -288,5 +306,73 @@ describe("SettingsPane keymap settings", () => {
 
     expect(onAppKeymapChange).toHaveBeenCalledWith("general.save_note", "Alt-s");
     expect(onResetAppKeymapField).toHaveBeenCalledWith("general.save_note");
+  });
+
+  it("renders the plugins section and applies per-plugin overrides", () => {
+    const onUpdateVaultSettings = vi.fn();
+
+    render(
+      <SettingsPane
+        section="plugins"
+        onSectionChange={vi.fn()}
+        showTextLabels={false}
+        onShowTextLabelsChange={vi.fn()}
+        densityMode="comfortable"
+        onDensityModeChange={vi.fn()}
+        contextPanelWidth={320}
+        onContextPanelWidthChange={vi.fn()}
+        editorSurfaceMode="sepia"
+        onEditorSurfaceModeChange={vi.fn()}
+        graphReadabilityFloorPercent={70}
+        onGraphReadabilityFloorPercentChange={vi.fn()}
+        vaultSettings={{
+          name: "vault",
+          plugins_enabled: false,
+          plugin_overrides: { "example-plugin": false },
+          file_visibility: "all_files",
+          sync: { enabled: false, peers: [] },
+          editor: { font_size: 14, tab_size: 4 },
+        }}
+        vaultPlugins={[
+          {
+            name: "example-plugin",
+            display_name: "Example Plugin",
+            version: "1.0.0",
+            description: "Example vault plugin",
+            author: "Knot",
+            api_version: "1.0",
+            enabled: false,
+            effective_enabled: false,
+          },
+        ]}
+        isVaultPluginsLoading={false}
+        isVaultSettingsLoading={false}
+        onRefreshVaultSettings={vi.fn()}
+        onRefreshVaultPlugins={vi.fn()}
+        onUpdateVaultSettings={onUpdateVaultSettings}
+        onReindexVault={vi.fn()}
+        isReindexing={false}
+        reindexStatus={null}
+        appKeymapSettings={createKeymapSettings()}
+        appKeymapErrors={{}}
+        isAppKeymapSettingsLoading={false}
+        onAppKeymapChange={vi.fn()}
+        onApplyAppKeymapSettings={vi.fn()}
+        onResetAppKeymapField={vi.fn()}
+        onResetAllAppKeymaps={vi.fn()}
+        uiAutomationSettings={defaultUiAutomationSettings}
+        isUiAutomationSettingsLoading={false}
+        onUpdateUiAutomationSettings={vi.fn()}
+      />
+    );
+
+    fireEvent.click(screen.getByLabelText("Plugins enabled"));
+    fireEvent.click(screen.getByLabelText("Example Plugin enabled"));
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
+    expect(onUpdateVaultSettings).toHaveBeenCalledWith({
+      plugins_enabled: true,
+      plugin_overrides: { "example-plugin": true },
+    });
   });
 });

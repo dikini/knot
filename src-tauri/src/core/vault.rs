@@ -9,9 +9,10 @@
 //! SPEC: COMP-GRAPH-001 FR-2, FR-6, FR-7
 //! SPEC: COMP-TAG-EXTRACTION-001 FR-3
 
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
 use crate::config::VaultConfig;
@@ -19,13 +20,35 @@ use crate::db::Database;
 use crate::error::{KnotError, Result};
 use crate::graph::LinkGraph;
 use crate::note::{Note, NoteMeta};
-use crate::note_type::{NoteTypeId, NoteTypeRegistry};
+use crate::note_type::{note_type_has_text_content, NoteTypeId, NoteTypeRegistry};
 use crate::search::SearchIndex;
 use crate::watcher::FileWatcher;
 
 const VAULT_DIR: &str = ".vault";
 const CONFIG_FILE: &str = "config.toml";
 const DB_FILE: &str = "metadata.db";
+
+#[derive(Debug, Clone, Serialize)]
+pub struct VaultPluginInfo {
+    pub name: String,
+    pub display_name: String,
+    pub version: String,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub api_version: String,
+    pub enabled: bool,
+    pub effective_enabled: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct InstalledPluginManifest {
+    name: String,
+    display_name: String,
+    version: String,
+    description: Option<String>,
+    author: Option<String>,
+    api_version: String,
+}
 
 /// Manages an open vault.
 ///
@@ -152,6 +175,10 @@ impl VaultManager {
         &self.config
     }
 
+    pub fn note_type_registry(&self) -> NoteTypeRegistry {
+        NoteTypeRegistry::from_plugin_settings(self.config.plugins_enabled, &self.config.plugin_overrides)
+    }
+
     /// Get current vault settings as JSON.
     pub fn get_vault_settings_value(&self) -> Result<serde_json::Value> {
         Ok(serde_json::to_value(&self.config)?)
@@ -168,6 +195,64 @@ impl VaultManager {
         updated_config.save(&self.vault_dir().join(CONFIG_FILE))?;
         self.config = updated_config;
         self.get_vault_settings_value()
+    }
+
+    pub fn list_installed_plugins(&self) -> Result<Vec<VaultPluginInfo>> {
+        let overrides: &BTreeMap<String, bool> = &self.config.plugin_overrides;
+        let mut plugins = NoteTypeRegistry::built_in_plugins()
+            .into_iter()
+            .map(|plugin| {
+                let enabled = overrides.get(&plugin.name).copied().unwrap_or(true);
+                VaultPluginInfo {
+                    name: plugin.name,
+                    display_name: plugin.display_name,
+                    version: "builtin".to_string(),
+                    description: Some(plugin.description),
+                    author: Some("Knot".to_string()),
+                    api_version: "builtin".to_string(),
+                    enabled,
+                    effective_enabled: self.config.plugins_enabled && enabled,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let plugins_dir = self.vault_dir().join("plugins");
+        if !plugins_dir.exists() {
+            plugins.sort_by(|left, right| left.display_name.cmp(&right.display_name));
+            return Ok(plugins);
+        }
+
+        for entry in std::fs::read_dir(&plugins_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+
+            let manifest_path = path.join("plugin.toml");
+            if !manifest_path.exists() {
+                continue;
+            }
+
+            let content = std::fs::read_to_string(&manifest_path)?;
+            let manifest: InstalledPluginManifest =
+                toml::from_str(&content).map_err(|error| KnotError::Config(error.to_string()))?;
+
+            let enabled = overrides.get(&manifest.name).copied().unwrap_or(true);
+            plugins.push(VaultPluginInfo {
+                name: manifest.name,
+                display_name: manifest.display_name,
+                version: manifest.version,
+                description: manifest.description,
+                author: manifest.author,
+                api_version: manifest.api_version,
+                enabled,
+                effective_enabled: self.config.plugins_enabled && enabled,
+            });
+        }
+
+        plugins.sort_by(|left, right| left.display_name.cmp(&right.display_name));
+        Ok(plugins)
     }
 
     /// Persist expanded/collapsed state for an explorer folder path.
@@ -310,7 +395,7 @@ impl VaultManager {
     /// SPEC: COMP-NOTE-001 FR-2
     /// Get a note by its path.
     pub fn get_note(&self, path: &str) -> Result<Note> {
-        let note_types = NoteTypeRegistry::default();
+        let note_types = self.note_type_registry();
         let resolved = note_types.resolve_path(Path::new(path));
 
         // First try to get from database
@@ -323,7 +408,7 @@ impl VaultManager {
                 return Err(KnotError::NoteNotFound(path.to_string()));
             }
 
-            if resolved.note_type == NoteTypeId::Markdown {
+            if note_type_has_text_content(resolved.note_type) {
                 let content = std::fs::read_to_string(&full_path)?;
                 return Ok(Note::new(path, &content));
             }
@@ -422,7 +507,7 @@ impl VaultManager {
     pub fn rename_note(&mut self, old_path: &str, new_path: &str) -> Result<()> {
         let old_full = self.root.join(old_path);
         let new_full = self.root.join(new_path);
-        let note_types = NoteTypeRegistry::default();
+        let note_types = self.note_type_registry();
 
         if !old_full.exists() {
             return Err(KnotError::NoteNotFound(old_path.to_string()));
@@ -540,7 +625,7 @@ impl VaultManager {
 
         info!("running full vault reindex");
 
-        let note_types = NoteTypeRegistry::default();
+        let note_types = self.note_type_registry();
         let mut disk_paths: HashSet<String> = HashSet::new();
         for entry in WalkDir::new(&self.root)
             .follow_links(false)
@@ -621,7 +706,7 @@ impl VaultManager {
     pub fn scan_visible_files(&self) -> Result<Vec<String>> {
         use walkdir::WalkDir;
 
-        let note_types = NoteTypeRegistry::default();
+        let note_types = self.note_type_registry();
         let include_unknown = matches!(
             self.config.file_visibility,
             crate::config::FileVisibilityPolicy::AllFiles
@@ -750,7 +835,7 @@ impl VaultManager {
     /// Sync newly created file to database, index, and graph
     fn sync_new_file(&mut self, path: &str) -> Result<()> {
         let full_path = self.root.join(path);
-        let note_types = NoteTypeRegistry::default();
+        let note_types = self.note_type_registry();
         if note_types.resolve_path(&full_path).note_type != NoteTypeId::Markdown {
             info!(path, "skipping non-markdown file creation sync");
             return Ok(());
@@ -774,7 +859,7 @@ impl VaultManager {
     fn sync_modified_file(&mut self, path: &str) -> Result<()> {
         info!(path, "external file modified");
         let full_path = self.root.join(path);
-        let note_types = NoteTypeRegistry::default();
+        let note_types = self.note_type_registry();
         if note_types.resolve_path(&full_path).note_type != NoteTypeId::Markdown {
             info!(path, "skipping non-markdown file modification sync");
             return Ok(());
@@ -975,6 +1060,86 @@ mod tests {
         assert_eq!(
             resolved.media.as_ref().map(|media| media.mime_type.as_str()),
             Some("application/pdf")
+        );
+    }
+
+    #[test]
+    fn list_installed_plugins_reflects_overrides_and_global_enablement() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let mut vault = VaultManager::create(&vault_path).unwrap();
+
+        let plugin_dir = vault.root_path().join(".vault/plugins/test-plugin");
+        std::fs::create_dir_all(&plugin_dir).unwrap();
+        std::fs::write(
+            plugin_dir.join("plugin.toml"),
+            r#"
+name = "test-plugin"
+display_name = "Test Plugin"
+version = "1.0.0"
+description = "Example plugin"
+author = "Tester"
+entry_point = "test.wasm"
+api_version = "1.0"
+"#,
+        )
+        .unwrap();
+
+        let plugins = vault.list_installed_plugins().unwrap();
+        assert_eq!(plugins.len(), 4);
+        let runtime_plugin = plugins.iter().find(|plugin| plugin.name == "test-plugin").unwrap();
+        let built_in_image = plugins.iter().find(|plugin| plugin.name == "image").unwrap();
+        assert!(runtime_plugin.enabled);
+        assert!(!runtime_plugin.effective_enabled);
+        assert!(built_in_image.enabled);
+        assert!(!built_in_image.effective_enabled);
+
+        vault
+            .update_vault_settings_patch(&serde_json::json!({
+                "plugins_enabled": true,
+                "plugin_overrides": { "test-plugin": false, "image": false }
+            }))
+            .unwrap();
+
+        let plugins = vault.list_installed_plugins().unwrap();
+        let runtime_plugin = plugins.iter().find(|plugin| plugin.name == "test-plugin").unwrap();
+        let built_in_image = plugins.iter().find(|plugin| plugin.name == "image").unwrap();
+        assert!(!runtime_plugin.enabled);
+        assert!(!runtime_plugin.effective_enabled);
+        assert!(!built_in_image.enabled);
+        assert!(!built_in_image.effective_enabled);
+    }
+
+    #[test]
+    fn note_type_registry_respects_built_in_plugin_overrides() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let mut vault = VaultManager::create(&vault_path).unwrap();
+
+        std::fs::write(vault.root_path().join("paper.pdf"), b"%PDF-1.5").unwrap();
+        assert_eq!(
+            vault.note_type_registry().resolve_path(&vault.root_path().join("paper.pdf")).note_type,
+            NoteTypeId::Unknown
+        );
+
+        vault
+            .update_vault_settings_patch(&serde_json::json!({
+                "plugins_enabled": true,
+            }))
+            .unwrap();
+        assert_eq!(
+            vault.note_type_registry().resolve_path(&vault.root_path().join("paper.pdf")).note_type,
+            NoteTypeId::Pdf
+        );
+
+        vault
+            .update_vault_settings_patch(&serde_json::json!({
+                "plugin_overrides": { "pdf": false }
+            }))
+            .unwrap();
+        assert_eq!(
+            vault.note_type_registry().resolve_path(&vault.root_path().join("paper.pdf")).note_type,
+            NoteTypeId::Unknown
         );
     }
 

@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::error::Result;
@@ -16,6 +17,9 @@ pub struct VaultConfig {
 
     #[serde(default)]
     pub plugins_enabled: bool,
+
+    #[serde(default)]
+    pub plugin_overrides: BTreeMap<String, bool>,
 
     #[serde(default)]
     pub file_visibility: FileVisibilityPolicy,
@@ -78,6 +82,7 @@ impl Default for VaultConfig {
             sync: SyncConfig::default(),
             editor: EditorConfig::default(),
             plugins_enabled: false, // Disabled by default for security
+            plugin_overrides: BTreeMap::new(),
             file_visibility: FileVisibilityPolicy::AllFiles,
             explorer: ExplorerConfig::default(),
         }
@@ -126,6 +131,7 @@ mod tests {
             config.explorer.expanded_folders
         );
         assert_eq!(parsed.file_visibility, config.file_visibility);
+        assert_eq!(parsed.plugin_overrides, config.plugin_overrides);
     }
 
     #[test]
@@ -135,6 +141,7 @@ mod tests {
         assert_eq!(config.name, "Test Vault");
         assert!(!config.sync.enabled);
         assert_eq!(config.editor.font_size, 14);
+        assert!(config.plugin_overrides.is_empty());
         assert_eq!(config.file_visibility, FileVisibilityPolicy::AllFiles);
         assert!(config.explorer.expanded_folders.is_empty());
         assert!(!config.explorer.expansion_state_initialized);

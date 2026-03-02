@@ -116,10 +116,12 @@ const apiMock = vi.hoisted(() => ({
   getVaultSettings: vi.fn().mockResolvedValue({
     name: "vault",
     plugins_enabled: false,
+    plugin_overrides: {},
     file_visibility: "all_files",
     sync: { enabled: false, peers: [] },
     editor: { font_size: 14, tab_size: 4 },
   }),
+  listVaultPlugins: vi.fn().mockResolvedValue([]),
   updateVaultSettings: vi.fn(),
   reindexVault: vi.fn(),
   getUiAutomationSettings: vi.fn().mockResolvedValue({

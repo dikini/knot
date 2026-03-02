@@ -9,7 +9,7 @@
 
 mod vault;
 
-pub use vault::VaultManager;
+pub use vault::{VaultManager, VaultPluginInfo};
 
 // Re-export types from other modules for convenience
 pub use crate::note::{Note, NoteMeta};

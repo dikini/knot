@@ -180,6 +180,7 @@ describe("API Client", () => {
       const mockSettings = {
         name: "Vault",
         plugins_enabled: false,
+        plugin_overrides: {},
         file_visibility: "all_files",
         sync: { enabled: false, peers: [] },
         editor: { font_size: 14, tab_size: 4 },
@@ -197,6 +198,7 @@ describe("API Client", () => {
       const updated = {
         name: "Updated Vault",
         plugins_enabled: false,
+        plugin_overrides: {},
         file_visibility: "all_files",
         sync: { enabled: true, peers: [] },
         editor: { font_size: 14, tab_size: 4 },
@@ -207,6 +209,27 @@ describe("API Client", () => {
 
       expect(invoke).toHaveBeenCalledWith("update_vault_settings", { patch });
       expect(result).toEqual(updated);
+    });
+
+    it("should list vault plugins", async () => {
+      const plugins = [
+        {
+          name: "example-plugin",
+          display_name: "Example Plugin",
+          version: "1.0.0",
+          description: "Example",
+          author: "Tester",
+          api_version: "1.0",
+          enabled: true,
+          effective_enabled: false,
+        },
+      ];
+      vi.mocked(invoke).mockResolvedValue(plugins);
+
+      const result = await api.listVaultPlugins();
+
+      expect(invoke).toHaveBeenCalledWith("list_vault_plugins");
+      expect(result).toEqual(plugins);
     });
 
     it("should reindex vault", async () => {

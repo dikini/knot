@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ShellDensityMode } from "@lib/store";
-import type { AppKeymapSettings, UiAutomationSettings, VaultSettings } from "@lib/api";
+import type { AppKeymapSettings, UiAutomationSettings, VaultPlugin, VaultSettings } from "@lib/api";
 import type { ManagedShortcutFieldPath } from "@lib/keymapSettings";
 import "./SettingsPane.css";
 
@@ -10,6 +10,7 @@ export type SettingsSection =
   | "appearance"
   | "layout"
   | "ui-automation"
+  | "plugins"
   | "vault"
   | "maintenance";
 
@@ -27,9 +28,12 @@ interface SettingsPaneProps {
   graphReadabilityFloorPercent: number;
   onGraphReadabilityFloorPercentChange: (value: number) => void;
   vaultSettings: VaultSettings | null;
+  vaultPlugins: VaultPlugin[];
+  isVaultPluginsLoading: boolean;
   isVaultSettingsLoading: boolean;
   onRefreshVaultSettings: () => void;
   onUpdateVaultSettings: (patch: Partial<VaultSettings>) => Promise<void>;
+  onRefreshVaultPlugins: () => void;
   onReindexVault: () => Promise<void>;
   isReindexing: boolean;
   reindexStatus: string | null;
@@ -51,6 +55,7 @@ const SECTION_LABELS: Array<{ id: SettingsSection; label: string }> = [
   { id: "appearance", label: "Appearance" },
   { id: "layout", label: "Layout" },
   { id: "ui-automation", label: "UI Automation" },
+  { id: "plugins", label: "Plugins" },
   { id: "vault", label: "Vault" },
   { id: "maintenance", label: "Maintenance" },
 ];
@@ -69,9 +74,12 @@ export function SettingsPane({
   graphReadabilityFloorPercent,
   onGraphReadabilityFloorPercentChange,
   vaultSettings,
+  vaultPlugins,
+  isVaultPluginsLoading,
   isVaultSettingsLoading,
   onRefreshVaultSettings,
   onUpdateVaultSettings,
+  onRefreshVaultPlugins,
   onReindexVault,
   isReindexing,
   reindexStatus,
@@ -88,24 +96,30 @@ export function SettingsPane({
 }: SettingsPaneProps) {
   const [vaultDraft, setVaultDraft] = useState({
     name: "",
-    plugins_enabled: false,
     file_visibility: "all_files" as VaultSettings["file_visibility"],
     sync_enabled: false,
     sync_peers: "",
     font_size: 14,
     tab_size: 4,
   });
+  const [pluginDraft, setPluginDraft] = useState({
+    plugins_enabled: false,
+    plugin_overrides: {} as Record<string, boolean>,
+  });
 
   useEffect(() => {
     if (!vaultSettings) return;
     setVaultDraft({
       name: vaultSettings.name,
-      plugins_enabled: vaultSettings.plugins_enabled,
       file_visibility: vaultSettings.file_visibility,
       sync_enabled: vaultSettings.sync.enabled,
       sync_peers: vaultSettings.sync.peers.join(", "),
       font_size: vaultSettings.editor.font_size,
       tab_size: vaultSettings.editor.tab_size,
+    });
+    setPluginDraft({
+      plugins_enabled: vaultSettings.plugins_enabled,
+      plugin_overrides: { ...vaultSettings.plugin_overrides },
     });
   }, [vaultSettings]);
 
@@ -122,7 +136,6 @@ export function SettingsPane({
 
     await onUpdateVaultSettings({
       name: vaultDraft.name,
-      plugins_enabled: vaultDraft.plugins_enabled,
       file_visibility: vaultDraft.file_visibility,
       sync: {
         enabled: vaultDraft.sync_enabled,
@@ -132,6 +145,13 @@ export function SettingsPane({
         font_size: Math.max(8, Math.floor(vaultDraft.font_size)),
         tab_size: Math.max(2, Math.floor(vaultDraft.tab_size)),
       },
+    });
+  };
+
+  const handleApplyPluginSettings = async () => {
+    await onUpdateVaultSettings({
+      plugins_enabled: pluginDraft.plugins_enabled,
+      plugin_overrides: pluginDraft.plugin_overrides,
     });
   };
 
@@ -395,30 +415,6 @@ export function SettingsPane({
                 onChange={(event) => setVaultDraft((state) => ({ ...state, name: event.target.value }))}
               />
             </label>
-            <label className="settings-pane__field settings-pane__field--checkbox">
-              <span className="settings-pane__field-meta">
-                <span className="settings-pane__field-label">Plugins enabled</span>
-                <span className="settings-pane__field-help">
-                  Enable runtime plugin loading for this vault.
-                </span>
-              </span>
-              <span className="settings-pane__switch-wrap">
-                <input
-                  type="checkbox"
-                  aria-label="Plugins enabled"
-                  className="settings-pane__switch-input"
-                  checked={vaultDraft.plugins_enabled}
-                  onChange={(event) =>
-                    setVaultDraft((state) => ({
-                      ...state,
-                      plugins_enabled: event.target.checked,
-                    }))
-                  }
-                />
-                <span className="settings-pane__switch-track" aria-hidden="true" />
-                <span className="settings-pane__switch-text">{vaultDraft.plugins_enabled ? "On" : "Off"}</span>
-              </span>
-            </label>
             <label className="settings-pane__field">
               <span className="settings-pane__field-meta">
                 <span className="settings-pane__field-label">Explorer file visibility</span>
@@ -517,6 +513,105 @@ export function SettingsPane({
                 }
               />
             </label>
+          </div>
+        )}
+
+        {section === "plugins" && (
+          <div className="settings-pane__group settings-pane__group--vault">
+            <div className="settings-pane__inline-actions">
+              <button
+                type="button"
+                onClick={() => {
+                  onRefreshVaultSettings();
+                  onRefreshVaultPlugins();
+                }}
+                disabled={isVaultSettingsLoading || isVaultPluginsLoading}
+              >
+                {isVaultSettingsLoading || isVaultPluginsLoading ? "Loading..." : "Reload"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleApplyPluginSettings();
+                }}
+                disabled={isVaultSettingsLoading || isVaultPluginsLoading}
+              >
+                Apply
+              </button>
+            </div>
+            <label className="settings-pane__field settings-pane__field--checkbox">
+              <span className="settings-pane__field-meta">
+                <span className="settings-pane__field-label">Plugins enabled</span>
+                <span className="settings-pane__field-help">
+                  Enable runtime plugin loading for this vault.
+                </span>
+              </span>
+              <span className="settings-pane__switch-wrap">
+                <input
+                  type="checkbox"
+                  aria-label="Plugins enabled"
+                  className="settings-pane__switch-input"
+                  checked={pluginDraft.plugins_enabled}
+                  onChange={(event) =>
+                    setPluginDraft((state) => ({
+                      ...state,
+                      plugins_enabled: event.target.checked,
+                    }))
+                  }
+                />
+                <span className="settings-pane__switch-track" aria-hidden="true" />
+                <span className="settings-pane__switch-text">{pluginDraft.plugins_enabled ? "On" : "Off"}</span>
+              </span>
+            </label>
+            {vaultPlugins.length === 0 ? (
+              <p className="settings-pane__field-help">
+                No installed vault plugins were found in <code>.vault/plugins</code>.
+              </p>
+            ) : (
+              vaultPlugins.map((plugin) => {
+                const override =
+                  pluginDraft.plugin_overrides[plugin.name] ?? plugin.enabled;
+                const effectiveEnabled = pluginDraft.plugins_enabled && override;
+
+                return (
+                  <label
+                    key={plugin.name}
+                    className="settings-pane__field settings-pane__field--checkbox"
+                  >
+                    <span className="settings-pane__field-meta">
+                      <span className="settings-pane__field-label">
+                        {plugin.display_name} <span className="settings-pane__field-help">v{plugin.version}</span>
+                      </span>
+                      <span className="settings-pane__field-help">
+                        {plugin.description ?? plugin.name}
+                      </span>
+                      <span className="settings-pane__field-help">
+                        Effective state: {effectiveEnabled ? "Enabled" : "Disabled"}
+                      </span>
+                    </span>
+                    <span className="settings-pane__switch-wrap">
+                      <input
+                        type="checkbox"
+                        aria-label={`${plugin.display_name} enabled`}
+                        className="settings-pane__switch-input"
+                        checked={override}
+                        onChange={(event) =>
+                          setPluginDraft((state) => ({
+                            ...state,
+                            plugin_overrides: {
+                              ...state.plugin_overrides,
+                              [plugin.name]: event.target.checked,
+                            },
+                          }))
+                        }
+                      />
+                      <span className="settings-pane__switch-track" aria-hidden="true" />
+                      <span className="settings-pane__switch-text">{override ? "On" : "Off"}</span>
+                    </span>
+                  </label>
+                );
+              })
+            )}
           </div>
         )}
 
