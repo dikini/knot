@@ -366,6 +366,86 @@
   padding-left: 0;
 }
 
+.editor-embed {
+  width: min(100%, 60ch);
+  margin: 1rem 0 1.35rem;
+}
+
+.editor-embed--image {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.editor-embed__media {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--editor-paper-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
+}
+
+.editor-embed__media[href] {
+  cursor: pointer;
+}
+
+.editor-embed__image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  max-height: min(70vh, 42rem);
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.editor-embed__title {
+  display: inline-block;
+  color: var(--editor-accent);
+  text-decoration: none;
+}
+
+.editor-embed__file-badge {
+  display: inline-block;
+  vertical-align: baseline;
+  padding: 0.05rem 0.35rem;
+  border: 1px solid var(--editor-paper-border);
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.editor-embed__title:hover {
+  text-decoration: underline;
+}
+
+.editor-embed__title:focus-visible {
+  outline: 2px solid var(--editor-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.editor-embed__description {
+  margin: 0;
+  color: var(--color-text-muted);
+  border-left: 3px solid var(--editor-accent);
+  padding-left: 0.8rem;
+}
+
+.editor-embed__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .editor-mermaid {
   /* TRACE: DESIGN-mermaid-diagrams-001 */
   margin: 1rem 0;

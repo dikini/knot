@@ -64,6 +64,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-TASK-TOGGLE-ROUNDTRIP-014 | task-toggle-roundtrip | designed | component/task-toggle-roundtrip-014.md | [REL, CONF, COMP] | implemented (verified targeted) |
 | COMP-YOUTUBE-NOTE-TYPE-015 | youtube-note-type | designed | component/youtube-note-type-015.md | [REL, CONF, COMP, CAP] | draft |
 | COMP-PDF-NOTE-TYPE-016 | pdf-note-type | designed | component/pdf-note-type-016.md | [REL, CONF, COMP, CAP] | draft |
+| COMP-WIKILINK-EMBEDS-017 | wikilink-embeds | designed | component/wikilink-embeds-017.md | [REL, SEC, CAP, CONS, COMP, CONF] | draft |
 | COMP-VIEW-LIST-STYLING-009 | view-list-styling | designed | component/view-list-styling-009.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-NOTE-METADATA-FRONTMATTER-011 | note-metadata-frontmatter | designed | component/note-metadata-frontmatter-011.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
@@ -194,6 +195,7 @@ docs/specs/
 | 2026-03-02 | Draft semantic MCP UI automation runtime for discoverable actions, views, and screenshot capture | COMP-UI-AUTOMATION-RUNTIME-013 |
 | 2026-03-02 | Draft task-toggle roundtrip regression fix and task behavior automation follow-up | COMP-TASK-TOGGLE-ROUNDTRIP-014 |
 | 2026-03-02 | Draft YouTube note type with transcript-backed import and specialized rendering | COMP-YOUTUBE-NOTE-TYPE-015 |
+| 2026-03-02 | Draft wikilink embed design/spec/plan for plugin-backed `![[...]]` rendering across source/edit/view modes | COMP-WIKILINK-EMBEDS-017 |
 | 2026-02-22 | Start UI QA DX implementation: add journey suite expansion, CI quality workflows, and review-artifact guide | COMP-UI-QA-DX-001 |
 | 2026-02-22 | Complete UI QA DX implementation with design-system token/primitive inventories and formal verification policy integration | COMP-UI-QA-DX-001 |
 | 2026-02-22 | Complete Storybook DX implementation and mark Storybook workflows/docs as operational | COMP-STORYBOOK-DX-001 |

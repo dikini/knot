@@ -1759,6 +1759,220 @@ describe("Editor Component", () => {
       });
     });
 
+    it("renders markdown note embeds in view mode with title and description", async () => {
+      vi.mocked(api.getNote).mockResolvedValue({
+        id: "2",
+        path: "Project Alpha.md",
+        title: "Project Alpha",
+        content: "---\ndescription: Project Alpha summary\n---\n# Project Alpha\n",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 10,
+        headings: [],
+        backlinks: [],
+        note_type: "markdown",
+        embed: {
+          shape: {
+            kind: "link",
+            title: "Project Alpha",
+            description: "Project Alpha summary",
+          },
+          description_source: "plugin_defined",
+          primary_action: { target: "note", path: "Project Alpha.md" },
+        },
+      } as never);
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: "![[Project Alpha]]",
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+        noteList: [
+          {
+            id: "2",
+            path: "Project Alpha.md",
+            title: "Project Alpha",
+            created_at: Date.now() / 1000,
+            modified_at: Date.now() / 1000,
+            word_count: 10,
+            note_type: "markdown",
+          },
+        ],
+      });
+
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: "![[Project Alpha]]",
+        isDirty: false,
+      });
+
+      render(<Editor />);
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Project Alpha summary")).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole("link", { name: "Project Alpha" })).toBeInTheDocument();
+    });
+
+    it("renders youtube embeds in view mode with external click and shift-click note navigation", async () => {
+      vi.mocked(api.getNote).mockResolvedValue({
+        id: "2",
+        path: "Demo Video.youtube.md",
+        title: "Demo Video",
+        content: "# Demo Video\n",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 10,
+        headings: [],
+        backlinks: [],
+        note_type: "youtube",
+        metadata: {
+          extra: {
+            youtube_title: "Demo Video",
+            youtube_url: "https://www.youtube.com/watch?v=demo123",
+            youtube_thumbnail_url: "https://img.youtube.com/vi/demo123/hqdefault.jpg",
+          },
+        },
+        embed: {
+          shape: {
+            kind: "image",
+            src: "https://img.youtube.com/vi/demo123/hqdefault.jpg",
+            alt: "Demo Video",
+            title: "Demo Video",
+            description: null,
+          },
+          description_source: "plugin_defined",
+          primary_action: { target: "external", url: "https://www.youtube.com/watch?v=demo123" },
+          secondary_action: { target: "note", path: "Demo Video.youtube.md" },
+        },
+      } as never);
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: "![[Demo Video]]",
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+        noteList: [
+          {
+            id: "2",
+            path: "Demo Video.youtube.md",
+            title: "Demo Video",
+            created_at: Date.now() / 1000,
+            modified_at: Date.now() / 1000,
+            word_count: 10,
+            note_type: "youtube",
+          },
+        ],
+      });
+
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: "![[Demo Video]]",
+        isDirty: false,
+      });
+
+      render(<Editor />);
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      const thumbnailLink = (await screen.findByAltText("Demo Video")).closest("a");
+      expect(thumbnailLink).not.toBeNull();
+      fireEvent.click(thumbnailLink!);
+
+      await waitFor(() => {
+        expect(mockShellOpen).toHaveBeenCalledWith("https://www.youtube.com/watch?v=demo123");
+      });
+
+      fireEvent.click(thumbnailLink!, { shiftKey: true });
+
+      await waitFor(() => {
+        expect(useVaultStore.getState().loadNote).toHaveBeenCalledWith("Demo Video.youtube.md");
+      });
+    });
+
+    it("renders pdf embeds with a PDF indicator next to the linked title", async () => {
+      vi.mocked(api.getNote).mockResolvedValue({
+        id: "2",
+        path: "paper.pdf",
+        title: "paper",
+        content: "",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 0,
+        headings: [],
+        backlinks: [],
+        note_type: "pdf",
+        embed: {
+          shape: {
+            kind: "link",
+            title: "paper",
+            description: null,
+          },
+          description_source: "plugin_defined",
+          primary_action: { target: "note", path: "paper.pdf" },
+        },
+      } as never);
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: {
+          id: "1",
+          path: "test.md",
+          title: "Test Note",
+          content: "![[paper.pdf]]",
+          created_at: Date.now() / 1000,
+          modified_at: Date.now() / 1000,
+          word_count: 2,
+          headings: [],
+          backlinks: [],
+        },
+        noteList: [
+          {
+            id: "2",
+            path: "paper.pdf",
+            title: "paper",
+            created_at: Date.now() / 1000,
+            modified_at: Date.now() / 1000,
+            word_count: 0,
+            note_type: "pdf",
+          },
+        ],
+      });
+
+      useEditorStore.setState({
+        ...useEditorStore.getState(),
+        content: "![[paper.pdf]]",
+        isDirty: false,
+      });
+
+      render(<Editor />);
+
+      fireEvent.click(screen.getByRole("tab", { name: "View" }));
+
+      const pdfLink = await screen.findByRole("link", { name: "paper PDF document" });
+      expect(pdfLink).toBeInTheDocument();
+      expect(within(pdfLink).getByText("PDF")).toBeInTheDocument();
+    });
+
     it("toggles a task through the UI automation behavior event and reports success", async () => {
       installTaskRoundtripStore("- [x] Done\n- [ ] Todo", "knot/issues.md");
 

@@ -269,6 +269,7 @@ const marks = {
   wikilink: {
     attrs: {
       target: {},
+      embed: { default: false },
     },
     inclusive: false,
     parseDOM: [
@@ -276,6 +277,7 @@ const marks = {
         tag: "a[data-wikilink]",
         getAttrs: (dom: HTMLElement) => ({
           target: dom.getAttribute("data-wikilink"),
+          embed: dom.getAttribute("data-embed") === "true",
         }),
       },
     ],
@@ -284,6 +286,7 @@ const marks = {
         "a",
         {
           "data-wikilink": mark.attrs.target,
+          "data-embed": mark.attrs.embed ? "true" : "false",
           class: "wikilink",
           href: `#${mark.attrs.target}`,
         },

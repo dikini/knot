@@ -35,6 +35,7 @@ export interface NoteData {
   note_type?: NoteType;
   available_modes?: NoteModeAvailability;
   metadata?: NoteMetadataPayload;
+  embed?: NoteEmbedDescriptor;
   type_badge?: string | null;
   media?: NoteMediaData | null;
   is_dimmed?: boolean;
@@ -51,6 +52,52 @@ export interface NoteModeAvailability {
 
 export interface NoteMetadataPayload {
   extra?: Record<string, unknown>;
+}
+
+export type EmbedDescriptionSource = "plugin_defined";
+
+export type EmbedActionTarget = "note" | "external";
+
+export interface EmbedAction {
+  target: EmbedActionTarget;
+  path?: string | null;
+  url?: string | null;
+}
+
+export interface LinkEmbedShape {
+  kind: "link";
+  title: string;
+  description?: string | null;
+}
+
+export interface ImageEmbedShape {
+  kind: "image";
+  src: string;
+  alt?: string | null;
+  title?: string | null;
+  description?: string | null;
+}
+
+export interface CanvasEmbedShape {
+  kind: "canvas";
+  title?: string | null;
+  description?: string | null;
+}
+
+export interface IframeEmbedShape {
+  kind: "iframe";
+  src: string;
+  title?: string | null;
+  description?: string | null;
+}
+
+export type EmbedShape = LinkEmbedShape | ImageEmbedShape | CanvasEmbedShape | IframeEmbedShape;
+
+export interface NoteEmbedDescriptor {
+  shape: EmbedShape;
+  primary_action: EmbedAction;
+  secondary_action?: EmbedAction | null;
+  description_source?: EmbedDescriptionSource | null;
 }
 
 export interface NoteMediaData {

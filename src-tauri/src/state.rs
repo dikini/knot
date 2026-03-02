@@ -172,7 +172,9 @@ mod tests {
 /// These are serializable structs that are returned from commands
 /// to the frontend.
 pub mod response {
-    use crate::note_type::{NoteMediaData, NoteModeAvailability, NoteTypeId, NoteTypeMetadata};
+    use crate::note_type::{
+        NoteEmbedDescriptor, NoteMediaData, NoteModeAvailability, NoteTypeId, NoteTypeMetadata,
+    };
     use serde::{Deserialize, Serialize};
 
     /// Information about an open vault.
@@ -218,6 +220,7 @@ pub mod response {
         pub available_modes: NoteModeAvailability,
         #[serde(default)]
         pub metadata: NoteTypeMetadata,
+        pub embed: NoteEmbedDescriptor,
         #[serde(default)]
         pub type_badge: Option<String>,
         #[serde(default)]

@@ -42,17 +42,19 @@ function createMarkdownIt(): MarkdownIt {
   md.inline.ruler.before("link", "wikilink", (state, silent) => {
     const start = state.pos;
     const src = state.src;
+    const embed = src[start] === "!";
+    const openingOffset = embed ? 1 : 0;
 
-    if (src.slice(start, start + 2) !== "[[") {
+    if (src.slice(start + openingOffset, start + openingOffset + 2) !== "[[") {
       return false;
     }
 
-    const end = src.indexOf("]]", start + 2);
+    const end = src.indexOf("]]", start + openingOffset + 2);
     if (end < 0) {
       return false;
     }
 
-    const inner = src.slice(start + 2, end);
+    const inner = src.slice(start + openingOffset + 2, end);
     const parts = inner.split("|", 2);
     const target = (parts[0] ?? "").trim();
     const display = (parts[1] ?? parts[0] ?? "").trim();
@@ -63,7 +65,7 @@ function createMarkdownIt(): MarkdownIt {
 
     if (!silent) {
       const open = state.push("wikilink_open", "a", 1);
-      open.meta = { target };
+      open.meta = { target, embed };
 
       const text = state.push("text", "", 0);
       text.content = display;
@@ -137,7 +139,7 @@ const markdownParser = new MarkdownParser(schema, markdownTokenizer, {
   s: { mark: "strike" },
   wikilink: {
     mark: "wikilink",
-    getAttrs: (token) => ({ target: token.meta?.target ?? "" }),
+    getAttrs: (token) => ({ target: token.meta?.target ?? "", embed: token.meta?.embed === true }),
   },
 });
 
@@ -212,7 +214,7 @@ const markdownSerializer = new MarkdownSerializer(
       expelEnclosingWhitespace: true,
     },
     wikilink: {
-      open: (_state, mark) => `[[${String(mark.attrs.target)}|`,
+      open: (_state, mark) => `${mark.attrs.embed ? "!" : ""}[[${String(mark.attrs.target)}|`,
       close: "]]",
       mixable: false,
     },

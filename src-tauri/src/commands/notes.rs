@@ -4,7 +4,7 @@
 //! SPEC: COMP-GRAPH-001 FR-6
 
 use crate::commands::emit_event;
-use crate::note_type::{note_type_has_text_content, NoteTypeId};
+use crate::note_type::{note_type_has_text_content, NoteEmbedDescriptorInput, NoteTypeId};
 use base64::Engine;
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
@@ -933,6 +933,17 @@ pub(crate) fn build_note_data(
         resolved.metadata.extra = extract_youtube_metadata(&content);
     }
 
+    let embed = vault.note_type_registry().build_embed_descriptor(
+        &vault_root.join(note.path()),
+        &NoteEmbedDescriptorInput {
+            path: note.path(),
+            title: note.title(),
+            content: &content,
+            metadata: &resolved.metadata,
+            media: resolved.media.as_ref(),
+        },
+    );
+
     NoteData {
         id: note.id().to_string(),
         path: note.path().to_string(),
@@ -946,6 +957,7 @@ pub(crate) fn build_note_data(
         note_type: resolved.note_type,
         available_modes: resolved.available_modes,
         metadata: resolved.metadata,
+        embed,
         type_badge: resolved.type_badge,
         media: resolved.media,
         is_dimmed: !resolved.is_known,

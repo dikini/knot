@@ -28,4 +28,5 @@
 | task-toggle-roundtrip-014 | component | implemented | codex | [task-list-ui-003, ui-automation-runtime-013] | [COMP-TASK-TOGGLE-ROUNDTRIP-014] |
 | youtube-note-type-015 | component | planned | codex | [note-types-012, authoring-flows-001] | [COMP-YOUTUBE-NOTE-TYPE-015] |
 | pdf-note-type-016 | component | planned | codex | [note-types-012, editor-modes-001] | [COMP-PDF-NOTE-TYPE-016] |
+| wikilink-embeds-017 | component | planned | codex | [markdown-engine-001, note-types-012, youtube-note-type-015, pdf-note-type-016] | [COMP-WIKILINK-EMBEDS-017] |
 | settings-pane-001 | component | planned | - | [tool-rail-context-001, vault-unsaved-changes-001] | [COMP-SETTINGS-PANE-001] |

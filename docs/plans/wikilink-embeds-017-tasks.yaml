@@ -1,0 +1,63 @@
+tasks:
+  - id: WKE-001
+    title: "Add canonical markdown tests for ![[...]] round-trip"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-14]
+    concerns: [CONS, COMP, REL]
+    dependencies: []
+    acceptance: "Parser and serializer preserve ![[...]] while normal wikilinks remain unchanged"
+
+  - id: WKE-002
+    title: "Define shared embed descriptor and resolution contract"
+    status: planned
+    size: M
+    spec_refs: [FR-2, FR-3, FR-4, FR-13]
+    concerns: [REL, SEC, CAP, COMP]
+    dependencies: [WKE-001]
+    acceptance: "Core note types and plugins can describe embed presentation and actions through one typed contract"
+
+  - id: WKE-003
+    title: "Resolve ![[...]] through shared wikilink target plumbing"
+    status: planned
+    size: L
+    spec_refs: [FR-2, FR-3, FR-8, FR-13]
+    concerns: [REL, CONS, CAP]
+    dependencies: [WKE-002]
+    acceptance: "Embed targets reuse wikilink resolution and produce typed fallback-safe results"
+
+  - id: WKE-004
+    title: "Implement embed capabilities for markdown, image, YouTube, and PDF note types"
+    status: planned
+    size: M
+    spec_refs: [FR-9, FR-10, FR-11, FR-12]
+    concerns: [REL, SEC, COMP, CONF]
+    dependencies: [WKE-003]
+    acceptance: "Current core note-like types emit descriptor data matching the approved embed behavior"
+
+  - id: WKE-005
+    title: "Implement edit-mode single-line embed row with autocomplete"
+    status: planned
+    size: M
+    spec_refs: [FR-5, FR-6, FR-7]
+    concerns: [CONF, CAP, CONS]
+    dependencies: [WKE-003]
+    acceptance: "Edit mode allows direct target editing with autocomplete and suggestion-only note-type pills"
+
+  - id: WKE-006
+    title: "Implement view-mode embed rendering and action behavior"
+    status: planned
+    size: M
+    spec_refs: [FR-8, FR-9, FR-10, FR-11, FR-12, FR-13]
+    concerns: [REL, SEC, CONF]
+    dependencies: [WKE-004, WKE-005]
+    acceptance: "View mode renders current presentation kinds and handles fallback/action semantics deterministically"
+
+  - id: WKE-007
+    title: "Verify parser, resolver, editor, and note-type regressions"
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-14]
+    concerns: [REL, COMP, CONS, CONF]
+    dependencies: [WKE-006]
+    acceptance: "Targeted verification commands pass and audit evidence is ready for implementation close-out"

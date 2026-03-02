@@ -59,7 +59,7 @@ import { Selection, TextSelection, type Command } from "prosemirror-state";
 import { flushSync } from "react-dom";
 import { schema } from "@editor/schema";
 import type { ProseMirrorEditor } from "../../types/editor";
-import type { NoteModeAvailability } from "../../types/vault";
+import type { NoteData, NoteModeAvailability } from "../../types/vault";
 import "./Editor.css";
 
 const UI_AUTOMATION_EDITOR_REQUEST_EVENT = "ui-automation-editor-request";
@@ -113,6 +113,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
   const initialContentRef = useRef<string>("# New Note\n\nStart writing...");
   const metadataDraftRef = useRef<NoteMetadataDraft>(emptyMetadataDraft());
   const extraMetadataYamlRef = useRef("");
+  const embedNoteCacheRef = useRef<Map<string, NoteData>>(new Map());
   const { currentNote, setCurrentNote, loadNote, noteList, shell } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
   const [editorMode, setEditorMode] = useState<"meta" | "source" | "edit" | "view">(() =>
@@ -917,11 +918,36 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     () => renderMarkdownToHtml(parsedDocument.body),
     [parsedDocument.body]
   );
+  const [renderedViewHtml, setRenderedViewHtml] = useState(renderedHtml);
 
   useEffect(() => {
     if (editorMode !== "view" || !viewArticleRef.current) return;
     void renderMermaidDiagrams(viewArticleRef.current);
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (editorMode !== "view") {
+      setRenderedViewHtml(renderedHtml);
+      return;
+    }
+
+    if (!renderedHtml.includes('data-embed="true"')) {
+      setRenderedViewHtml(renderedHtml);
+      return;
+    }
+
+    void buildRenderedHtmlWithEmbeds(renderedHtml, noteList, embedNoteCacheRef.current).then((nextHtml) => {
+      if (!cancelled) {
+        setRenderedViewHtml(nextHtml);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editorMode, renderedHtml, noteList]);
 
   // Save note handler
   const handleSave = useCallback(async () => {
@@ -1214,6 +1240,28 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       if (wikilinkTarget) {
         event.preventDefault();
         void followOrCreateWikilinkTarget(wikilinkTarget);
+        return;
+      }
+
+      const secondaryNotePath =
+        anchor.closest<HTMLElement>("[data-embed-secondary-note-path]")?.dataset.embedSecondaryNotePath ?? null;
+      if (event.shiftKey && secondaryNotePath) {
+        event.preventDefault();
+        void loadNote(secondaryNotePath);
+        return;
+      }
+
+      const embedNotePath = anchor.dataset.embedNotePath;
+      if (embedNotePath) {
+        event.preventDefault();
+        void loadNote(embedNotePath);
+        return;
+      }
+
+      const embedExternalUrl = anchor.dataset.embedExternalUrl;
+      if (embedExternalUrl) {
+        event.preventDefault();
+        void openExternal(embedExternalUrl);
         return;
       }
 
@@ -1746,7 +1794,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
                 ref={viewArticleRef}
                 className="editor-view-markdown"
                 onClick={handleRenderedMarkdownClick}
-                dangerouslySetInnerHTML={{ __html: renderedHtml }}
+                dangerouslySetInnerHTML={{ __html: renderedViewHtml }}
               />
             </>
           ) : currentNoteType === "image" && imageSrc ? (
@@ -1829,7 +1877,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
               ref={viewArticleRef}
               className="editor-view-markdown"
               onClick={handleRenderedMarkdownClick}
-              dangerouslySetInnerHTML={{ __html: renderedHtml }}
+              dangerouslySetInnerHTML={{ __html: renderedViewHtml }}
             />
           )}
         </div>
@@ -1846,11 +1894,162 @@ function defaultEditorMode(availability: NoteModeAvailability): "meta" | "source
 }
 
 function toRenderableFileSrc(filePath: string): string {
+  if (/^(https?:)?\/\//i.test(filePath) || filePath.startsWith("data:")) {
+    return filePath;
+  }
   try {
     return convertFileSrc(filePath);
   } catch {
     return filePath;
   }
+}
+
+function setEmbedActionData(element: HTMLElement, action?: { path?: string | null; url?: string | null } | null): void {
+  if (!action) {
+    return;
+  }
+
+  if (action.path) {
+    element.dataset.embedNotePath = action.path;
+  }
+  if (action.url) {
+    element.dataset.embedExternalUrl = action.url;
+  }
+}
+
+function createEmbedLinkElement(
+  action: { path?: string | null; url?: string | null } | null | undefined,
+  text: string,
+  options?: { pdfIndicator?: boolean }
+): HTMLElement {
+  const anchor = document.createElement("a");
+  anchor.className = "editor-embed__title";
+  anchor.href = action?.url ?? (action?.path ? `#${action.path}` : "#");
+  setEmbedActionData(anchor, action);
+
+  const label = document.createElement("span");
+  label.textContent = text;
+  anchor.appendChild(label);
+
+  if (options?.pdfIndicator) {
+    const badge = document.createElement("span");
+    badge.className = "editor-embed__file-badge";
+    badge.setAttribute("aria-hidden", "true");
+    badge.textContent = "PDF";
+    anchor.appendChild(document.createTextNode(" "));
+    anchor.appendChild(badge);
+
+    const accessible = document.createElement("span");
+    accessible.className = "editor-embed__sr-only";
+    accessible.textContent = " PDF document";
+    anchor.appendChild(accessible);
+  }
+
+  return anchor;
+}
+
+function createEmbeddedNoteElement(note: NoteData): HTMLElement | null {
+  const embed = note.embed;
+  if (!embed) {
+    return null;
+  }
+
+  const container = document.createElement("div");
+  container.className = `editor-embed editor-embed--${embed.shape.kind}`;
+  container.dataset.embedKind = embed.shape.kind;
+  if (embed.secondary_action?.path) {
+    container.dataset.embedSecondaryNotePath = embed.secondary_action.path;
+  }
+
+    switch (embed.shape.kind) {
+    case "link": {
+      container.appendChild(
+        createEmbedLinkElement(embed.primary_action, embed.shape.title, {
+          pdfIndicator: note.note_type === "pdf",
+        })
+      );
+      if (embed.shape.description) {
+        const description = document.createElement("blockquote");
+        description.className = "editor-embed__description";
+        description.textContent = embed.shape.description;
+        container.appendChild(description);
+      }
+      return container;
+    }
+    case "image": {
+      const media = document.createElement(embed.primary_action ? "a" : "div");
+      media.className = "editor-embed__media";
+      if (media instanceof HTMLAnchorElement) {
+        media.href = embed.primary_action.url ?? (embed.primary_action.path ? `#${embed.primary_action.path}` : "#");
+        setEmbedActionData(media, embed.primary_action);
+      }
+
+      const image = document.createElement("img");
+      image.className = "editor-embed__image";
+      image.src = toRenderableFileSrc(embed.shape.src);
+      image.alt = embed.shape.alt ?? embed.shape.title ?? note.title;
+      media.appendChild(image);
+      container.appendChild(media);
+
+      if (embed.shape.title) {
+        container.appendChild(createEmbedLinkElement(embed.primary_action, embed.shape.title));
+      }
+      if (embed.shape.description) {
+        const description = document.createElement("div");
+        description.className = "editor-embed__description";
+        description.textContent = embed.shape.description;
+        container.appendChild(description);
+      }
+      return container;
+    }
+    case "canvas":
+    case "iframe":
+      return null;
+    default:
+      return null;
+  }
+}
+
+async function buildRenderedHtmlWithEmbeds(
+  baseHtml: string,
+  noteList: ReturnType<typeof useVaultStore.getState>["noteList"],
+  cache: Map<string, NoteData>
+): Promise<string> {
+  const container = document.createElement("div");
+  container.innerHTML = baseHtml;
+
+  const targets = Array.from(
+    container.querySelectorAll<HTMLAnchorElement>("a[data-wikilink][data-embed='true']")
+  );
+
+  await Promise.all(
+    targets.map(async (anchor) => {
+      const target = anchor.getAttribute("data-wikilink")?.trim();
+      if (!target) {
+        return;
+      }
+
+      const resolvedPath = resolveWikilinkTargetPath(noteList, target);
+      if (!resolvedPath) {
+        return;
+      }
+
+      let embeddedNote = cache.get(resolvedPath);
+      if (!embeddedNote) {
+        embeddedNote = await api.getNote(resolvedPath);
+        cache.set(resolvedPath, embeddedNote);
+      }
+
+      const replacement = createEmbeddedNoteElement(embeddedNote);
+      if (!replacement) {
+        return;
+      }
+
+      anchor.replaceWith(replacement);
+    })
+  );
+
+  return container.innerHTML;
 }
 
 function serializeShortcut(shortcut: { useMod: boolean; altKey: boolean; shiftKey: boolean; key: string }): string {

@@ -210,6 +210,26 @@ describe("Markdown Parser", () => {
       expect(doc.child(0).textContent).toBe("Display Text");
     });
 
+    it("should parse embedded wikilinks", () => {
+      const doc = parseMarkdown("![[Note Name]]");
+      const linkNode = doc.child(0).child(0);
+
+      expect(doc.child(0).textContent).toBe("Note Name");
+      expect(linkNode.marks[0]?.type.name).toBe("wikilink");
+      expect(linkNode.marks[0]?.attrs.target).toBe("Note Name");
+      expect(linkNode.marks[0]?.attrs.embed).toBe(true);
+    });
+
+    it("should parse embedded wikilinks with display text", () => {
+      const doc = parseMarkdown("![[Note Name|Display Text]]");
+      const linkNode = doc.child(0).child(0);
+
+      expect(doc.child(0).textContent).toBe("Display Text");
+      expect(linkNode.marks[0]?.type.name).toBe("wikilink");
+      expect(linkNode.marks[0]?.attrs.target).toBe("Note Name");
+      expect(linkNode.marks[0]?.attrs.embed).toBe(true);
+    });
+
     it("should handle empty lines", () => {
       const doc = parseMarkdown("Paragraph\n\n\nParagraph");
       expect(doc.childCount).toBe(2);
@@ -348,6 +368,20 @@ describe("Markdown Parser", () => {
       const serialized = serializeMarkdown(doc);
 
       expect(serialized).toContain("[[Note|Display]]");
+    });
+
+    it("should serialize embedded wikilinks", () => {
+      const doc = parseMarkdown("![[Note Name]]");
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("![[Note Name|Note Name]]");
+    });
+
+    it("should serialize embedded wikilinks with display text", () => {
+      const doc = parseMarkdown("![[Note|Display]]");
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("![[Note|Display]]");
     });
   });
 
