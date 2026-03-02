@@ -37,9 +37,9 @@ coverage
 *.lcov
 test-results/
 
-# Trace: DESIGN-test-vault-ignore-generated-metadata
-# Generated vault runtime metadata/index files for local fixtures
-test-vault/**/.vault/
+# Trace: DESIGN-test-vault-ignore-fixtures
+# Local test vault fixtures and generated runtime metadata
+test-vault/
 playwright-report/
 .mcp/knotd-mcp.json
 .mcp/storybook-mcp.json

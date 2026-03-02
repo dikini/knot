@@ -29,6 +29,7 @@ export interface RecentVault {
 export interface VaultSettings {
   name: string;
   plugins_enabled: boolean;
+  file_visibility: "all_files" | "known_only";
   sync: {
     enabled: boolean;
     peers: string[];

@@ -597,12 +597,19 @@ export function Sidebar({
     await refreshExplorerTree();
   };
 
-  const renderNote = (notePath: string, noteTitle: string, depth: number, isInitiallyFocusable: boolean) => (
+  const renderNote = (
+    notePath: string,
+    noteTitle: string,
+    depth: number,
+    isInitiallyFocusable: boolean,
+    typeBadge?: string | null,
+    isDimmed?: boolean
+  ) => (
     <li
       key={notePath}
       className={`explorer-tree__note-row ${currentNote?.path === notePath ? "explorer-tree__note-row--active" : ""} ${
         dropTarget?.type === "note" && dropTarget.path === notePath ? "explorer-tree__note-row--drop-target" : ""
-      }`}
+      } ${isDimmed ? "explorer-tree__note--dimmed" : ""}`}
       style={{ paddingLeft: `${depth * 12 + 28}px` }}
       role="treeitem"
       aria-level={depth + 1}
@@ -646,6 +653,7 @@ export function Sidebar({
       }}
     >
       <span className="explorer-tree__note-title">{noteTitle}</span>
+      {typeBadge ? <span className="explorer-tree__note-badge">{typeBadge}</span> : null}
     </li>
   );
 
@@ -655,7 +663,7 @@ export function Sidebar({
         <>
           {folder.folders.map((child) => renderFolder(child, depth))}
           {folder.notes.map((note, index) =>
-            renderNote(note.path, note.display_title, depth, index === 0)
+            renderNote(note.path, note.display_title, depth, index === 0, note.type_badge, note.is_dimmed)
           )}
         </>
       );
@@ -727,7 +735,9 @@ export function Sidebar({
         {folder.expanded && (
           <ul className="explorer-tree__children" role="group">
             {folder.folders.map((child) => renderFolder(child, noteDepth))}
-            {folder.notes.map((note) => renderNote(note.path, note.display_title, noteDepth, false))}
+            {folder.notes.map((note) =>
+              renderNote(note.path, note.display_title, noteDepth, false, note.type_badge, note.is_dimmed)
+            )}
           </ul>
         )}
       </li>

@@ -18,7 +18,18 @@ pub struct VaultConfig {
     pub plugins_enabled: bool,
 
     #[serde(default)]
+    pub file_visibility: FileVisibilityPolicy,
+
+    #[serde(default)]
     pub explorer: ExplorerConfig,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum FileVisibilityPolicy {
+    #[default]
+    AllFiles,
+    KnownOnly,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -67,6 +78,7 @@ impl Default for VaultConfig {
             sync: SyncConfig::default(),
             editor: EditorConfig::default(),
             plugins_enabled: false, // Disabled by default for security
+            file_visibility: FileVisibilityPolicy::AllFiles,
             explorer: ExplorerConfig::default(),
         }
     }
@@ -113,6 +125,7 @@ mod tests {
             parsed.explorer.expanded_folders,
             config.explorer.expanded_folders
         );
+        assert_eq!(parsed.file_visibility, config.file_visibility);
     }
 
     #[test]
@@ -122,6 +135,7 @@ mod tests {
         assert_eq!(config.name, "Test Vault");
         assert!(!config.sync.enabled);
         assert_eq!(config.editor.font_size, 14);
+        assert_eq!(config.file_visibility, FileVisibilityPolicy::AllFiles);
         assert!(config.explorer.expanded_folders.is_empty());
         assert!(!config.explorer.expansion_state_initialized);
     }

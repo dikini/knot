@@ -5,12 +5,13 @@
 //! TRACE: DESIGN-mcp-server-core-tools-resources
 
 use crate::core::VaultManager;
+use crate::note_type::{NoteTypeId, NoteTypeRegistry};
 use crate::runtime::RuntimeHost;
 use serde_json::{json, Value};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::OpenOptions;
 use std::io::{self, BufRead, BufReader, Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex as StdMutex};
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
@@ -584,42 +585,56 @@ impl McpServer {
                     let note = vault
                         .get_note(path)
                         .map_err(|e| (-32000, e.to_response_string()))?;
-                    let note_headings = note.headings();
-                    let backlinks = vault
-                        .graph()
-                        .backlinks(path)
-                        .into_iter()
-                        .map(|(source, context)| {
-                            let source_title = vault
-                                .get_note(&source)
-                                .map(|source_note| source_note.title().to_string())
-                                .unwrap_or_else(|_| {
-                                    std::path::PathBuf::from(&source)
-                                        .file_stem()
-                                        .map(|v| v.to_string_lossy().to_string())
-                                        .unwrap_or(source.clone())
-                                });
-                            json!({
-                                "source_path": source,
-                                "source_title": source_title,
-                                "context": context
+                    let resolved =
+                        NoteTypeRegistry::default().resolve_path(&vault.root_path().join(path));
+                    let (headings, backlinks, content) = if resolved.note_type == NoteTypeId::Markdown {
+                        let note_headings = note.headings();
+                        let backlinks = vault
+                            .graph()
+                            .backlinks(path)
+                            .into_iter()
+                            .map(|(source, context)| {
+                                let source_title = vault
+                                    .get_note(&source)
+                                    .map(|source_note| source_note.title().to_string())
+                                    .unwrap_or_else(|_| {
+                                        std::path::PathBuf::from(&source)
+                                            .file_stem()
+                                            .map(|v| v.to_string_lossy().to_string())
+                                            .unwrap_or(source.clone())
+                                    });
+                                json!({
+                                    "source_path": source,
+                                    "source_title": source_title,
+                                    "context": context
+                                })
                             })
-                        })
-                        .collect::<Vec<_>>();
+                            .collect::<Vec<_>>();
+                        let headings = note_headings
+                            .iter()
+                            .map(|h| json!({"level": h.level as u8, "text": h.text, "position": 0}))
+                            .collect::<Vec<_>>();
+                        (headings, backlinks, note.content().to_string())
+                    } else {
+                        (Vec::new(), Vec::new(), String::new())
+                    };
 
                     Ok(json!({
                         "id": note.id(),
                         "path": note.path(),
                         "title": note.title(),
-                        "content": note.content(),
+                        "content": content,
                         "created_at": note.created_at(),
                         "modified_at": note.modified_at(),
                         "word_count": note.word_count(),
-                        "headings": note_headings
-                            .iter()
-                            .map(|h| json!({"level": h.level as u8, "text": h.text, "position": 0}))
-                            .collect::<Vec<_>>(),
-                        "backlinks": backlinks
+                        "headings": headings,
+                        "backlinks": backlinks,
+                        "note_type": resolved.note_type,
+                        "available_modes": resolved.available_modes,
+                        "metadata": resolved.metadata,
+                        "type_badge": resolved.type_badge,
+                        "media": resolved.media,
+                        "is_dimmed": !resolved.is_known
                     }))
                 })?;
 
@@ -890,13 +905,18 @@ impl McpServer {
                         .map_err(|e| (-32000, e.to_response_string()))?
                         .into_iter()
                         .map(|n| {
+                            let resolved =
+                                NoteTypeRegistry::default().resolve_path(&vault.root_path().join(&n.path));
                             json!({
                                 "id": n.id,
                                 "path": n.path,
                                 "title": n.title,
                                 "created_at": n.created_at,
                                 "modified_at": n.modified_at,
-                                "word_count": n.word_count
+                                "word_count": n.word_count,
+                                "note_type": resolved.note_type,
+                                "type_badge": resolved.type_badge,
+                                "is_dimmed": !resolved.is_known
                             })
                         })
                         .collect::<Vec<_>>();
@@ -1039,14 +1059,21 @@ impl McpServer {
                     notes.truncate(limit);
                     Ok(notes
                         .into_iter()
-                        .map(|n| json!({
-                            "id": n.id,
-                            "path": n.path,
-                            "title": n.title,
-                            "created_at": n.created_at,
-                            "modified_at": n.modified_at,
-                            "word_count": n.word_count
-                        }))
+                        .map(|n| {
+                            let resolved = NoteTypeRegistry::default()
+                                .resolve_path(&vault.root_path().join(&n.path));
+                            json!({
+                                "id": n.id,
+                                "path": n.path,
+                                "title": n.title,
+                                "created_at": n.created_at,
+                                "modified_at": n.modified_at,
+                                "word_count": n.word_count,
+                                "note_type": resolved.note_type,
+                                "type_badge": resolved.type_badge,
+                                "is_dimmed": !resolved.is_known
+                            })
+                        })
                         .collect::<Vec<_>>())
                 })?;
                 Ok(json!({
@@ -1172,34 +1199,41 @@ impl McpServer {
             }
             "get_explorer_tree" => {
                 let payload = self.with_vault(|vault| {
-                    let mut notes = vault
+                    let notes = vault
                         .list_notes()
                         .map_err(|e| (-32000, e.to_response_string()))?
-                        .into_iter()
-                        .map(|n| json!({
-                            "path": n.path,
-                            "title": n.title,
-                            "display_title": n.title,
-                            "modified_at": n.modified_at,
-                            "word_count": n.word_count
-                        }))
+                        .into_iter();
+                    let folders = scan_visible_folders(vault.root_path())
+                        .map_err(|e| (-32000, e.to_string()))?;
+                    let notes = notes
+                        .map(|note| {
+                            let path = note.path.clone();
+                            let title = note.title.clone();
+                            let resolved = NoteTypeRegistry::default()
+                                .resolve_path(&vault.root_path().join(&path));
+                            ExplorerTreeNote {
+                                path,
+                                title: title.clone(),
+                                display_title: if title.trim().is_empty() {
+                                    filename_stem(&note.path)
+                                } else {
+                                    title
+                                },
+                                modified_at: note.modified_at,
+                                word_count: note.word_count,
+                                type_badge: resolved.type_badge,
+                                is_dimmed: !resolved.is_known,
+                            }
+                        })
                         .collect::<Vec<_>>();
-                    notes.sort_by(|a, b| a["path"].as_str().cmp(&b["path"].as_str()));
-                    let root_name = vault
-                        .root_path()
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| "Vault".to_string());
-                    Ok(json!({
-                        "root": {
-                            "path": "",
-                            "name": root_name,
-                            "expanded": true,
-                            "folders": [],
-                            "notes": notes
-                        },
-                        "hidden_policy": "hide-dotfiles"
-                    }))
+                    let root = build_explorer_tree_json(
+                        vault.root_path(),
+                        notes,
+                        folders,
+                        &vault.config().explorer.expanded_folders,
+                        vault.config().explorer.expansion_state_initialized,
+                    );
+                    Ok(json!({ "root": root, "hidden_policy": "hide-dotfiles" }))
                 })?;
                 Ok(json!({
                     "content": [{ "type": "text", "text": serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string()) }],
@@ -1252,6 +1286,178 @@ impl McpServer {
             },
         })
     }
+}
+
+#[derive(Clone)]
+struct ExplorerTreeNote {
+    path: String,
+    title: String,
+    display_title: String,
+    modified_at: i64,
+    word_count: usize,
+    type_badge: Option<String>,
+    is_dimmed: bool,
+}
+
+fn scan_visible_folders(root: &Path) -> io::Result<Vec<String>> {
+    let mut paths = Vec::new();
+    for entry in walkdir::WalkDir::new(root)
+        .min_depth(1)
+        .follow_links(false)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
+        if !entry.file_type().is_dir() {
+            continue;
+        }
+        let relative = match entry.path().strip_prefix(root) {
+            Ok(relative) => relative,
+            Err(_) => continue,
+        };
+        let rel = normalize_rel_path(relative);
+        if rel.is_empty() || is_hidden_rel_path(&rel) || rel.starts_with(".vault") {
+            continue;
+        }
+        paths.push(rel);
+    }
+    Ok(paths)
+}
+
+fn normalize_rel_path(path: &Path) -> String {
+    path.to_string_lossy().replace('\\', "/")
+}
+
+fn is_hidden_rel_path(rel_path: &str) -> bool {
+    rel_path
+        .split('/')
+        .any(|segment| !segment.is_empty() && segment.starts_with('.'))
+}
+
+fn filename_stem(path: &str) -> String {
+    PathBuf::from(path)
+        .file_stem()
+        .map(|value| value.to_string_lossy().to_string())
+        .unwrap_or_else(|| path.to_string())
+}
+
+fn build_explorer_tree_json(
+    vault_root: &Path,
+    notes: Vec<ExplorerTreeNote>,
+    folders: Vec<String>,
+    expanded_folders: &[String],
+    expansion_state_initialized: bool,
+) -> Value {
+    #[derive(Clone)]
+    struct FolderAccum {
+        path: String,
+        name: String,
+        children: BTreeMap<String, String>,
+        notes: Vec<ExplorerTreeNote>,
+    }
+
+    fn ensure_folder(map: &mut HashMap<String, FolderAccum>, path: &str, root_name: &str) {
+        if map.contains_key(path) {
+            return;
+        }
+
+        let name = if path.is_empty() {
+            root_name.to_string()
+        } else {
+            path.rsplit('/').next().unwrap_or(path).to_string()
+        };
+
+        map.insert(
+            path.to_string(),
+            FolderAccum {
+                path: path.to_string(),
+                name,
+                children: BTreeMap::new(),
+                notes: Vec::new(),
+            },
+        );
+
+        if path.is_empty() {
+            return;
+        }
+
+        let parent = path.rsplit_once('/').map(|(p, _)| p).unwrap_or("");
+        ensure_folder(map, parent, root_name);
+        if let Some(parent_entry) = map.get_mut(parent) {
+            parent_entry.children.insert(
+                path.to_string(),
+                path.rsplit('/').next().unwrap_or(path).to_string(),
+            );
+        }
+    }
+
+    fn folder_expanded(path: &str, expansion_state_initialized: bool, expanded_folders: &[String]) -> bool {
+        if path.is_empty() {
+            return true;
+        }
+        if expansion_state_initialized {
+            return expanded_folders.iter().any(|p| p == path);
+        }
+        !path.contains('/')
+    }
+
+    fn build_node(
+        map: &HashMap<String, FolderAccum>,
+        path: &str,
+        expansion_state_initialized: bool,
+        expanded_folders: &[String],
+    ) -> Value {
+        let current = map.get(path).expect("folder path should exist");
+        let mut folder_paths = current.children.keys().cloned().collect::<Vec<_>>();
+        folder_paths.sort_by_key(|p| p.to_ascii_lowercase());
+
+        let folders = folder_paths
+            .iter()
+            .map(|child| build_node(map, child, expansion_state_initialized, expanded_folders))
+            .collect::<Vec<_>>();
+
+        let mut notes = current.notes.clone();
+        notes.sort_by(|a, b| a.display_title.to_ascii_lowercase().cmp(&b.display_title.to_ascii_lowercase()));
+
+        json!({
+            "path": current.path,
+            "name": current.name,
+            "expanded": folder_expanded(path, expansion_state_initialized, expanded_folders),
+            "folders": folders,
+            "notes": notes.into_iter().map(|note| json!({
+                "path": note.path,
+                "title": note.title,
+                "display_title": note.display_title,
+                "modified_at": note.modified_at,
+                "word_count": note.word_count,
+                "type_badge": note.type_badge,
+                "is_dimmed": note.is_dimmed,
+            })).collect::<Vec<_>>(),
+        })
+    }
+
+    let root_name = vault_root
+        .file_name()
+        .map(|value| value.to_string_lossy().to_string())
+        .unwrap_or_else(|| "Vault".to_string());
+    let mut map: HashMap<String, FolderAccum> = HashMap::new();
+    ensure_folder(&mut map, "", &root_name);
+
+    for folder in folders {
+        ensure_folder(&mut map, &folder, &root_name);
+    }
+
+    for note in notes {
+        let parent = Path::new(&note.path)
+            .parent()
+            .map(normalize_rel_path)
+            .unwrap_or_default();
+        ensure_folder(&mut map, &parent, &root_name);
+        if let Some(parent_folder) = map.get_mut(&parent) {
+            parent_folder.notes.push(note);
+        }
+    }
+
+    build_node(&map, "", expansion_state_initialized, expanded_folders)
 }
 
 pub fn note_uri(path: &str) -> String {
@@ -1548,6 +1754,55 @@ mod tests {
             .expect("text");
         assert!(text.contains("programming/rust.md"));
         assert!(text.contains("Rust note"));
+    }
+
+    #[test]
+    fn tools_call_get_note_returns_image_payload_for_non_markdown_files() {
+        let server = setup_server();
+        server
+            .with_vault(|vault| {
+                let image_path = vault.root_path().join("images/photo.jpg");
+                std::fs::create_dir_all(
+                    image_path
+                        .parent()
+                        .ok_or((-32000, "image path missing parent".to_string()))?,
+                )
+                .map_err(|e| (-32000, e.to_string()))?;
+                std::fs::write(&image_path, b"\xff\xd8\xff\xdb")
+                    .map_err(|e| (-32000, e.to_string()))?;
+                Ok(())
+            })
+            .expect("seed image");
+
+        let response = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 301,
+                "method": "tools/call",
+                "params": {
+                    "name": "get_note",
+                    "arguments": { "path": "images/photo.jpg" }
+                }
+            }))
+            .expect("image get_note response");
+
+        let text = response["result"]["content"][0]["text"]
+            .as_str()
+            .expect("text");
+        let payload: Value = serde_json::from_str(text).expect("image note json");
+
+        assert_eq!(payload["path"], json!("images/photo.jpg"));
+        assert_eq!(payload["note_type"], json!("image"));
+        assert_eq!(payload["type_badge"], json!("JPG"));
+        assert_eq!(payload["available_modes"]["view"], json!(true));
+        assert_eq!(payload["available_modes"]["edit"], json!(false));
+        assert_eq!(payload["available_modes"]["source"], json!(false));
+        assert_eq!(payload["content"], json!(""));
+        assert_eq!(payload["media"]["mime_type"], json!("image/jpeg"));
+        assert!(payload["media"]["file_path"]
+            .as_str()
+            .expect("file path")
+            .ends_with("/images/photo.jpg"));
     }
 
     #[test]

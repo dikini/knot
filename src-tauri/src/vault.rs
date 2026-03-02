@@ -990,6 +990,31 @@ mod tests {
     }
 
     #[test]
+    fn note_type_red_scan_files_includes_known_image_files() {
+        let (dir, vault) = create_test_vault();
+        std::fs::write(dir.path().join("photo.png"), b"not-a-real-png").unwrap();
+
+        let files = vault.scan_files().unwrap();
+
+        assert!(files.contains(&"photo.png".to_string()));
+    }
+
+    #[test]
+    fn note_type_red_sync_imports_svg_files_as_notes() {
+        let (dir, vault) = create_test_vault();
+        std::fs::write(
+            dir.path().join("diagram.svg"),
+            r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"></svg>"#,
+        )
+        .unwrap();
+
+        vault.sync_files_to_db().unwrap();
+
+        let notes = vault.list_notes().unwrap();
+        assert!(notes.iter().any(|note| note.path == "diagram.svg"));
+    }
+
+    #[test]
     fn create_note_extracts_links() {
         let (_dir, vault) = create_test_vault();
         vault

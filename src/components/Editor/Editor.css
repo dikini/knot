@@ -115,6 +115,11 @@
   background: rgba(255, 255, 255, 0.12);
 }
 
+.editor-toolbar__mode-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .editor-toolbar__mode-btn.is-active {
   color: var(--color-heading);
   background: rgba(255, 255, 255, 0.2);
@@ -204,6 +209,31 @@
   margin: 0;
   color: #e39a9a;
   font-size: 0.86rem;
+}
+
+.editor-meta-empty,
+.editor-media-view {
+  width: min(72ch, 100%);
+  margin: 0 auto;
+  border: 1px solid var(--editor-paper-border);
+  border-radius: 10px;
+  background: var(--editor-paper-bg);
+  color: var(--color-text);
+  padding: 1rem 1.1rem;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.16);
+}
+
+.editor-media-view {
+  display: flex;
+  justify-content: center;
+}
+
+.editor-media-view__image {
+  display: block;
+  max-width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  border-radius: 8px;
 }
 
 .editor-source-textarea {

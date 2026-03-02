@@ -3,7 +3,7 @@
 //! SPEC: COMP-VAULT-001 FR-1, FR-2, FR-3, FR-4, FR-5, FR-6
 
 use serde::Serialize;
-use tauri::{State, Window};
+use tauri::{Manager, State, Window};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tracing::{info, instrument};
 
@@ -40,15 +40,21 @@ pub fn greet(name: &str) -> String {
 /// Create a new vault at the specified path.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn create_vault(path: String, state: State<'_, AppState>) -> Result<VaultInfo, String> {
+pub async fn create_vault(
+    path: String,
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<VaultInfo, String> {
     info!(path, "creating vault");
     if state.is_daemon_mode() {
         let has_open_vault: bool =
             knotd_client::call_tool_typed("is_vault_open", serde_json::json!({}))
                 .map_err(|e| e.to_response_string())?;
         ensure_can_replace_open_vault(has_open_vault, state.has_unsaved_changes().await)?;
-        let info = knotd_client::call_tool_typed("create_vault", serde_json::json!({ "path": path }))
+        let info: VaultInfo =
+            knotd_client::call_tool_typed("create_vault", serde_json::json!({ "path": path }))
             .map_err(|e| e.to_response_string())?;
+        sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
         state.set_unsaved_changes(false).await;
         return Ok(info);
     }
@@ -67,6 +73,8 @@ pub async fn create_vault(path: String, state: State<'_, AppState>) -> Result<Va
 
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
+    drop(vault_guard);
+    sync_asset_protocol_scope(&app, &state, Some(path_buf)).await?;
 
     info!(path, "vault created");
     Ok(info)
@@ -76,7 +84,11 @@ pub async fn create_vault(path: String, state: State<'_, AppState>) -> Result<Va
 /// Open an existing vault at the specified path.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn open_vault(path: String, state: State<'_, AppState>) -> Result<VaultInfo, String> {
+pub async fn open_vault(
+    path: String,
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<VaultInfo, String> {
     info!(path, "opening vault");
     if state.is_daemon_mode() {
         let has_open_vault: bool =
@@ -86,8 +98,10 @@ pub async fn open_vault(path: String, state: State<'_, AppState>) -> Result<Vaul
             has_open_vault,
             state.has_unsaved_changes().await,
         )?;
-        let info = knotd_client::call_tool_typed("open_vault", serde_json::json!({ "path": path }))
+        let info: VaultInfo =
+            knotd_client::call_tool_typed("open_vault", serde_json::json!({ "path": path }))
             .map_err(|e| e.to_response_string())?;
+        sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
         state.set_unsaved_changes(false).await;
         return Ok(info);
     }
@@ -109,6 +123,7 @@ pub async fn open_vault(path: String, state: State<'_, AppState>) -> Result<Vaul
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
     drop(vault_guard);
+    sync_asset_protocol_scope(&app, &state, Some(path_buf)).await?;
     state.set_unsaved_changes(false).await;
 
     info!(path, "vault opened");
@@ -121,6 +136,7 @@ pub async fn open_vault(path: String, state: State<'_, AppState>) -> Result<Vaul
 pub async fn create_vault_dialog(
     window: tauri::Window,
     state: State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<VaultInfo, String> {
     info!("creating vault dialog");
 
@@ -172,6 +188,7 @@ pub async fn create_vault_dialog(
         let info: VaultInfo =
             knotd_client::call_tool_typed("create_vault", serde_json::json!({ "path": path_str }))
                 .map_err(|e| e.to_response_string())?;
+        sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
         state.set_unsaved_changes(false).await;
         info!(path = info.path, "vault created from dialog via daemon");
         return Ok(info);
@@ -188,6 +205,8 @@ pub async fn create_vault_dialog(
 
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
+    drop(vault_guard);
+    sync_asset_protocol_scope(&app, &state, Some(path_buf)).await?;
 
     info!(path = path_str, "vault created from dialog");
     Ok(info)
@@ -199,6 +218,7 @@ pub async fn create_vault_dialog(
 pub async fn open_vault_dialog(
     window: tauri::Window,
     state: State<'_, AppState>,
+    app: tauri::AppHandle,
 ) -> Result<VaultInfo, String> {
     info!("opening vault dialog");
 
@@ -239,11 +259,12 @@ pub async fn open_vault_dialog(
             has_open_vault,
             state.has_unsaved_changes().await,
         )?;
-        let info = knotd_client::call_tool_typed(
+        let info: VaultInfo = knotd_client::call_tool_typed(
             "open_vault",
             serde_json::json!({ "path": path_str }),
         )
         .map_err(|e| e.to_response_string())?;
+        sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
         state.set_unsaved_changes(false).await;
         info!(path = path_str, "vault opened from dialog via daemon");
         return Ok(info);
@@ -263,6 +284,7 @@ pub async fn open_vault_dialog(
     let info = vault_info_from_manager(&vault).map_err(|e| e.to_response_string())?;
     *vault_guard = Some(vault);
     drop(vault_guard);
+    sync_asset_protocol_scope(&app, &state, Some(path_buf)).await?;
     state.set_unsaved_changes(false).await;
 
     info!(path = path_str, "vault opened from dialog");
@@ -273,11 +295,12 @@ pub async fn open_vault_dialog(
 /// Close the currently open vault.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn close_vault(state: State<'_, AppState>) -> Result<(), String> {
+pub async fn close_vault(state: State<'_, AppState>, app: tauri::AppHandle) -> Result<(), String> {
     info!("closing vault");
     if state.is_daemon_mode() {
         knotd_client::call_tool_typed::<serde_json::Value>("close_vault", serde_json::json!({}))
             .map_err(|e| e.to_response_string())?;
+        sync_asset_protocol_scope(&app, &state, None).await?;
         state.set_unsaved_changes(false).await;
         return Ok(());
     }
@@ -288,6 +311,7 @@ pub async fn close_vault(state: State<'_, AppState>) -> Result<(), String> {
         vault.close().map_err(|e| e.to_response_string())?;
     }
     drop(vault_guard);
+    sync_asset_protocol_scope(&app, &state, None).await?;
     state.set_unsaved_changes(false).await;
 
     info!("vault closed");
@@ -307,16 +331,27 @@ pub async fn set_unsaved_changes(dirty: bool, state: State<'_, AppState>) -> Res
 /// Get information about the currently open vault.
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn get_vault_info(state: State<'_, AppState>) -> Result<VaultInfo, String> {
+pub async fn get_vault_info(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<VaultInfo, String> {
     if state.is_daemon_mode() {
-        return knotd_client::call_tool_typed("get_vault_info", serde_json::json!({}))
-            .map_err(|e| e.to_response_string());
+        let info: VaultInfo =
+            knotd_client::call_tool_typed("get_vault_info", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
+        sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
+        return Ok(info);
     }
 
     let vault_guard = state.vault().lock().await;
 
     match vault_guard.as_ref() {
-        Some(vault) => vault_info_from_manager(vault).map_err(|e| e.to_response_string()),
+        Some(vault) => {
+            let info = vault_info_from_manager(vault).map_err(|e| e.to_response_string())?;
+            drop(vault_guard);
+            sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
+            Ok(info)
+        }
         None => Err("No vault is open".to_string()),
     }
 }
@@ -401,7 +436,33 @@ fn note_meta_to_summary(meta: crate::note::NoteMeta) -> NoteSummary {
         created_at: meta.created_at,
         modified_at: meta.modified_at,
         word_count: meta.word_count,
+        note_type: crate::note_type::NoteTypeId::Markdown,
+        type_badge: None,
+        is_dimmed: false,
     }
+}
+
+async fn sync_asset_protocol_scope(
+    app: &tauri::AppHandle,
+    state: &AppState,
+    next_path: Option<PathBuf>,
+) -> Result<(), String> {
+    let previous_path = state.replace_asset_scope_path(next_path.clone()).await;
+    let scope = app.asset_protocol_scope();
+
+    if let Some(previous_path) = previous_path {
+        scope
+            .forbid_directory(&previous_path, true)
+            .map_err(|e| format!("Failed to revoke previous vault asset scope: {e}"))?;
+    }
+
+    if let Some(next_path) = next_path {
+        scope
+            .allow_directory(&next_path, true)
+            .map_err(|e| format!("Failed to grant current vault asset scope: {e}"))?;
+    }
+
+    Ok(())
 }
 
 /// SPEC: COMP-VAULT-UNSAVED-001 FR-1, FR-2, FR-3, FR-4

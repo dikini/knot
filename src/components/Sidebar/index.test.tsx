@@ -107,6 +107,8 @@ describe("Sidebar Explorer M1", () => {
               {
                 path: "Programming/daily.md",
                 display_title: "daily",
+                type_badge: null,
+                is_dimmed: false,
               },
             ],
           },
@@ -119,6 +121,8 @@ describe("Sidebar Explorer M1", () => {
               {
                 path: "Archive/ideas.md",
                 display_title: "ideas",
+                type_badge: null,
+                is_dimmed: false,
               },
             ],
           },
@@ -230,6 +234,79 @@ describe("Sidebar Explorer M1", () => {
     expect(await screen.findByRole("menuitem", { name: "Rename file" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Rename note" })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: "Move note" })).toBeInTheDocument();
+  });
+
+  it("renders non-markdown type badges for explorer notes", async () => {
+    mockGetExplorerTree.mockResolvedValueOnce({
+      hidden_policy: "show-all-files",
+      root: {
+        path: "",
+        name: "vault",
+        expanded: true,
+        folders: [],
+        notes: [
+          {
+            path: "photo.png",
+            title: "photo",
+            display_title: "photo",
+            modified_at: 1,
+            word_count: 0,
+            type_badge: "PNG",
+            is_dimmed: false,
+          },
+        ],
+      },
+    });
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    expect(await screen.findByText("photo")).toBeInTheDocument();
+    expect(screen.getByText("PNG")).toBeInTheDocument();
+  });
+
+  it("dims unknown file types in the explorer", async () => {
+    mockGetExplorerTree.mockResolvedValueOnce({
+      hidden_policy: "show-all-files",
+      root: {
+        path: "",
+        name: "vault",
+        expanded: true,
+        folders: [],
+        notes: [
+          {
+            path: "archive.bin",
+            title: "archive",
+            display_title: "archive",
+            modified_at: 1,
+            word_count: 0,
+            type_badge: "BIN",
+            is_dimmed: true,
+          },
+        ],
+      },
+    });
+
+    render(
+      <Sidebar
+        recentVaults={[]}
+        onOpenVault={vi.fn()}
+        onCreateVault={vi.fn()}
+        onOpenRecent={vi.fn()}
+        onCloseVault={vi.fn()}
+      />
+    );
+
+    const noteRow = (await screen.findByText("archive")).closest("li");
+    expect(noteRow).toHaveClass("explorer-tree__note--dimmed");
+    expect(screen.getByText("BIN")).toBeInTheDocument();
   });
 
   it("renames the active note file inside its current directory", async () => {

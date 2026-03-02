@@ -81,6 +81,7 @@ export function SettingsPane({
   const [vaultDraft, setVaultDraft] = useState({
     name: "",
     plugins_enabled: false,
+    file_visibility: "all_files" as VaultSettings["file_visibility"],
     sync_enabled: false,
     sync_peers: "",
     font_size: 14,
@@ -92,6 +93,7 @@ export function SettingsPane({
     setVaultDraft({
       name: vaultSettings.name,
       plugins_enabled: vaultSettings.plugins_enabled,
+      file_visibility: vaultSettings.file_visibility,
       sync_enabled: vaultSettings.sync.enabled,
       sync_peers: vaultSettings.sync.peers.join(", "),
       font_size: vaultSettings.editor.font_size,
@@ -113,6 +115,7 @@ export function SettingsPane({
     await onUpdateVaultSettings({
       name: vaultDraft.name,
       plugins_enabled: vaultDraft.plugins_enabled,
+      file_visibility: vaultDraft.file_visibility,
       sync: {
         enabled: vaultDraft.sync_enabled,
         peers,
@@ -407,6 +410,28 @@ export function SettingsPane({
                 <span className="settings-pane__switch-track" aria-hidden="true" />
                 <span className="settings-pane__switch-text">{vaultDraft.plugins_enabled ? "On" : "Off"}</span>
               </span>
+            </label>
+            <label className="settings-pane__field">
+              <span className="settings-pane__field-meta">
+                <span className="settings-pane__field-label">Explorer file visibility</span>
+                <span className="settings-pane__field-help">
+                  Choose whether the explorer shows all non-hidden files or only known note types.
+                </span>
+              </span>
+              <select
+                aria-label="Explorer file visibility"
+                className="settings-pane__control settings-pane__control--md"
+                value={vaultDraft.file_visibility}
+                onChange={(event) =>
+                  setVaultDraft((state) => ({
+                    ...state,
+                    file_visibility: event.target.value as VaultSettings["file_visibility"],
+                  }))
+                }
+              >
+                <option value="all_files">All files</option>
+                <option value="known_only">Known note types only</option>
+              </select>
             </label>
             <label className="settings-pane__field settings-pane__field--checkbox">
               <span className="settings-pane__field-meta">

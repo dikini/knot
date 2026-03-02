@@ -180,6 +180,7 @@ describe("API Client", () => {
       const mockSettings = {
         name: "Vault",
         plugins_enabled: false,
+        file_visibility: "all_files",
         sync: { enabled: false, peers: [] },
         editor: { font_size: 14, tab_size: 4 },
       };
@@ -196,6 +197,7 @@ describe("API Client", () => {
       const updated = {
         name: "Updated Vault",
         plugins_enabled: false,
+        file_visibility: "all_files",
         sync: { enabled: true, peers: [] },
         editor: { font_size: 14, tab_size: 4 },
       };

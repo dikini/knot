@@ -17,6 +17,9 @@ export interface NoteSummary {
   created_at: number;
   modified_at: number;
   word_count: number;
+  note_type?: NoteType;
+  type_badge?: string | null;
+  is_dimmed?: boolean;
 }
 
 export interface NoteData {
@@ -29,6 +32,30 @@ export interface NoteData {
   word_count: number;
   headings: Heading[];
   backlinks: Backlink[];
+  note_type?: NoteType;
+  available_modes?: NoteModeAvailability;
+  metadata?: NoteMetadataPayload;
+  type_badge?: string | null;
+  media?: NoteMediaData | null;
+  is_dimmed?: boolean;
+}
+
+export type NoteType = "markdown" | "image" | "unknown";
+
+export interface NoteModeAvailability {
+  meta: boolean;
+  source: boolean;
+  edit: boolean;
+  view: boolean;
+}
+
+export interface NoteMetadataPayload {
+  extra?: Record<string, unknown>;
+}
+
+export interface NoteMediaData {
+  mime_type: string;
+  file_path: string;
 }
 
 export interface Heading {
@@ -73,6 +100,8 @@ export interface ExplorerNoteNode {
   display_title: string;
   modified_at: number;
   word_count: number;
+  type_badge?: string | null;
+  is_dimmed?: boolean;
 }
 
 export interface ExplorerFolderNode {

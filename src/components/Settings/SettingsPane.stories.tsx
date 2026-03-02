@@ -22,6 +22,7 @@ const meta = {
     vaultSettings: {
       name: "Canonical",
       plugins_enabled: false,
+      file_visibility: "all_files",
       sync: { enabled: false, peers: [] },
       editor: { font_size: 14, tab_size: 4 },
     },

@@ -21,6 +21,7 @@ pub mod knotd_client;
 pub mod markdown;
 pub mod mcp;
 pub mod note;
+pub mod note_type;
 pub mod recent_vaults;
 pub mod runtime;
 pub mod search;

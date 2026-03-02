@@ -7,6 +7,7 @@
 
 use crate::core::VaultManager;
 use crate::runtime::{RuntimeHost, RuntimeMode};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -14,9 +15,9 @@ use tokio::sync::Mutex;
 ///
 /// This state is created once at application startup and passed
 /// to all command handlers via Tauri's state injection.
-#[derive(Default)]
 pub struct AppState {
     runtime: RuntimeHost,
+    asset_scope_path: Arc<Mutex<Option<PathBuf>>>,
 }
 
 impl AppState {
@@ -33,6 +34,7 @@ impl AppState {
         };
         Self {
             runtime: RuntimeHost::new(runtime_mode),
+            asset_scope_path: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -71,6 +73,18 @@ impl AppState {
     /// Check whether unsaved changes are currently tracked.
     pub async fn has_unsaved_changes(&self) -> bool {
         self.runtime.has_unsaved_changes().await
+    }
+
+    /// Replace the currently tracked asset scope path and return the previous one.
+    pub async fn replace_asset_scope_path(&self, next_path: Option<PathBuf>) -> Option<PathBuf> {
+        let mut guard = self.asset_scope_path.lock().await;
+        std::mem::replace(&mut *guard, next_path)
+    }
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -116,6 +130,24 @@ mod tests {
         assert!(!state.has_unsaved_changes().await);
     }
 
+    #[tokio::test]
+    async fn app_state_tracks_current_asset_scope_path() {
+        let state = AppState::new();
+
+        let old = state
+            .replace_asset_scope_path(Some("/tmp/vault-a".into()))
+            .await;
+        assert!(old.is_none());
+
+        let old = state
+            .replace_asset_scope_path(Some("/tmp/vault-b".into()))
+            .await;
+        assert_eq!(old, Some("/tmp/vault-a".into()));
+
+        let old = state.replace_asset_scope_path(None).await;
+        assert_eq!(old, Some("/tmp/vault-b".into()));
+    }
+
     #[test]
     fn tdd_kui_001_app_state_uses_daemon_runtime_mode_when_configured() {
         let _guard = EnvGuard::set("KNOT_UI_RUNTIME_MODE", "daemon_ipc");
@@ -129,6 +161,7 @@ mod tests {
 /// These are serializable structs that are returned from commands
 /// to the frontend.
 pub mod response {
+    use crate::note_type::{NoteMediaData, NoteModeAvailability, NoteTypeId, NoteTypeMetadata};
     use serde::{Deserialize, Serialize};
 
     /// Information about an open vault.
@@ -149,6 +182,12 @@ pub mod response {
         pub created_at: i64,
         pub modified_at: i64,
         pub word_count: usize,
+        #[serde(default = "default_note_type")]
+        pub note_type: NoteTypeId,
+        #[serde(default)]
+        pub type_badge: Option<String>,
+        #[serde(default)]
+        pub is_dimmed: bool,
     }
 
     /// Full note data.
@@ -163,6 +202,17 @@ pub mod response {
         pub word_count: usize,
         pub headings: Vec<Heading>,
         pub backlinks: Vec<Backlink>,
+        #[serde(default = "default_note_type")]
+        pub note_type: NoteTypeId,
+        pub available_modes: NoteModeAvailability,
+        #[serde(default)]
+        pub metadata: NoteTypeMetadata,
+        #[serde(default)]
+        pub type_badge: Option<String>,
+        #[serde(default)]
+        pub media: Option<NoteMediaData>,
+        #[serde(default)]
+        pub is_dimmed: bool,
     }
 
     /// A heading extracted from a note.
@@ -236,5 +286,13 @@ pub mod response {
         pub display_title: String,
         pub modified_at: i64,
         pub word_count: usize,
+        #[serde(default)]
+        pub type_badge: Option<String>,
+        #[serde(default)]
+        pub is_dimmed: bool,
+    }
+
+    fn default_note_type() -> NoteTypeId {
+        NoteTypeId::Markdown
     }
 }

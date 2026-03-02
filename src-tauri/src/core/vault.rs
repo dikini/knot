@@ -19,6 +19,7 @@ use crate::db::Database;
 use crate::error::{KnotError, Result};
 use crate::graph::LinkGraph;
 use crate::note::{Note, NoteMeta};
+use crate::note_type::{NoteTypeId, NoteTypeRegistry};
 use crate::search::SearchIndex;
 use crate::watcher::FileWatcher;
 
@@ -289,12 +290,29 @@ impl VaultManager {
     /// SPEC: COMP-NOTE-001 FR-1
     /// List all notes in the vault.
     pub fn list_notes(&self) -> Result<Vec<NoteMeta>> {
-        self.db.list_notes()
+        let mut notes = self.db.list_notes()?;
+        let known_paths = notes
+            .iter()
+            .map(|note| note.path.clone())
+            .collect::<HashSet<_>>();
+
+        for path in self.scan_visible_files()? {
+            if known_paths.contains(&path) {
+                continue;
+            }
+            notes.push(self.synthetic_note_meta_for_path(&path)?);
+        }
+
+        notes.sort_by(|a, b| a.path.cmp(&b.path));
+        Ok(notes)
     }
 
     /// SPEC: COMP-NOTE-001 FR-2
     /// Get a note by its path.
     pub fn get_note(&self, path: &str) -> Result<Note> {
+        let note_types = NoteTypeRegistry::default();
+        let resolved = note_types.resolve_path(Path::new(path));
+
         // First try to get from database
         let note = self.db.get_note_by_path(path, &self.root)?;
 
@@ -305,8 +323,15 @@ impl VaultManager {
                 return Err(KnotError::NoteNotFound(path.to_string()));
             }
 
-            let content = std::fs::read_to_string(&full_path)?;
-            return Ok(Note::new(path, &content));
+            if resolved.note_type == NoteTypeId::Markdown {
+                let content = std::fs::read_to_string(&full_path)?;
+                return Ok(Note::new(path, &content));
+            }
+
+            return Ok(Note {
+                meta: self.synthetic_note_meta_for_path(path)?,
+                content: String::new(),
+            });
         }
 
         note.ok_or_else(|| KnotError::NoteNotFound(path.to_string()))
@@ -397,6 +422,7 @@ impl VaultManager {
     pub fn rename_note(&mut self, old_path: &str, new_path: &str) -> Result<()> {
         let old_full = self.root.join(old_path);
         let new_full = self.root.join(new_path);
+        let note_types = NoteTypeRegistry::default();
 
         if !old_full.exists() {
             return Err(KnotError::NoteNotFound(old_path.to_string()));
@@ -413,14 +439,17 @@ impl VaultManager {
         // Update database
         self.db.rename_note_path(old_path, new_path)?;
 
-        // Rebuild search index for this note
-        let content = std::fs::read_to_string(&new_full)?;
-        let note = Note::new(new_path, &content);
-        let tags = crate::markdown::extract_tags(&content);
-        self.sync_tags(note.id(), &tags)?;
         self.search.remove_note(old_path)?;
-        self.search
-            .index_note(note.path(), note.title(), note.content(), &tags)?;
+
+        if note_types.resolve_path(&new_full).note_type == NoteTypeId::Markdown {
+            // Rebuild search index only for markdown notes.
+            let content = std::fs::read_to_string(&new_full)?;
+            let note = Note::new(new_path, &content);
+            let tags = crate::markdown::extract_tags(&content);
+            self.sync_tags(note.id(), &tags)?;
+            self.search
+                .index_note(note.path(), note.title(), note.content(), &tags)?;
+        }
 
         // Update graph
         self.rebuild_graph()?;
@@ -511,6 +540,7 @@ impl VaultManager {
 
         info!("running full vault reindex");
 
+        let note_types = NoteTypeRegistry::default();
         let mut disk_paths: HashSet<String> = HashSet::new();
         for entry in WalkDir::new(&self.root)
             .follow_links(false)
@@ -524,7 +554,8 @@ impl VaultManager {
             .filter_map(|e| e.ok())
         {
             let path = entry.path();
-            if path.extension().and_then(|s| s.to_str()) != Some("md") {
+            let resolved = note_types.resolve_path(path);
+            if resolved.note_type != NoteTypeId::Markdown {
                 continue;
             }
 
@@ -587,6 +618,81 @@ impl VaultManager {
         Ok(synced)
     }
 
+    pub fn scan_visible_files(&self) -> Result<Vec<String>> {
+        use walkdir::WalkDir;
+
+        let note_types = NoteTypeRegistry::default();
+        let include_unknown = matches!(
+            self.config.file_visibility,
+            crate::config::FileVisibilityPolicy::AllFiles
+        );
+        let mut paths = Vec::new();
+
+        for entry in WalkDir::new(&self.root)
+            .follow_links(false)
+            .into_iter()
+            .filter_entry(|e| {
+                let path = e.path();
+                !path
+                    .components()
+                    .any(|c| c.as_os_str() == std::ffi::OsStr::new(VAULT_DIR))
+            })
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if !path.is_file() {
+                continue;
+            }
+
+            let relative = path
+                .strip_prefix(&self.root)
+                .map_err(|_| KnotError::InvalidPath(path.to_string_lossy().to_string()))?;
+            let rel = relative.to_string_lossy().replace('\\', "/");
+            if is_hidden_rel_path(&rel) {
+                continue;
+            }
+
+            let resolved = note_types.resolve_path(path);
+            if resolved.is_known || include_unknown {
+                paths.push(rel);
+            }
+        }
+
+        paths.sort();
+        Ok(paths)
+    }
+
+    pub fn synthetic_note_meta_for_path(&self, path: &str) -> Result<NoteMeta> {
+        let full_path = self.root.join(path);
+        let metadata = std::fs::metadata(&full_path)?;
+        let modified_at = metadata
+            .modified()
+            .ok()
+            .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|duration| duration.as_secs() as i64)
+            .unwrap_or(0);
+        let created_at = metadata
+            .created()
+            .ok()
+            .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|duration| duration.as_secs() as i64)
+            .unwrap_or(modified_at);
+
+        Ok(NoteMeta {
+            id: format!("fs:{path}"),
+            path: path.to_string(),
+            title: Path::new(path)
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .unwrap_or(path)
+                .to_string(),
+            created_at,
+            modified_at,
+            word_count: 0,
+            content_hash: None,
+        })
+    }
+
     //endregion
 
     //region File Watching
@@ -644,6 +750,11 @@ impl VaultManager {
     /// Sync newly created file to database, index, and graph
     fn sync_new_file(&mut self, path: &str) -> Result<()> {
         let full_path = self.root.join(path);
+        let note_types = NoteTypeRegistry::default();
+        if note_types.resolve_path(&full_path).note_type != NoteTypeId::Markdown {
+            info!(path, "skipping non-markdown file creation sync");
+            return Ok(());
+        }
         let content = std::fs::read_to_string(&full_path)?;
         let note = Note::new(path, &content);
         let tags = crate::markdown::extract_tags(&content);
@@ -663,6 +774,11 @@ impl VaultManager {
     fn sync_modified_file(&mut self, path: &str) -> Result<()> {
         info!(path, "external file modified");
         let full_path = self.root.join(path);
+        let note_types = NoteTypeRegistry::default();
+        if note_types.resolve_path(&full_path).note_type != NoteTypeId::Markdown {
+            info!(path, "skipping non-markdown file modification sync");
+            return Ok(());
+        }
         let content = std::fs::read_to_string(&full_path)?;
         let note = Note::new(path, &content);
         let tags = crate::markdown::extract_tags(&content);
@@ -740,6 +856,12 @@ fn apply_json_merge_patch(target: &mut serde_json::Value, patch: &serde_json::Va
     }
 }
 
+fn is_hidden_rel_path(rel_path: &str) -> bool {
+    rel_path
+        .split('/')
+        .any(|segment| !segment.is_empty() && segment.starts_with('.'))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -775,6 +897,52 @@ mod tests {
         // Get the note
         let note = vault.get_note("test.md").unwrap();
         assert_eq!(note.title(), "Test Note");
+    }
+
+    #[test]
+    fn rename_note_moves_image_without_utf8_error() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let mut vault = VaultManager::create(&vault_path).unwrap();
+
+        std::fs::create_dir_all(vault.root_path().join("images")).unwrap();
+        std::fs::write(vault.root_path().join("images/photo.jpg"), [0xff_u8, 0xd8, 0xff, 0x00]).unwrap();
+
+        let result = vault.rename_note("images/photo.jpg", "archive/photo.jpg");
+
+        assert!(result.is_ok());
+        assert!(!vault.root_path().join("images/photo.jpg").exists());
+        assert!(vault.root_path().join("archive/photo.jpg").exists());
+    }
+
+    #[test]
+    fn note_type_registry_lists_image_files_alongside_markdown() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let vault = VaultManager::create(&vault_path).unwrap();
+
+        std::fs::write(vault.root_path().join("note.md"), "# Note").unwrap();
+        std::fs::write(vault.root_path().join("photo.png"), b"png").unwrap();
+
+        let files = vault.scan_visible_files().unwrap();
+        assert!(files.contains(&"note.md".to_string()));
+        assert!(files.contains(&"photo.png".to_string()));
+    }
+
+    #[test]
+    fn list_notes_includes_non_markdown_files_as_synthetic_notes() {
+        let temp = TempDir::new().unwrap();
+        let vault_path = temp.path().join("test-vault");
+        let vault = VaultManager::create(&vault_path).unwrap();
+
+        std::fs::write(
+            vault.root_path().join("diagram.svg"),
+            r#"<svg xmlns="http://www.w3.org/2000/svg"></svg>"#,
+        )
+        .unwrap();
+
+        let notes = vault.list_notes().unwrap();
+        assert!(notes.iter().any(|note| note.path == "diagram.svg"));
     }
 
     #[test]

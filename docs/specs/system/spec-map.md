@@ -59,6 +59,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-APP-KEYMAP-006 | app-keymap-settings | designed | component/app-keymap-settings-006.md | [CONF, REL] | implemented (verified targeted) |
 | COMP-MANAGED-SHORTCUTS-007 | managed-shortcuts | designed | component/managed-shortcuts-007.md | [CONF, REL] | implemented (verified targeted) |
 | COMP-MATH-PLUGIN-008 | math-plugin | designed | component/math-plugin-008.md | [CONF, REL, COMP] | implemented (verified targeted) |
+| COMP-NOTE-TYPES-012 | note-types | designed | component/note-types-012.md | [CONF, REL, COMP, CAP] | draft |
 | COMP-VIEW-LIST-STYLING-009 | view-list-styling | designed | component/view-list-styling-009.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-NOTE-METADATA-FRONTMATTER-011 | note-metadata-frontmatter | designed | component/note-metadata-frontmatter-011.md | [CONF, REL, COMP] | implemented (verified targeted) |
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useMemo, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { convertFileSrc } from "@tauri-apps/api/core";
 import { initProseMirrorEditor } from "@editor/index";
 import {
   canRedoHistory,
@@ -54,6 +55,7 @@ import { toggleMark, wrapIn, setBlockType } from "prosemirror-commands";
 import { Selection, TextSelection, type Command } from "prosemirror-state";
 import { schema } from "@editor/schema";
 import type { ProseMirrorEditor } from "../../types/editor";
+import type { NoteModeAvailability } from "../../types/vault";
 import "./Editor.css";
 
 // SPEC: COMP-UI-LAYOUT-002 FR-4
@@ -79,7 +81,11 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
   const extraMetadataYamlRef = useRef("");
   const { currentNote, setCurrentNote, loadNote, noteList, shell } = useVaultStore();
   const { content, setContent, markDirty, isDirty, reset } = useEditorStore();
-  const [editorMode, setEditorMode] = useState<"meta" | "source" | "edit" | "view">("edit");
+  const [editorMode, setEditorMode] = useState<"meta" | "source" | "edit" | "view">(() =>
+    currentNote?.available_modes
+      ? defaultEditorMode(currentNote.available_modes)
+      : "edit"
+  );
   const [metadataDraft, setMetadataDraft] = useState<NoteMetadataDraft>(emptyMetadataDraft());
   const [extraMetadataYaml, setExtraMetadataYaml] = useState("");
   const [metaValidationError, setMetaValidationError] = useState<string | null>(null);
@@ -128,6 +134,21 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
   const managedShortcuts = useMemo(() => expandManagedShortcutMap(appKeymapSettings), [appKeymapSettings]);
 
   const noteScopedModeKey = currentNote ? `knot:editor-mode:${currentNote.path}` : null;
+  const noteModeAvailability = useMemo<NoteModeAvailability>(
+    () =>
+      currentNote?.available_modes ?? {
+        meta: true,
+        source: true,
+        edit: true,
+        view: true,
+      },
+    [currentNote]
+  );
+  const currentNoteType = currentNote?.note_type ?? "markdown";
+  const imageSrc =
+    currentNoteType === "image" && currentNote?.media?.file_path
+      ? toRenderableFileSrc(currentNote.media.file_path)
+      : null;
 
   const updateHistoryAvailability = useCallback((next?: { undo: boolean; redo: boolean }) => {
     if (next) {
@@ -171,16 +192,23 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
 
   useEffect(() => {
     if (!noteScopedModeKey) {
-      setEditorMode("edit");
+      setEditorMode(defaultEditorMode(noteModeAvailability));
+      return;
+    }
+    if (currentNoteType !== "markdown") {
+      setEditorMode("view");
       return;
     }
     const stored = localStorage.getItem(noteScopedModeKey);
-    if (stored === "meta" || stored === "source" || stored === "edit" || stored === "view") {
+    if (
+      (stored === "meta" || stored === "source" || stored === "edit" || stored === "view") &&
+      noteModeAvailability[stored]
+    ) {
       setEditorMode(stored);
       return;
     }
-    setEditorMode("edit");
-  }, [noteScopedModeKey]);
+    setEditorMode(defaultEditorMode(noteModeAvailability));
+  }, [currentNoteType, noteModeAvailability, noteScopedModeKey]);
 
   useEffect(() => {
     if (!noteScopedModeKey) return;
@@ -263,12 +291,15 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
 
   const handleModeChange = useCallback(
     (nextMode: "meta" | "source" | "edit" | "view") => {
+      if (!noteModeAvailability[nextMode]) {
+        return;
+      }
       if (nextMode === "meta") {
         syncMetaDraftFromMarkdown(effectiveRawMarkdown);
       }
       setEditorMode(nextMode);
     },
-    [effectiveRawMarkdown, syncMetaDraftFromMarkdown]
+    [effectiveRawMarkdown, noteModeAvailability, syncMetaDraftFromMarkdown]
   );
 
   useEffect(() => {
@@ -375,7 +406,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
 
   // Initialize editor
   useEffect(() => {
-    if (editorMode !== "edit") {
+    if (editorMode !== "edit" || !noteModeAvailability.edit) {
       updateHistoryAvailability({ undo: false, redo: false });
       if (pmRef.current) {
         pmRef.current.destroy();
@@ -481,6 +512,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
     setContent,
     updateHistoryAvailability,
     updateWikilinkSuggest,
+    noteModeAvailability.edit,
   ]);
 
   const runCommand = useCallback((command: Command) => {
@@ -861,6 +893,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
               role="tab"
               aria-selected={editorMode === "meta"}
               className={`editor-toolbar__mode-btn ${editorMode === "meta" ? "is-active" : ""}`}
+              disabled={!noteModeAvailability.meta}
               onClick={() => handleModeChange("meta")}
             >
               Meta
@@ -870,6 +903,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
               role="tab"
               aria-selected={editorMode === "source"}
               className={`editor-toolbar__mode-btn ${editorMode === "source" ? "is-active" : ""}`}
+              disabled={!noteModeAvailability.source}
               onClick={() => handleModeChange("source")}
             >
               Source
@@ -879,6 +913,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
               role="tab"
               aria-selected={editorMode === "edit"}
               className={`editor-toolbar__mode-btn ${editorMode === "edit" ? "is-active" : ""}`}
+              disabled={!noteModeAvailability.edit}
               onClick={() => handleModeChange("edit")}
             >
               Edit
@@ -888,6 +923,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
               role="tab"
               aria-selected={editorMode === "view"}
               className={`editor-toolbar__mode-btn ${editorMode === "view" ? "is-active" : ""}`}
+              disabled={!noteModeAvailability.view}
               onClick={() => handleModeChange("view")}
             >
               View
@@ -905,6 +941,11 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       </div>
       {editorMode === "meta" && (
         <div className="editor-container editor-container--meta">
+          {currentNoteType !== "markdown" ? (
+            <div className="editor-meta-empty">
+              <p>No metadata fields are available for this note type yet.</p>
+            </div>
+          ) : (
           <form className="editor-meta-form" onSubmit={(event) => event.preventDefault()}>
             {/* TRACE: DESIGN-note-metadata-frontmatter-011 */}
             <label className="editor-meta-form__field editor-meta-form__field--wide">
@@ -982,6 +1023,7 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
             </label>
             {metaValidationError && <p className="editor-meta-form__error">{metaValidationError}</p>}
           </form>
+          )}
         </div>
       )}
       {editorMode === "edit" && (
@@ -1283,16 +1325,45 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
       )}
       {editorMode === "view" && (
         <div className="editor-container editor-container--view">
-          <article
-            ref={viewArticleRef}
-            className="editor-view-markdown"
-            onClick={handleRenderedMarkdownClick}
-            dangerouslySetInnerHTML={{ __html: renderedHtml }}
-          />
+          {currentNoteType === "image" && imageSrc ? (
+            <div className="editor-media-view">
+              <img
+                className="editor-media-view__image"
+                src={imageSrc}
+                alt={currentNote.title || currentNote.path}
+              />
+            </div>
+          ) : currentNoteType === "unknown" ? (
+            <div className="editor-meta-empty">
+              <p>Unknown file type. This file can be viewed in the explorer but cannot be edited in Knot yet.</p>
+            </div>
+          ) : (
+            <article
+              ref={viewArticleRef}
+              className="editor-view-markdown"
+              onClick={handleRenderedMarkdownClick}
+              dangerouslySetInnerHTML={{ __html: renderedHtml }}
+            />
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function defaultEditorMode(availability: NoteModeAvailability): "meta" | "source" | "edit" | "view" {
+  if (availability.edit) return "edit";
+  if (availability.view) return "view";
+  if (availability.meta) return "meta";
+  return "source";
+}
+
+function toRenderableFileSrc(filePath: string): string {
+  try {
+    return convertFileSrc(filePath);
+  } catch {
+    return filePath;
+  }
 }
 
 function serializeShortcut(shortcut: { useMod: boolean; altKey: boolean; shiftKey: boolean; key: string }): string {

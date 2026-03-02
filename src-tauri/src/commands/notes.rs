@@ -4,6 +4,7 @@
 //! SPEC: COMP-GRAPH-001 FR-6
 
 use crate::commands::emit_event;
+use crate::note_type::{NoteTypeId, NoteTypeRegistry};
 use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -40,7 +41,10 @@ pub async fn list_notes(state: State<'_, AppState>) -> Result<Vec<NoteSummary>, 
         Some(vault) => {
             let notes = vault.list_notes().map_err(|e| e.to_response_string())?;
 
-            let summaries: Vec<_> = notes.into_iter().map(note_to_summary).collect();
+            let summaries: Vec<_> = notes
+                .into_iter()
+                .map(|note| note_to_summary(vault.root_path(), note))
+                .collect();
 
             Ok(summaries)
         }
@@ -63,45 +67,7 @@ pub async fn get_note(path: String, state: State<'_, AppState>) -> Result<NoteDa
     match vault_guard.as_ref() {
         Some(vault) => {
             let note = vault.get_note(&path).map_err(|e| e.to_response_string())?;
-            let note_headings = note.headings();
-            let heading_positions = compute_heading_positions(note.content(), &note_headings);
-
-            // Get backlinks from graph
-            let backlinks = vault
-                .graph()
-                .backlinks(&path)
-                .into_iter()
-                .map(|(source, context)| Backlink {
-                    source_path: source.clone(),
-                    source_title: vault
-                        .get_note(&source)
-                        .map(|source_note| source_note.title().to_string())
-                        .unwrap_or_else(|_| fallback_title_from_path(&source)),
-                    context,
-                })
-                .collect();
-
-            let data = NoteData {
-                id: note.id().to_string(),
-                path: note.path().to_string(),
-                title: note.title().to_string(),
-                content: note.content().to_string(),
-                created_at: note.created_at(),
-                modified_at: note.modified_at(),
-                word_count: note.word_count(),
-                headings: note_headings
-                    .iter()
-                    .enumerate()
-                    .map(|(index, h)| Heading {
-                        level: h.level as u8,
-                        text: h.text.clone(),
-                        position: *heading_positions.get(index).unwrap_or(&0),
-                    })
-                    .collect(),
-                backlinks,
-            };
-
-            Ok(data)
+            Ok(build_note_data(vault.root_path(), vault, note))
         }
         None => Err("No vault is open".to_string()),
     }
@@ -299,28 +265,7 @@ pub async fn create_note(
 
             // Return the newly created note
             let note = vault.get_note(&path).map_err(|e| e.to_response_string())?;
-            let note_headings = note.headings();
-            let heading_positions = compute_heading_positions(note.content(), &note_headings);
-
-            let data = NoteData {
-                id: note.id().to_string(),
-                path: note.path().to_string(),
-                title: note.title().to_string(),
-                content: note.content().to_string(),
-                created_at: note.created_at(),
-                modified_at: note.modified_at(),
-                word_count: note.word_count(),
-                headings: note_headings
-                    .iter()
-                    .enumerate()
-                    .map(|(index, h)| Heading {
-                        level: h.level as u8,
-                        text: h.text.clone(),
-                        position: *heading_positions.get(index).unwrap_or(&0),
-                    })
-                    .collect(),
-                backlinks: vec![],
-            };
+            let data = build_note_data(vault.root_path(), vault, note);
 
             info!(path, "note created");
             emit_event(
@@ -441,7 +386,7 @@ pub async fn get_explorer_tree(state: State<'_, AppState>) -> Result<ExplorerTre
                 .list_notes()
                 .map_err(|e| e.to_response_string())?
                 .into_iter()
-                .map(note_to_summary)
+                .map(|note| note_to_summary(vault.root_path(), note))
                 .collect::<Vec<_>>();
             let folders = scan_visible_folders(vault.root_path())?;
             let root = build_explorer_tree(
@@ -818,6 +763,8 @@ fn build_explorer_tree(
                 display_title,
                 modified_at: note.modified_at,
                 word_count: note.word_count,
+                type_badge: note.type_badge,
+                is_dimmed: note.is_dimmed,
             });
         }
     }
@@ -826,7 +773,8 @@ fn build_explorer_tree(
 }
 
 /// Helper to convert NoteMeta to NoteSummary.
-fn note_to_summary(meta: crate::note::NoteMeta) -> NoteSummary {
+fn note_to_summary(vault_root: &Path, meta: crate::note::NoteMeta) -> NoteSummary {
+    let resolved = NoteTypeRegistry::default().resolve_path(&vault_root.join(&meta.path));
     NoteSummary {
         id: meta.id,
         path: meta.path,
@@ -834,6 +782,64 @@ fn note_to_summary(meta: crate::note::NoteMeta) -> NoteSummary {
         created_at: meta.created_at,
         modified_at: meta.modified_at,
         word_count: meta.word_count,
+        note_type: resolved.note_type,
+        type_badge: resolved.type_badge,
+        is_dimmed: !resolved.is_known,
+    }
+}
+
+fn build_note_data(
+    vault_root: &Path,
+    vault: &crate::core::VaultManager,
+    note: crate::note::Note,
+) -> NoteData {
+    let resolved = NoteTypeRegistry::default().resolve_path(&vault_root.join(note.path()));
+    let (headings, backlinks, content) = if resolved.note_type == NoteTypeId::Markdown {
+        let note_headings = note.headings();
+        let heading_positions = compute_heading_positions(note.content(), &note_headings);
+        let headings = note_headings
+            .iter()
+            .enumerate()
+            .map(|(index, h)| Heading {
+                level: h.level as u8,
+                text: h.text.clone(),
+                position: *heading_positions.get(index).unwrap_or(&0),
+            })
+            .collect();
+        let backlinks = vault
+            .graph()
+            .backlinks(note.path())
+            .into_iter()
+            .map(|(source, context)| Backlink {
+                source_path: source.clone(),
+                source_title: vault
+                    .get_note(&source)
+                    .map(|source_note| source_note.title().to_string())
+                    .unwrap_or_else(|_| fallback_title_from_path(&source)),
+                context,
+            })
+            .collect();
+        (headings, backlinks, note.content().to_string())
+    } else {
+        (Vec::new(), Vec::new(), String::new())
+    };
+
+    NoteData {
+        id: note.id().to_string(),
+        path: note.path().to_string(),
+        title: note.title().to_string(),
+        content,
+        created_at: note.created_at(),
+        modified_at: note.modified_at(),
+        word_count: note.word_count(),
+        headings,
+        backlinks,
+        note_type: resolved.note_type,
+        available_modes: resolved.available_modes,
+        metadata: resolved.metadata,
+        type_badge: resolved.type_badge,
+        media: resolved.media,
+        is_dimmed: !resolved.is_known,
     }
 }
 
@@ -939,6 +945,9 @@ mod tests {
             created_at: modified_at,
             modified_at,
             word_count: 10,
+            note_type: crate::note_type::NoteTypeId::Markdown,
+            type_badge: None,
+            is_dimmed: false,
         }
     }
 

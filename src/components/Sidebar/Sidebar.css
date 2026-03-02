@@ -194,6 +194,7 @@
 
 .explorer-tree__note-row {
   font-size: 0.84rem;
+  min-width: 0;
 }
 
 .explorer-tree__note-row--active {
@@ -202,9 +203,39 @@
 }
 
 .explorer-tree__note-title {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.explorer-tree__note-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.35rem;
+  padding: 0.1rem 0.38rem;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 178, 140, 0.28);
+  background: rgba(201, 178, 140, 0.12);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  line-height: 1;
+}
+
+.explorer-tree__note--dimmed {
+  opacity: 0.58;
+}
+
+.explorer-tree__note-row--active .explorer-tree__note-badge {
+  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-on-accent);
 }
 
 .sidebar-context-menu {

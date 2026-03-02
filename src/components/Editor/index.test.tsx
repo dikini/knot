@@ -128,6 +128,81 @@ describe("Editor Component", () => {
       expect(screen.getByRole("tab", { name: "View" })).toBeInTheDocument();
     });
 
+    it("disables source and edit modes for image notes", () => {
+      const imageNote = {
+        id: "img-1",
+        path: "photo.png",
+        title: "photo",
+        content: "",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 0,
+        headings: [],
+        backlinks: [],
+        note_type: "image",
+        media: {
+          mime_type: "image/png",
+          file_path: "/tmp/photo.png",
+        },
+        available_modes: {
+          meta: true,
+          source: false,
+          edit: false,
+          view: true,
+        },
+      };
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: imageNote as never,
+      });
+
+      render(<Editor />);
+
+      expect(screen.getByRole("tab", { name: "Source" })).toBeDisabled();
+      expect(screen.getByRole("tab", { name: "Edit" })).toBeDisabled();
+      expect(screen.getByRole("tab", { name: "View" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.getByRole("img", { name: "photo" })).toBeInTheDocument();
+    });
+
+    it("forces image notes into view mode even if a stored mode exists", () => {
+      localStorage.setItem("knot:editor-mode:photo.png", "meta");
+
+      const imageNote = {
+        id: "img-2",
+        path: "photo.png",
+        title: "photo",
+        content: "",
+        created_at: Date.now() / 1000,
+        modified_at: Date.now() / 1000,
+        word_count: 0,
+        headings: [],
+        backlinks: [],
+        note_type: "image",
+        media: {
+          mime_type: "image/png",
+          file_path: "/tmp/photo.png",
+        },
+        available_modes: {
+          meta: true,
+          source: false,
+          edit: false,
+          view: true,
+        },
+      };
+
+      useVaultStore.setState({
+        ...useVaultStore.getState(),
+        currentNote: imageNote as never,
+      });
+
+      render(<Editor />);
+
+      expect(screen.getByRole("tab", { name: "View" })).toHaveAttribute("aria-selected", "true");
+      expect(screen.queryByLabelText("Description")).not.toBeInTheDocument();
+      expect(screen.getByRole("img", { name: "photo" })).toBeInTheDocument();
+    });
+
     it("disables toolbar history buttons when edit history is unavailable", () => {
       render(<Editor />);
 

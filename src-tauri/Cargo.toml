@@ -11,7 +11,7 @@ default-run = "knot"
 
 [dependencies]
 # Tauri framework
-tauri = { version = "2", features = [] }
+tauri = { version = "2", features = ["protocol-asset"] }
 tauri-build = { version = "2", features = [] }
 tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"
