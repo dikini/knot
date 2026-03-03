@@ -1,0 +1,48 @@
+tasks:
+  - id: KDL-001
+    title: "Add targeted bridge reconnect unit tests for backoff, wait mode, and SIGHUP wakeup"
+    status: completed
+    size: M
+    spec_refs: [FR-6, FR-7, FR-8, FR-9]
+    dependencies: []
+    acceptance: "Bridge reconnect scheduling and signal-driven recovery are covered by targeted tests"
+
+  - id: KDL-002
+    title: "Refactor scripts/knotd-mcp-bridge.mjs to keep stdio/socket forwarding alive across reconnect loops and signal-driven wakeup"
+    status: completed
+    size: M
+    spec_refs: [FR-6, FR-7, FR-8]
+    dependencies: [KDL-001]
+    acceptance: "Bridge survives disconnects and wakes from idle wait on SIGHUP"
+
+  - id: KDL-003
+    title: "Add aggressive repo-managed scripts/dev-up.sh and scripts/dev-down.sh with runtime dir, pid/log files, socket cleanup, and bridge SIGHUP signaling"
+    status: completed
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+    dependencies: [KDL-002]
+    acceptance: "Repo-managed dev lifecycle is deterministic and emits actionable operator output"
+
+  - id: KDL-004
+    title: "Wire npm shortcuts, document the workflow, and produce verification artifacts"
+    status: completed
+    size: S
+    spec_refs: [AC-1, AC-2, AC-3, AC-4, AC-5]
+    dependencies: [KDL-003]
+    acceptance: "Lifecycle tooling is documented and verifiable"
+
+  - id: KDL-005
+    title: "Add targeted orchestration tests for ci:local daemon smoke defaults, provisioning, skip messaging, and teardown behavior"
+    status: completed
+    size: M
+    spec_refs: [FR-10, FR-11, FR-12, FR-13, FR-14]
+    dependencies: [KDL-004]
+    acceptance: "Tests fail before implementation and verify daemon smoke orchestration semantics"
+
+  - id: KDL-006
+    title: "Refactor scripts/run-ci-local.sh and supporting helpers to self-provision required daemon smoke with deterministic cleanup and aligned socket defaults"
+    status: completed
+    size: M
+    spec_refs: [FR-10, FR-11, FR-12, FR-13, FR-14, AC-6, AC-7]
+    dependencies: [KDL-005]
+    acceptance: "ci:local self-provisions daemon smoke, fails on triage/bootstrap errors, and only skips when explicitly requested"

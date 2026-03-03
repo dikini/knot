@@ -14,7 +14,6 @@ DO_PLAYWRIGHT_INSTALL=1
 PLAYWRIGHT_WITH_DEPS=0
 NATIVE_LAUNCH=1
 RUN_DAEMON_SMOKE=1
-REQUIRE_DAEMON_SMOKE=0
 
 usage() {
   cat <<'EOF'
@@ -31,8 +30,8 @@ Options:
   --skip-playwright-install    Skip playwright browser install
   --playwright-with-deps       Install playwright with system deps (may require sudo)
   --skip-native-launch         Skip native launch-smoke step
-  --skip-daemon-smoke         Skip daemon socket smoke checks
-  --require-daemon-smoke      Fail if daemon socket smoke cannot run
+  --skip-daemon-smoke         Skip daemon smoke provisioning/triage (non-release path)
+  --require-daemon-smoke      Deprecated no-op; daemon smoke is required by default
   -h, --help                   Show this help
 
 Equivalent workflows:
@@ -69,7 +68,7 @@ while [[ $# -gt 0 ]]; do
       RUN_DAEMON_SMOKE=0
       ;;
     --require-daemon-smoke)
-      REQUIRE_DAEMON_SMOKE=1
+      echo "Note: --require-daemon-smoke is redundant; daemon smoke is required by default."
       ;;
     -h|--help)
       usage
@@ -153,18 +152,12 @@ fi
 
 if [[ "$RUN_DAEMON_SMOKE" -eq 1 ]]; then
   run_step "UI daemon-mode smoke (App handlers + startup attach retry)" npm run -s ui:daemon:smoke
-
-  SOCKET_PATH="${KNOTD_SOCKET_PATH:-/tmp/knotd.sock}"
-  if [[ -S "${SOCKET_PATH}" ]]; then
-    run_step "knotd MCP triage (daemon smoke + startup traces)" npm run -s knotd:triage
-  else
-    if [[ "$REQUIRE_DAEMON_SMOKE" -eq 1 ]]; then
-      echo "Daemon smoke required but socket not found: ${SOCKET_PATH}" >&2
-      exit 1
-    fi
-    echo "Skipping knotd daemon socket smoke; socket not found: ${SOCKET_PATH}"
-    echo "Start knotd first or pass --require-daemon-smoke to fail when missing."
-  fi
+  run_step \
+    "Repo-managed knotd daemon smoke (bootstrap + triage + teardown)" \
+    node scripts/run-knotd-daemon-smoke.mjs
+else
+  echo ""
+  echo "Skipping knotd daemon smoke by explicit request; this is not a full pre-release verification run."
 fi
 
 echo ""
