@@ -33,6 +33,24 @@ npm run codex:mcp:setup:knotd
 npm run codex:mcp:setup:all
 ```
 
+## Deprecation Note
+
+The repository Node bridge setup path is deprecated for installed Linux desktop usage.
+
+Preferred operator flow:
+
+```bash
+~/Applications/knot_0.1.0_amd64.AppImage mcp codex install
+```
+
+or, if the wrapper is already installed:
+
+```bash
+knot mcp codex install
+```
+
+The legacy `npm run codex:mcp:setup:knotd` script now delegates to the native Knot launcher path rather than installing the old repo-local Node bridge block.
+
 ## Smoke Verification
 ```bash
 npm run knotd:mcp:smoke

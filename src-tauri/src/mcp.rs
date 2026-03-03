@@ -1723,7 +1723,7 @@ pub fn run_stdio_server<R: Read, W: Write>(
     }
 }
 
-fn read_framed_message<R: BufRead>(reader: &mut R) -> io::Result<Option<String>> {
+pub fn read_framed_message<R: BufRead>(reader: &mut R) -> io::Result<Option<String>> {
     let mut content_length: Option<usize> = None;
     let mut line = String::new();
 

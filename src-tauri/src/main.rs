@@ -165,6 +165,28 @@ fn handle_launcher_command() -> knot::Result<Option<i32>> {
             println!("{}", knot::launcher::down_summary(&paths)?);
             Ok(Some(0))
         }
+        knot::launcher::LauncherMode::Mcp(command) => match command {
+            knot::launcher::LauncherMcpCommand::Bridge => {
+                Ok(Some(knot::launcher::run_mcp_bridge(&config, &paths)?))
+            }
+            knot::launcher::LauncherMcpCommand::Status => {
+                println!("{}", knot::launcher::mcp_status_summary(&config, &paths));
+                Ok(Some(0))
+            }
+            knot::launcher::LauncherMcpCommand::SocketPath => {
+                println!("{}", knot::launcher::socket_path(&config, &paths).display());
+                Ok(Some(0))
+            }
+            knot::launcher::LauncherMcpCommand::CodexInstall => {
+                let command_path = knot::launcher::codex_command_path(&paths)?;
+                println!("{}", knot::launcher::install_codex_mcp(&paths, &command_path)?);
+                Ok(Some(0))
+            }
+            knot::launcher::LauncherMcpCommand::CodexUninstall => {
+                println!("{}", knot::launcher::uninstall_codex_mcp(&paths)?);
+                Ok(Some(0))
+            }
+        },
         knot::launcher::LauncherMode::Up => {
             let child = ensure_daemon_for_ui(&mut config, &paths)?;
             if let Some(mut child) = child {

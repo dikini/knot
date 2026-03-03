@@ -5,12 +5,18 @@
 use crate::error::{KnotError, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::{self, BufRead, BufReader, Write};
+#[cfg(unix)]
+use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 
 const LAUNCHER_CONFIG_FILE: &str = "knot.toml";
 const SERVICE_ENV_FILE: &str = "knotd.env";
+const CODEX_CONFIG_FILE: &str = ".codex/config.toml";
+const CODEX_MCP_BEGIN_MARKER: &str = "# >>> knot-vault-mcp >>>";
+const CODEX_MCP_END_MARKER: &str = "# <<< knot-vault-mcp <<<";
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -21,8 +27,18 @@ pub enum LauncherMode {
     Knotd { service_mode: bool },
     Up,
     Down,
+    Mcp(LauncherMcpCommand),
     Service(LauncherServiceCommand),
     Help,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LauncherMcpCommand {
+    Bridge,
+    Status,
+    SocketPath,
+    CodexInstall,
+    CodexUninstall,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,6 +82,7 @@ pub struct LauncherPaths {
     pub env_path: PathBuf,
     pub wrapper_path: PathBuf,
     pub unit_path: PathBuf,
+    pub codex_config_path: PathBuf,
     pub log_dir: PathBuf,
     pub socket_path: PathBuf,
 }
@@ -94,6 +111,21 @@ pub fn parse_launcher_args(args: &[String]) -> Result<LauncherMode> {
         },
         Some("up") => LauncherMode::Up,
         Some("down") => LauncherMode::Down,
+        Some("mcp") => match args.get(2).map(String::as_str) {
+            Some("bridge") => LauncherMode::Mcp(LauncherMcpCommand::Bridge),
+            Some("status") => LauncherMode::Mcp(LauncherMcpCommand::Status),
+            Some("socket-path") => LauncherMode::Mcp(LauncherMcpCommand::SocketPath),
+            Some("codex") => match args.get(3).map(String::as_str) {
+                Some("install") => LauncherMode::Mcp(LauncherMcpCommand::CodexInstall),
+                Some("uninstall") => LauncherMode::Mcp(LauncherMcpCommand::CodexUninstall),
+                Some(other) => {
+                    return Err(KnotError::Config(format!("unknown mcp codex command: {other}")))
+                }
+                None => LauncherMode::Mcp(LauncherMcpCommand::CodexInstall),
+            },
+            Some(other) => return Err(KnotError::Config(format!("unknown mcp command: {other}"))),
+            None => LauncherMode::Mcp(LauncherMcpCommand::Status),
+        },
         Some("service") => match args.get(2).map(String::as_str) {
             Some("install") => LauncherMode::Service(LauncherServiceCommand::Install {
                 dry_run: args.iter().any(|arg| arg == "--dry-run"),
@@ -149,6 +181,7 @@ pub fn resolve_launcher_paths(env: &LauncherEnv) -> Result<LauncherPaths> {
         env_path: config_root.join(SERVICE_ENV_FILE),
         wrapper_path: home_dir.join(".local/bin/knot"),
         unit_path: config_base.join("systemd/user/knotd.service"),
+        codex_config_path: home_dir.join(CODEX_CONFIG_FILE),
         log_dir: state_root.join("log"),
         socket_path: runtime_root.join("knotd.sock"),
         config_root,
@@ -274,7 +307,7 @@ pub fn socket_path(config: &LauncherConfig, paths: &LauncherPaths) -> PathBuf {
 }
 
 pub fn command_help() -> &'static str {
-    "knot - AppImage launcher\n\nUsage:\n  knot [ui]\n  knot knotd [--service]\n  knot up\n  knot down\n  knot service install [--dry-run]\n  knot service uninstall [--purge]\n  knot service start|stop|restart|status\n"
+    "knot - AppImage launcher\n\nUsage:\n  knot [ui]\n  knot knotd [--service]\n  knot up\n  knot down\n  knot mcp bridge\n  knot mcp status\n  knot mcp socket-path\n  knot mcp codex install|uninstall\n  knot service install [--dry-run]\n  knot service uninstall [--purge]\n  knot service start|stop|restart|status\n"
 }
 
 pub fn install_service(
@@ -462,6 +495,201 @@ pub fn down_summary(paths: &LauncherPaths) -> Result<String> {
     )
 }
 
+pub fn mcp_status_summary(config: &LauncherConfig, paths: &LauncherPaths) -> String {
+    let socket = socket_path(config, paths);
+    if is_socket_reachable(&socket) {
+        format!("knotd MCP reachable at {}", socket.display())
+    } else {
+        format!(
+            "knotd MCP is not reachable at {}. Start knotd first via `knot service start` or `knot up`.",
+            socket.display()
+        )
+    }
+}
+
+pub fn render_codex_mcp_block(command_path: &Path) -> String {
+    format!(
+        "{begin}\n[mcp_servers.knot_vault]\ncommand = {command:?}\nargs = [\"mcp\", \"bridge\"]\nstartup_timeout_sec = 60\n{end}\n",
+        begin = CODEX_MCP_BEGIN_MARKER,
+        command = command_path.display().to_string(),
+        end = CODEX_MCP_END_MARKER
+    )
+}
+
+fn remove_managed_codex_block(content: &str) -> String {
+    let mut lines = Vec::new();
+    let mut in_block = false;
+
+    for line in content.lines() {
+        if line.trim() == CODEX_MCP_BEGIN_MARKER {
+            in_block = true;
+            continue;
+        }
+        if in_block {
+            if line.trim() == CODEX_MCP_END_MARKER {
+                in_block = false;
+            }
+            continue;
+        }
+        lines.push(line);
+    }
+
+    let mut next = lines.join("\n");
+    if content.ends_with('\n') {
+        next.push('\n');
+    }
+    next
+}
+
+pub fn install_codex_mcp(paths: &LauncherPaths, command_path: &Path) -> Result<String> {
+    let existing = if paths.codex_config_path.exists() {
+        fs::read_to_string(&paths.codex_config_path)?
+    } else {
+        String::new()
+    };
+
+    let without_managed = remove_managed_codex_block(&existing);
+    let mut next = without_managed.trim_end().to_string();
+    if !next.is_empty() {
+        next.push_str("\n\n");
+    }
+    next.push_str(&render_codex_mcp_block(command_path));
+    next.push('\n');
+
+    if let Some(parent) = paths.codex_config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&paths.codex_config_path, next)?;
+    Ok(format!(
+        "Installed Codex MCP config for knot_vault in {}",
+        paths.codex_config_path.display()
+    ))
+}
+
+pub fn uninstall_codex_mcp(paths: &LauncherPaths) -> Result<String> {
+    if !paths.codex_config_path.exists() {
+        return Ok(format!(
+            "No Codex MCP config found at {}",
+            paths.codex_config_path.display()
+        ));
+    }
+    let existing = fs::read_to_string(&paths.codex_config_path)?;
+    let next = remove_managed_codex_block(&existing);
+    fs::write(&paths.codex_config_path, next.trim_start_matches('\n'))?;
+    Ok(format!(
+        "Removed managed Codex MCP config for knot_vault from {}",
+        paths.codex_config_path.display()
+    ))
+}
+
+pub fn codex_command_path(paths: &LauncherPaths) -> Result<PathBuf> {
+    if let Ok(path) = std::env::var("APPIMAGE") {
+        if !path.trim().is_empty() {
+            return Ok(PathBuf::from(path));
+        }
+    }
+    if paths.wrapper_path.exists() {
+        return Ok(paths.wrapper_path.clone());
+    }
+    current_appimage_or_exe()
+}
+
+fn read_stdio_message<R: BufRead>(input: &mut R) -> io::Result<Option<String>> {
+    let buffer = input.fill_buf()?;
+    if buffer.is_empty() {
+        return Ok(None);
+    }
+
+    let prefix = String::from_utf8_lossy(buffer);
+    if prefix.starts_with("Content-Length:") {
+        let mut content_length = None;
+        loop {
+            let mut line = String::new();
+            let read = input.read_line(&mut line)?;
+            if read == 0 {
+                return Ok(None);
+            }
+            let trimmed = line.trim_end_matches(['\r', '\n']);
+            if trimmed.is_empty() {
+                break;
+            }
+            if let Some((name, value)) = trimmed.split_once(':') {
+                if name.eq_ignore_ascii_case("Content-Length") {
+                    content_length = Some(value.trim().parse::<usize>().map_err(|_| {
+                        io::Error::new(io::ErrorKind::InvalidData, "Invalid Content-Length")
+                    })?);
+                }
+            }
+        }
+
+        let length = content_length.ok_or_else(|| {
+            io::Error::new(io::ErrorKind::InvalidData, "Missing Content-Length")
+        })?;
+        let mut body = vec![0_u8; length];
+        input.read_exact(&mut body)?;
+        return String::from_utf8(body)
+            .map(Some)
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err));
+    }
+
+    let mut line = String::new();
+    let read = input.read_line(&mut line)?;
+    if read == 0 {
+        return Ok(None);
+    }
+    let trimmed = line.trim();
+    if trimmed.is_empty() {
+        return Ok(Some(String::new()));
+    }
+    Ok(Some(trimmed.to_string()))
+}
+
+fn write_framed_message<W: Write>(output: &mut W, payload: &str) -> io::Result<()> {
+    write!(output, "Content-Length: {}\r\n\r\n", payload.len())?;
+    output.write_all(payload.as_bytes())?;
+    output.flush()
+}
+
+#[cfg(unix)]
+pub fn run_mcp_bridge(config: &LauncherConfig, paths: &LauncherPaths) -> Result<i32> {
+    let socket = socket_path(config, paths);
+    let mut stream = UnixStream::connect(&socket).map_err(|err| {
+        KnotError::Other(format!(
+            "Failed to connect to knotd MCP socket at {}: {}",
+            socket.display(),
+            err
+        ))
+    })?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(300)))
+        .map_err(KnotError::from)?;
+
+    let mut socket_reader = BufReader::new(stream.try_clone().map_err(KnotError::from)?);
+    let mut stdin = BufReader::new(io::stdin().lock());
+    let mut stdout = io::stdout().lock();
+
+    while let Some(message) = read_stdio_message(&mut stdin).map_err(KnotError::from)? {
+        if message.is_empty() {
+            continue;
+        }
+        write_framed_message(&mut stream, &message).map_err(KnotError::from)?;
+        let response = crate::mcp::read_framed_message(&mut socket_reader)
+            .map_err(KnotError::from)?
+            .ok_or_else(|| KnotError::Other("knotd MCP socket closed".to_string()))?;
+        writeln!(stdout, "{response}").map_err(KnotError::from)?;
+        stdout.flush().map_err(KnotError::from)?;
+    }
+
+    Ok(0)
+}
+
+#[cfg(not(unix))]
+pub fn run_mcp_bridge(_config: &LauncherConfig, _paths: &LauncherPaths) -> Result<i32> {
+    Err(KnotError::Other(
+        "MCP bridge is only supported on Unix-like platforms".to_string(),
+    ))
+}
+
 pub fn ui_should_use_daemon(config: &LauncherConfig) -> bool {
     matches!(config.ui_mode, UiRuntimeMode::DaemonIpc)
 }
@@ -483,8 +711,9 @@ fn make_executable(_path: &Path) -> Result<()> {
 mod tests {
     use super::{
         apply_env_overrides, command_help, down_summary, parse_launcher_args,
-        render_install_artifacts, resolve_launcher_paths, stale_appimage_message, LauncherConfig,
-        LauncherEnv, LauncherMode, LauncherServiceCommand, UiRuntimeMode,
+        remove_managed_codex_block, render_codex_mcp_block, render_install_artifacts,
+        resolve_launcher_paths, stale_appimage_message, LauncherConfig, LauncherEnv,
+        LauncherMcpCommand, LauncherMode, LauncherServiceCommand, UiRuntimeMode,
     };
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
@@ -545,6 +774,14 @@ mod tests {
         assert_eq!(
             parse_launcher_args(&["knot".into(), "service".into(), "install".into()]).expect("parse service install"),
             LauncherMode::Service(LauncherServiceCommand::Install { dry_run: false })
+        );
+        assert_eq!(
+            parse_launcher_args(&["knot".into(), "mcp".into(), "bridge".into()]).expect("parse mcp bridge"),
+            LauncherMode::Mcp(LauncherMcpCommand::Bridge)
+        );
+        assert_eq!(
+            parse_launcher_args(&["knot".into(), "mcp".into(), "codex".into(), "install".into()]).expect("parse mcp codex install"),
+            LauncherMode::Mcp(LauncherMcpCommand::CodexInstall)
         );
     }
 
@@ -628,6 +865,7 @@ mod tests {
     #[test]
     fn launcher_tdd_help_lists_down_command() {
         assert!(command_help().contains("knot down"));
+        assert!(command_help().contains("knot mcp bridge"));
     }
 
     #[test]
@@ -637,5 +875,34 @@ mod tests {
 
         assert!(message.contains("No managed knotd service"));
         assert!(message.contains("UI exits"));
+    }
+
+    #[test]
+    fn launcher_tdd_renders_codex_block_using_wrapper_command_shape() {
+        let block = render_codex_mcp_block(PathBuf::from("/home/tester/.local/bin/knot").as_path());
+        assert!(block.contains("[mcp_servers.knot_vault]"));
+        assert!(block.contains("command = \"/home/tester/.local/bin/knot\""));
+        assert!(block.contains("args = [\"mcp\", \"bridge\"]"));
+    }
+
+    #[test]
+    fn launcher_tdd_replaces_existing_managed_codex_block() {
+        let existing = r#"
+model = "gpt-5"
+
+# >>> knot-vault-mcp >>>
+[mcp_servers.knot_vault]
+command = "node"
+args = ["/old/bridge.mjs"]
+startup_timeout_sec = 60
+# <<< knot-vault-mcp <<<
+
+[mcp_servers.playwright]
+command = "npx"
+"#;
+        let next = remove_managed_codex_block(existing);
+        assert!(!next.contains("/old/bridge.mjs"));
+        assert!(next.contains("model = \"gpt-5\""));
+        assert!(next.contains("[mcp_servers.playwright]"));
     }
 }

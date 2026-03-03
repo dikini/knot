@@ -48,6 +48,11 @@ The AppImage launcher supports:
 ./knot_0.1.0_amd64.AppImage knotd
 ./knot_0.1.0_amd64.AppImage up
 ./knot_0.1.0_amd64.AppImage down
+./knot_0.1.0_amd64.AppImage mcp bridge
+./knot_0.1.0_amd64.AppImage mcp status
+./knot_0.1.0_amd64.AppImage mcp socket-path
+./knot_0.1.0_amd64.AppImage mcp codex install
+./knot_0.1.0_amd64.AppImage mcp codex uninstall
 ./knot_0.1.0_amd64.AppImage service install
 ./knot_0.1.0_amd64.AppImage service uninstall
 ./knot_0.1.0_amd64.AppImage service start
@@ -62,4 +67,5 @@ Linux desktop defaults to daemon-backed UI mode. `ui` and the default entrypoint
 
 - The generated user-service flow writes into XDG paths under `~/.config/knot`, `~/.local/state/knot`, and `~/.config/systemd/user/`.
 - `service install` requires a configured vault path via `~/.config/knot/knot.toml` or `KNOT_VAULT_PATH`.
+- `mcp codex install` writes or replaces the managed `knot_vault` block in `~/.codex/config.toml`, preferring `~/.local/bin/knot` when present and otherwise using the current AppImage path.
 - The build may still depend on additional GTK/runtime libraries from the local distro environment because AppImage assembly is delegated to `linuxdeploy`.

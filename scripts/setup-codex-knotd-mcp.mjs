@@ -2,47 +2,29 @@
 /* eslint-env node */
 // Trace: DESIGN-knotd-mcp-ops
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { resolve } from "node:path";
 import { homedir } from "node:os";
 
-const projectRoot = resolve(process.cwd());
-const codexConfigPath = resolve(homedir(), ".codex/config.toml");
-// Trace: DESIGN-knotd-mcp-ops
-const bridgePath = resolve(projectRoot, "scripts/knotd-mcp-bridge.mjs");
-const nodeCommand = process.execPath;
-const beginMarker = "# >>> knot-vault-mcp >>>";
-const endMarker = "# <<< knot-vault-mcp <<<";
-const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const tomlString = (value) => JSON.stringify(value);
+const wrapperPath = resolve(homedir(), ".local/bin/knot");
 
-const blockLines = [
-  beginMarker,
-  "[mcp_servers.knot_vault]",
-  `command = ${tomlString(nodeCommand)}`,
-  `args = [${tomlString(bridgePath)}]`,
-  "startup_timeout_sec = 60",
-  endMarker,
-  "",
-];
-const block = blockLines.join("\n");
+console.error(
+  "[deprecated] scripts/setup-codex-knotd-mcp.mjs now installs the native Knot MCP bridge."
+);
+console.error("[deprecated] preferred command: knot mcp codex install");
 
-let content = "";
-if (existsSync(codexConfigPath)) {
-  content = readFileSync(codexConfigPath, "utf8");
-} else {
-  mkdirSync(dirname(codexConfigPath), { recursive: true });
+if (!existsSync(wrapperPath)) {
+  console.error(`[setup-codex-knotd-mcp] missing wrapper at ${wrapperPath}`);
+  console.error(
+    "[setup-codex-knotd-mcp] install the AppImage service/wrapper first, or run Knot.AppImage mcp codex install directly"
+  );
+  process.exit(1);
 }
 
-const markerPattern = new RegExp(
-  `${escapeRegExp(beginMarker)}[\\s\\S]*?${escapeRegExp(endMarker)}\\n?`,
-  "g"
-);
+const result = spawnSync(wrapperPath, ["mcp", "codex", "install"], {
+  stdio: "inherit",
+  env: process.env,
+});
 
-const next = markerPattern.test(content)
-  ? content.replace(markerPattern, block)
-  : `${content}${content.endsWith("\n") || content.length === 0 ? "" : "\n"}${block}`;
-
-writeFileSync(codexConfigPath, next, "utf8");
-console.log(`[codex] configured knot_vault MCP for project at ${projectRoot}`);
-console.log(`[codex] updated ${codexConfigPath}`);
+process.exit(result.status ?? 1);
