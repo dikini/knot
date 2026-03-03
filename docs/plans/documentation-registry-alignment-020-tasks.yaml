@@ -1,0 +1,32 @@
+tasks:
+  - id: DRA-020-001
+    title: "Add failing tests for project-registry parsing and drift detection"
+    status: planned
+    size: S
+    spec_refs: [FR-5]
+    dependencies: []
+    acceptance: "Unit tests fail until the validator and aligned registry docs exist"
+
+  - id: DRA-020-002
+    title: "Implement qa:project-registry validator and wire package script"
+    status: planned
+    size: M
+    spec_refs: [FR-5]
+    dependencies: [DRA-020-001]
+    acceptance: "Validator detects missing spec-map rows, status mismatches, and roadmap contradictions"
+
+  - id: DRA-020-003
+    title: "Refresh PROJECT_STATE, spec-map, and roadmap-index to canonical registry semantics"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-6]
+    dependencies: [DRA-020-002]
+    acceptance: "Registry docs align with component spec metadata and no longer duplicate contradictory status tables"
+
+  - id: DRA-020-004
+    title: "Verify registry alignment and publish audit evidence"
+    status: planned
+    size: S
+    spec_refs: [FR-5, FR-6]
+    dependencies: [DRA-020-003]
+    acceptance: "Verification note records passing commands and the canonical source-of-truth chain"

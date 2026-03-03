@@ -2,6 +2,7 @@
 
 Spec-ID: COMP-EXPLORER-PANEL-SEARCH-001
 Change-Type: design-update
+Status: implemented
 Trace: DESIGN-explorer-panel-no-search
 Date: 2026-02-20
 

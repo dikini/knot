@@ -2,6 +2,7 @@
 
 Spec-ID: COMP-EDITOR-EMPTY-DOC-001
 Change-Type: bug-fix
+Status: implemented
 Trace: BUG-editor-empty-doc
 Date: 2026-02-20
 

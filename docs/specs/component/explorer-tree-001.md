@@ -2,6 +2,7 @@
 
 Spec-ID: COMP-EXPLORER-TREE-001
 Change-Type: design-update
+Status: implemented
 Trace: DESIGN-explorer-tree-navigation
 Date: 2026-02-20
 

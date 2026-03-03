@@ -2,6 +2,7 @@
 
 Spec-ID: COMP-GRAPH-CONSISTENCY-001
 Change-Type: bugfix
+Status: implemented
 Trace: BUG-graph-consistency-selection-001
 Date: 2026-02-20
 

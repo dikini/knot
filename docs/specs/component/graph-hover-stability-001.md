@@ -2,6 +2,7 @@
 
 Spec-ID: COMP-GRAPH-HOVER-001
 Change-Type: bug-fix
+Status: implemented
 Trace: BUG-graph-hover-node-stability
 Date: 2026-02-20
 

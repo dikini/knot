@@ -2,6 +2,7 @@
 
 Spec-ID: COMP-EXPLORER-ICON-ACTIONS-001
 Change-Type: design-update
+Status: implemented
 Trace: DESIGN-explorer-icon-only-actions
 Date: 2026-02-20
 
