@@ -36,3 +36,7 @@
 - Prefer dry-run capable install/status helpers so unit tests can validate artifact content without mutating the developer machine.
 - Keep `service uninstall` non-destructive by default; purge semantics can remain explicit and narrow.
 - UX copy is part of the feature: errors should say what path failed and the next corrective command.
+- Follow-up backlog:
+  - add launcher behavior to create/initialize a missing configured vault, or clearly distinguish "missing path" from "existing but not a Knot vault"
+  - add a checked-in sample `knot.toml` that documents the supported keys and daemon-backed Linux defaults
+  - review app-owned dialogs and platform chrome for consistent theme behavior across AppImage and future Flatpak/Snap packaging targets

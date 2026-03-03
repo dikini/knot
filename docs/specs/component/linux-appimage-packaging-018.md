@@ -55,3 +55,8 @@ Package the Linux desktop UI, `knotd`, and operator tooling into a single AppIma
 - Targeted tests for `up` daemon reuse decisions and stale AppImage detection.
 - Bundle metadata verification for included launcher and `knotd` payloads.
 - Targeted runtime smoke for direct AppImage and service-managed daemon flows where feasible.
+
+## Follow-up Todo
+- Launcher/service startup should be able to create and initialize the configured vault path when it does not exist yet, or fail with a more explicit remediation path when the target exists but is not a valid Knot vault.
+- Packaging/operator docs should include a checked-in sample `knot.toml` that matches the currently supported config keys and Linux daemon-backed defaults.
+- Desktop packaging work should include a review of native/system dialogs and platform chrome so AppImage, future Flatpak, and future Snap builds preserve a consistent Knot-themed experience wherever app-owned UI is expected.
