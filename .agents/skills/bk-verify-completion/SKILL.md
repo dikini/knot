@@ -39,6 +39,10 @@ auto_fix: bool              # Optional: Auto-fix formatting/clippy (default: fal
 
 ### Code Quality
 ```bash
+# TypeScript/JS
+npm run typecheck
+npm run lint
+
 # Compile check
 cargo check --all-targets
 
@@ -86,12 +90,16 @@ cargo doc --no-deps
 
 ### Traceability (if using bk-* process)
 ```bash
+# Staged workflow gate
+npm run -s workflow:check-staged
+
 # Check for markers
 rg "SPEC-|CONCERN-|TASK-" --type rust
 ```
 
 - [ ] Implementation markers present
 - [ ] Tests link to acceptance criteria
+- [ ] Staged workflow gate passes
 
 ### Git
 ```bash

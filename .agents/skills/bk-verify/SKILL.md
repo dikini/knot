@@ -139,6 +139,25 @@ Report UI verification signals in the compliance summary:
 - Storybook docs/build status
 - Missing story/doc updates for changed UI primitives
 
+### 3.6. Workflow Documentation Freshness Verification
+
+If verification scope includes workflow or registry surfaces (for example `docs/specs/**`, `docs/plans/**`, `docs/audit/**`, `.agents/skills/**`, `.githooks/**`, or `scripts/validate-*.mjs`), run:
+
+```bash
+npm run -s qa:project-registry
+```
+
+If validating a staged local change before commit, prefer the composed staged gate:
+
+```bash
+npm run -s workflow:check-staged
+```
+
+Report:
+- Project registry alignment status
+- Whether staged workflow policy passes
+- Any skill/process docs updated to match executable policy
+
 ### 4. Report
 
 Generate report in requested format:

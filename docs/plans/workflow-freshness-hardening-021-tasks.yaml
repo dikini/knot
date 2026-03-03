@@ -1,0 +1,32 @@
+tasks:
+  - id: WFH-021-001
+    title: "Add failing tests for staged workflow validation composition"
+    status: planned
+    size: S
+    spec_refs: [FR-2, FR-5]
+    dependencies: []
+    acceptance: "Synthetic tests fail on missing UI doc sync and on staged registry drift, and pass on aligned staged input"
+
+  - id: WFH-021-002
+    title: "Implement staged/pre-push workflow gates and auto hook installation"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3]
+    dependencies: [WFH-021-001]
+    acceptance: "prepare installs hooks, pre-commit calls the staged workflow gate, and pre-push runs a lightweight freshness gate"
+
+  - id: WFH-021-003
+    title: "Align workflow skill docs to validator-backed policy"
+    status: planned
+    size: S
+    spec_refs: [FR-4]
+    dependencies: [WFH-021-002]
+    acceptance: "Relevant bk-* skill docs point at the current registry/roadmap validators and no longer use contradictory status semantics"
+
+  - id: WFH-021-004
+    title: "Run verification and publish audit evidence"
+    status: planned
+    size: S
+    spec_refs: [FR-5, FR-6]
+    dependencies: [WFH-021-003]
+    acceptance: "Targeted tests, staged/pre-push gates, typecheck, and audit artifact all pass"

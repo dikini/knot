@@ -40,6 +40,12 @@ Read and cache:
 - `docs/specs/concern-registry.yaml` - Cross-cutting concerns
 - `parent_spec` if provided - Inheritance base
 
+Registry policy:
+- Component spec metadata is the status source of truth
+- `docs/specs/system/spec-map.md` is the canonical component registry
+- `docs/planning/roadmap-index.md` is a planning view only (`draft` specs project to `planned`, other statuses project to `implemented`)
+- `docs/PROJECT_STATE.md` should point to canonical registries, not duplicate a full component status matrix
+
 **If files don't exist** (new project):
 Create minimal bootstraps:
 

@@ -46,12 +46,13 @@ docs/specs/component/*.md    # Human-designed components
 docs/specs/interface/*.md    # Human-designed interfaces
 ```
 
-The `spec-map.md` registry tracks immutable metadata only:
+The `spec-map.md` registry tracks canonical component metadata and must stay aligned with component spec headers:
 ```yaml
 spec_id: string      # e.g., AUTH-001
 source: enum         # extracted | designed
 path: string         # relative to docs/specs/
 concerns: list       # [SEC, REL, CAP, OBS, ...]
+status: string       # exact component-spec status for designed specs
 ```
 
 ## Workflow

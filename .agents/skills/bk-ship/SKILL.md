@@ -101,7 +101,7 @@ docs/releases/0.5.0/
 ### 5. Post-Release
 
 - Update planning:
-  - Mark workstreams as `done` in `docs/planning/roadmap-index.md`
+  - Refresh roadmap rows to match projected component-spec status (`draft` -> `planned`, implemented/verified -> `implemented`)
 - Archive specs:
   - Copy current specs to `docs/releases/<version>/specs/`
 - Tag git:

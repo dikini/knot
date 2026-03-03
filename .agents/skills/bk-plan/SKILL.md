@@ -84,8 +84,12 @@ See below for format examples.
 
 If `docs/planning/roadmap-index.md` exists, add entry:
 ```markdown
-| <feature-id> | <scope> | planned | <owner> | [<deps>] | [<target-specs>] |
+| <feature-id> | <scope> | <projected-status> | <owner> | [<deps>] | [<target-specs>] |
 ```
+
+Where `<projected-status>` is derived from the component spec metadata:
+- `draft` -> `planned`
+- any non-draft implementation status -> `implemented`
 
 If roadmap doesn't exist, create with:
 ```markdown

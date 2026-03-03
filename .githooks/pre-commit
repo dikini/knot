@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-npm run -s traceability:check-staged
+npm run -s workflow:check-staged

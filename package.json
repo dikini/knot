@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "prepare": "npm run -s hooks:install",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
@@ -46,8 +47,11 @@
     "ci:local": "bash scripts/run-ci-local.sh",
     "qa:docsync": "node scripts/validate-ui-doc-sync.mjs",
     "qa:docsync:staged": "node scripts/validate-ui-doc-sync.mjs --staged",
+    "qa:project-registry": "node scripts/validate-project-registry.mjs",
     "qa:storybook-matrix": "node scripts/validate-storybook-coverage-matrix.mjs",
-    "qa:ci": "npm run -s typecheck && npm run -s lint && npm run -s qa:storybook-matrix && npm run -s test:ci:unit && npm run -s test:e2e:browser",
+    "qa:ci": "npm run -s typecheck && npm run -s lint && npm run -s qa:project-registry && npm run -s qa:storybook-matrix && npm run -s test:ci:unit && npm run -s test:e2e:browser",
+    "workflow:check-staged": "node scripts/validate-staged-workflow.mjs",
+    "workflow:check-prepush": "sh -c 'BASE_REF=\"${BASE_REF:-HEAD~1}\"; export BASE_REF; npm run -s typecheck && npm run -s qa:project-registry && npm run -s qa:docsync'",
     "traceability:check-staged": "node scripts/validate-staged-traceability.mjs",
     "hooks:install": "bash scripts/install-githooks.sh"
   },

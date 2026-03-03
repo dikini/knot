@@ -17,7 +17,7 @@ function changedFilesFromRef(baseRef) {
   return output === "" ? [] : output.split("\n");
 }
 
-function isUiImplementationPath(path) {
+export function isUiImplementationPath(path) {
   if (path.endsWith(".stories.tsx")) {
     return false;
   }
@@ -32,15 +32,15 @@ function isUiImplementationPath(path) {
   );
 }
 
-function isUiEvidencePath(path) {
+export function isUiEvidencePath(path) {
   return path.startsWith("e2e/browser/") && path.endsWith(".spec.ts");
 }
 
-function isStorybookStoryPath(path) {
+export function isStorybookStoryPath(path) {
   return path.startsWith("src/") && path.endsWith(".stories.tsx");
 }
 
-function isUiDocumentationPath(path) {
+export function isUiDocumentationPath(path) {
   return (
     path === "docs/testing/ui-review-artifacts.md" ||
     path === "docs/testing/ui-automation-dx.md" ||
@@ -54,7 +54,7 @@ function isUiDocumentationPath(path) {
   );
 }
 
-function validateUiDocSync(files) {
+export function validateUiDocSync(files) {
   const uiImplementationChanges = files.filter(isUiImplementationPath);
   if (uiImplementationChanges.length === 0) {
     return { ok: true, errors: [] };
@@ -110,4 +110,6 @@ function main() {
   console.log("[ui-doc-sync] passed");
 }
 
-main();
+if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+  main();
+}
