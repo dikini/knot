@@ -360,17 +360,7 @@ pub async fn create_youtube_note(
                 &imported.parsed_url.video_id,
                 |candidate| vault.get_note(candidate).is_ok(),
             );
-            let markdown = build_youtube_note_markdown(
-                &imported.title,
-                &imported.description,
-                &imported.parsed_url.watch_url,
-                &imported.parsed_url.video_id,
-                &imported.parsed_url.embed_url,
-                &imported.parsed_url.thumbnail_url,
-                &imported.transcript_language,
-                &imported.transcript_source,
-                &imported.transcript,
-            );
+            let markdown = build_youtube_note_markdown(&imported);
 
             vault
                 .save_note(&path, &markdown)

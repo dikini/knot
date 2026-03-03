@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { useEffect } from "react";
 import App from "./App";
 import { getEditorMeasureBand } from "@lib/editorMeasure";
@@ -138,24 +138,7 @@ vi.mock("@lib/api", () => ({
     editor: { font_size: 14, tab_size: 4 },
   }),
   reindexVault: vi.fn().mockResolvedValue({ reindexed_count: 2 }),
-  getAppKeymapSettings: vi.fn().mockResolvedValue({
-    keymaps: {
-      general: {
-        save_note: "Mod-s",
-        switch_notes: "Mod-1",
-        switch_search: "Mod-2",
-        switch_graph: "Mod-3",
-      },
-      editor: {
-        undo: "Mod-z",
-        redo: "Mod-Shift-z, Mod-y",
-        clear_paragraph: "Mod-Alt-0",
-      },
-    },
-    graph: {
-      readability_floor_percent: 70,
-    },
-  }),
+  getAppKeymapSettings: vi.fn(() => new Promise<never>(() => {})),
   updateAppKeymapSettings: vi.fn().mockResolvedValue({
     keymaps: {
       general: {
@@ -174,10 +157,7 @@ vi.mock("@lib/api", () => ({
       readability_floor_percent: 70,
     },
   }),
-  getUiAutomationSettings: vi.fn().mockResolvedValue({
-    enabled: false,
-    groups: { navigation: false, screenshots: false, behaviors: false },
-  }),
+  getUiAutomationSettings: vi.fn(() => new Promise<never>(() => {})),
   updateUiAutomationSettings: vi.fn().mockResolvedValue({
     enabled: false,
     groups: { navigation: false, screenshots: false, behaviors: false },
@@ -552,13 +532,15 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       };
     }) => Promise<void>;
 
-    await handler({
-      payload: {
-        kind: "invoke_action",
-        request_id: "req-editor-mode",
-        action_id: "core.select.editor-mode",
-        args: { mode: "meta" },
-      },
+    await act(async () => {
+      await handler({
+        payload: {
+          kind: "invoke_action",
+          request_id: "req-editor-mode",
+          action_id: "core.select.editor-mode",
+          args: { mode: "meta" },
+        },
+      });
     });
 
     expect(api.completeUiAutomationRequest).toHaveBeenCalledWith("req-editor-mode", {

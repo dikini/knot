@@ -39,7 +39,7 @@
     "coverage:check": "npm run -s coverage:all && node scripts/check-coverage-thresholds.mjs --statements 78 --functions 74 --lines 78 --branches 69",
     "test:ci:unit": "vitest run",
     "test:e2e": "playwright test",
-    "test:e2e:browser": "playwright test --config=playwright.browser.config.ts",
+    "test:e2e:browser": "node scripts/run-playwright-browser.mjs",
     "test:e2e:tauri": "node scripts/tauri-native-smoke.mjs --check",
     "test:e2e:tauri:launch": "node scripts/tauri-native-smoke.mjs --launch-smoke --timeout=300",
     "test:e2e:tauri:daemon": "node scripts/tauri-daemon-ipc-smoke.mjs --check",

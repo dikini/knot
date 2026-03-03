@@ -96,41 +96,34 @@ pub fn parse_transcript_xml(xml: &str) -> Result<String, String> {
     Ok(transcript_parts.join("\n\n"))
 }
 
-pub fn build_youtube_note_markdown(
-    title: &str,
-    description: &str,
-    watch_url: &str,
-    video_id: &str,
-    embed_url: &str,
-    thumbnail_url: &str,
-    transcript_language: &str,
-    transcript_source: &str,
-    transcript: &str,
-) -> String {
-    let normalized_title = normalize_heading_text(title);
+pub fn build_youtube_note_markdown(imported: &YouTubeImportResult) -> String {
+    let normalized_title = normalize_heading_text(&imported.title);
     let mut frontmatter = vec![
         "---".to_string(),
-        format!("description: {}", yaml_block_scalar(description)),
-        format!("youtube_url: {}", yaml_scalar(watch_url)),
-        format!("youtube_video_id: {}", yaml_scalar(video_id)),
-        format!("youtube_embed_url: {}", yaml_scalar(embed_url)),
-        format!("youtube_thumbnail_url: {}", yaml_scalar(thumbnail_url)),
+        format!("description: {}", yaml_block_scalar(&imported.description)),
+        format!("youtube_url: {}", yaml_scalar(&imported.parsed_url.watch_url)),
+        format!("youtube_video_id: {}", yaml_scalar(&imported.parsed_url.video_id)),
+        format!("youtube_embed_url: {}", yaml_scalar(&imported.parsed_url.embed_url)),
+        format!(
+            "youtube_thumbnail_url: {}",
+            yaml_scalar(&imported.parsed_url.thumbnail_url)
+        ),
         format!(
             "youtube_title: {}",
-            yaml_scalar(title.trim().if_empty_then(&normalized_title))
+            yaml_scalar(imported.title.trim().if_empty_then(&normalized_title))
         ),
         format!(
             "youtube_transcript_language: {}",
-            yaml_scalar(transcript_language.trim())
+            yaml_scalar(imported.transcript_language.trim())
         ),
         format!(
             "youtube_transcript_source: {}",
-            yaml_scalar(transcript_source.trim())
+            yaml_scalar(imported.transcript_source.trim())
         ),
         "---".to_string(),
         format!("# {normalized_title}"),
         String::new(),
-        transcript.trim().to_string(),
+        imported.transcript.trim().to_string(),
     ];
 
     while frontmatter
@@ -272,7 +265,7 @@ fn fetch_transcript_player_response(
         .map_err(|err| format!("Failed to decode YouTube transcript metadata: {err}"))
 }
 
-fn select_caption_track<'a>(tracks: &'a [Value]) -> Option<&'a Value> {
+fn select_caption_track(tracks: &[Value]) -> Option<&Value> {
     tracks
         .iter()
         .find(|track| track.get("kind").and_then(Value::as_str) != Some("asr"))
@@ -438,7 +431,10 @@ impl EmptyStringFallback for str {
 
 #[cfg(test)]
 mod tests {
-    use super::{build_youtube_note_markdown, normalize_youtube_url, parse_transcript_xml};
+    use super::{
+        build_youtube_note_markdown, normalize_youtube_url, parse_transcript_xml,
+        ParsedYouTubeUrl, YouTubeImportResult,
+    };
 
     #[test]
     fn normalize_youtube_url_extracts_video_id_from_watch_url() {
@@ -470,17 +466,19 @@ mod tests {
 
     #[test]
     fn build_youtube_note_markdown_writes_frontmatter_and_transcript_body() {
-        let markdown = build_youtube_note_markdown(
-            "Sample Video",
-            "A long description",
-            "https://www.youtube.com/watch?v=abc123xyz00",
-            "abc123xyz00",
-            "https://www.youtube.com/embed/abc123xyz00",
-            "https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg",
-            "en",
-            "manual",
-            "Transcript body",
-        );
+        let markdown = build_youtube_note_markdown(&YouTubeImportResult {
+            title: "Sample Video".to_string(),
+            description: "A long description".to_string(),
+            transcript: "Transcript body".to_string(),
+            transcript_language: "en".to_string(),
+            transcript_source: "manual".to_string(),
+            parsed_url: ParsedYouTubeUrl {
+                video_id: "abc123xyz00".to_string(),
+                watch_url: "https://www.youtube.com/watch?v=abc123xyz00".to_string(),
+                embed_url: "https://www.youtube.com/embed/abc123xyz00".to_string(),
+                thumbnail_url: "https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg".to_string(),
+            },
+        });
 
         assert!(markdown.contains("youtube_url: \"https://www.youtube.com/watch?v=abc123xyz00\""));
         assert!(markdown.contains("youtube_video_id: \"abc123xyz00\""));

@@ -70,6 +70,46 @@ export async function installMockTauriBridge(
   }
 ): Promise<void> {
   await page.addInitScript((data: MockBridgeFixture) => {
+    const defaultAppKeymapSettings = {
+      keymaps: {
+        general: {
+          save_note: "Mod-s",
+          switch_notes: "Mod-1",
+          switch_search: "Mod-2",
+          switch_graph: "Mod-3",
+        },
+        editor: {
+          undo: "Mod-z",
+          redo: "Mod-Shift-z, Mod-y",
+          clear_paragraph: "Mod-Alt-0",
+        },
+      },
+      graph: {
+        readability_floor_percent: 70,
+      },
+    };
+    const defaultUiAutomationSettings = {
+      enabled: false,
+      groups: {
+        navigation: false,
+        screenshots: false,
+        behaviors: false,
+      },
+    };
+    const defaultVaultSettings = {
+      name: data.vaultInfo?.name ?? "Demo Vault",
+      plugins_enabled: true,
+      plugin_overrides: {},
+      file_visibility: "all_files",
+      sync: {
+        enabled: false,
+        peers: [],
+      },
+      editor: {
+        font_size: 16,
+        tab_size: 2,
+      },
+    };
     let callbackIndex = 1;
     const callbacks: Record<number, (payload: unknown) => void> = {};
     const noteDataByPath = { ...(data.noteDataByPath ?? {}) };
@@ -95,6 +135,20 @@ export async function installMockTauriBridge(
         if (cmd === "get_recent_vaults") return data.recentVaults;
         if (cmd === "is_vault_open") return data.vaultOpen;
         if (cmd === "get_vault_info") return data.vaultInfo ?? null;
+        if (cmd === "get_app_keymap_settings") return defaultAppKeymapSettings;
+        if (cmd === "update_app_keymap_settings") return _args?.settings ?? defaultAppKeymapSettings;
+        if (cmd === "get_ui_automation_settings") return defaultUiAutomationSettings;
+        if (cmd === "update_ui_automation_settings") {
+          return _args?.settings ?? defaultUiAutomationSettings;
+        }
+        if (cmd === "get_vault_settings") return defaultVaultSettings;
+        if (cmd === "update_vault_settings") {
+          return {
+            ...defaultVaultSettings,
+            ...(_args?.patch as Record<string, unknown> | undefined),
+          };
+        }
+        if (cmd === "list_vault_plugins") return [];
         if (cmd === "list_notes") return noteSummaries;
         if (cmd === "get_note") {
           const path = String(_args?.path ?? "");
@@ -131,6 +185,9 @@ export async function installMockTauriBridge(
         if (cmd === "plugin:event|emit_to") return null;
         if (cmd === "set_unsaved_changes") return null;
         if (cmd === "sync_external_changes") return null;
+        if (cmd === "ui_automation_sync_registry") return null;
+        if (cmd === "ui_automation_sync_state") return null;
+        if (cmd === "ui_automation_complete_request") return null;
         return null;
       },
       transformCallback(cb: (payload: unknown) => void) {

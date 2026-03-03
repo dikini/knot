@@ -1,0 +1,40 @@
+tasks:
+  - id: PRC-023-001
+    title: "Harden the Storybook matrix parser against harmless markdown formatting drift"
+    status: completed
+    size: S
+    spec_refs: [FR-1]
+    dependencies: []
+    acceptance: "qa:storybook-matrix enforces semantics without failing on aligned markdown table spacing"
+
+  - id: PRC-023-002
+    title: "Remove App hook dependency lint warnings without changing shell behavior"
+    status: completed
+    size: S
+    spec_refs: [FR-2]
+    dependencies: [PRC-023-001]
+    acceptance: "npm run lint passes and App shell/tool behavior remains green"
+
+  - id: PRC-023-003
+    title: "Eliminate repeated React act warnings from App tests"
+    status: completed
+    size: M
+    spec_refs: [FR-3]
+    dependencies: [PRC-023-002]
+    acceptance: "App unit and daemon-smoke tests pass without repeated act warning noise"
+
+  - id: PRC-023-004
+    title: "Quiet avoidable editor, KaTeX, and Storybook warning noise"
+    status: completed
+    size: M
+    spec_refs: [FR-4]
+    dependencies: [PRC-023-003]
+    acceptance: "Editor/render/storybook verification output is materially free of avoidable warning chatter"
+
+  - id: PRC-023-005
+    title: "Run full pre-release verification, fix remaining blockers, and publish closure audit"
+    status: completed
+    size: M
+    spec_refs: [FR-5, FR-6]
+    dependencies: [PRC-023-004]
+    acceptance: "The documented pre-release command set passes and final audit evidence is published"

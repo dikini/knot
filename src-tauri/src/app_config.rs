@@ -24,7 +24,7 @@ pub struct UiAutomationSettings {
     pub groups: UiAutomationGroups,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct UiAutomationGroups {
     #[serde(default)]
     pub navigation: bool,
@@ -45,7 +45,7 @@ struct AppConfigFile {
     ui_automation: UiAutomationSettings,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct ManagedKeymapSections {
     #[serde(default)]
     pub general: GeneralKeymapSettings,
@@ -99,15 +99,6 @@ impl Default for AppKeymapSettings {
     }
 }
 
-impl Default for ManagedKeymapSections {
-    fn default() -> Self {
-        Self {
-            general: GeneralKeymapSettings::default(),
-            editor: EditorKeymapSettings::default(),
-        }
-    }
-}
-
 impl Default for GeneralKeymapSettings {
     fn default() -> Self {
         Self {
@@ -140,16 +131,6 @@ impl Default for GraphUiSettings {
 impl Default for UiAutomationSettings {
     fn default() -> Self {
         default_ui_automation_settings()
-    }
-}
-
-impl Default for UiAutomationGroups {
-    fn default() -> Self {
-        Self {
-            navigation: false,
-            screenshots: false,
-            behaviors: false,
-        }
     }
 }
 

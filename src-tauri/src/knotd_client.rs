@@ -85,10 +85,10 @@ fn call_jsonrpc(method: &str, params: Value) -> Result<Value, KnotError> {
             .unwrap_or("knotd RPC error");
         return Err(KnotError::Other(message.to_string()));
     }
-    Ok(response
+    response
         .get("result")
         .cloned()
-        .ok_or_else(|| KnotError::Other("Missing result in knotd response".to_string()))?)
+        .ok_or_else(|| KnotError::Other("Missing result in knotd response".to_string()))
 }
 
 pub fn call_tool(name: &str, arguments: Value) -> Result<Value, KnotError> {

@@ -2,6 +2,17 @@ import { vi, afterEach } from "vitest";
 import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom";
 
+if (!document.doctype) {
+  document.prepend(document.implementation.createDocumentType("html", "", ""));
+}
+
+if (document.compatMode !== "CSS1Compat") {
+  Object.defineProperty(document, "compatMode", {
+    configurable: true,
+    value: "CSS1Compat",
+  });
+}
+
 afterEach(() => {
   cleanup();
 });

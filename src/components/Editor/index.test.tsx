@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act, within } from "@testing-library/react";
 import { history, undo } from "prosemirror-history";
-import { EditorState } from "prosemirror-state";
+import { EditorState, TextSelection } from "prosemirror-state";
 import { Editor } from "./index";
 import { useVaultStore, useEditorStore } from "@lib/store";
 import * as api from "@lib/api";
@@ -1205,8 +1205,10 @@ describe("Editor Component", () => {
     });
 
     it("inserts display math from the block menu", async () => {
+      const doc = schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Start")])]);
       const tr = {
-        doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Start")])]),
+        doc,
+        selection: TextSelection.create(doc, 2),
         insert: vi.fn().mockReturnThis(),
         scrollIntoView: vi.fn().mockReturnThis(),
         setSelection: vi.fn().mockReturnThis(),
@@ -2075,14 +2077,20 @@ describe("Editor Component", () => {
     });
 
     it("should show alert on save error", async () => {
-      render(<Editor />);
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      try {
+        render(<Editor />);
 
-      const saveButton = screen.getByRole("button", { name: "Save" });
-      fireEvent.click(saveButton);
+        const saveButton = screen.getByRole("button", { name: "Save" });
+        fireEvent.click(saveButton);
 
-      await waitFor(() => {
-        expect(window.alert).toHaveBeenCalledWith("Failed to save: Error: Save failed");
-      });
+        await waitFor(() => {
+          expect(window.alert).toHaveBeenCalledWith("Failed to save: Error: Save failed");
+        });
+        expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to save note:", expect.any(Error));
+      } finally {
+        consoleErrorSpy.mockRestore();
+      }
     });
   });
 });

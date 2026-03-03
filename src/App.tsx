@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Editor } from "@components/Editor";
 import { GraphContextPanel } from "@components/GraphView/GraphContextPanel";
 import { GraphView } from "@components/GraphView";
@@ -248,6 +248,53 @@ function App() {
     setShowTextLabels,
   } = useVaultStore();
   const { toasts, removeToast, success, error } = useToast();
+
+  const handleToolModeSelect = useCallback(
+    (nextMode: ShellToolMode): void => {
+      const currentMode = shell.toolMode;
+      const isPanelVisible = !shell.isContextPanelCollapsed;
+
+      if (nextMode === currentMode) {
+        const nextVisibility = !isPanelVisible;
+        if (TOOL_PANEL_POLICY[nextMode] === "panel-optional") {
+          setOptionalPanelVisibilityByTool((state) => ({ ...state, [nextMode]: nextVisibility }));
+        }
+        toggleContextPanel();
+        return;
+      }
+
+      setShellToolMode(nextMode);
+      if (nextMode === "graph") {
+        setGraphScope("vault");
+        setViewMode("graph");
+      } else if (viewMode === "settings") {
+        setViewMode("editor");
+      }
+      const policy = TOOL_PANEL_POLICY[nextMode];
+
+      if (policy === "panel-required") {
+        if (!isPanelVisible) {
+          toggleContextPanel();
+        }
+        return;
+      }
+
+      if (policy === "panel-optional") {
+        const shouldBeVisible = optionalPanelVisibilityByTool[nextMode] ?? true;
+        if (shouldBeVisible !== isPanelVisible) {
+          toggleContextPanel();
+        }
+      }
+    },
+    [
+      optionalPanelVisibilityByTool,
+      setShellToolMode,
+      shell.isContextPanelCollapsed,
+      shell.toolMode,
+      toggleContextPanel,
+      viewMode,
+    ]
+  );
 
   useEffect(() => {
     const { actions, views, behaviors } = buildUiAutomationRegistry();
@@ -1082,43 +1129,6 @@ function App() {
       setIsUiAutomationSettingsLoading(false);
     }
   };
-
-  function handleToolModeSelect(nextMode: ShellToolMode): void {
-    const currentMode = shell.toolMode;
-    const isPanelVisible = !shell.isContextPanelCollapsed;
-
-    if (nextMode === currentMode) {
-      const nextVisibility = !isPanelVisible;
-      if (TOOL_PANEL_POLICY[nextMode] === "panel-optional") {
-        setOptionalPanelVisibilityByTool((state) => ({ ...state, [nextMode]: nextVisibility }));
-      }
-      toggleContextPanel();
-      return;
-    }
-
-    setShellToolMode(nextMode);
-    if (nextMode === "graph") {
-      setGraphScope("vault");
-      setViewMode("graph");
-    } else if (viewMode === "settings") {
-      setViewMode("editor");
-    }
-    const policy = TOOL_PANEL_POLICY[nextMode];
-
-    if (policy === "panel-required") {
-      if (!isPanelVisible) {
-        toggleContextPanel();
-      }
-      return;
-    }
-
-    if (policy === "panel-optional") {
-      const shouldBeVisible = optionalPanelVisibilityByTool[nextMode] ?? true;
-      if (shouldBeVisible !== isPanelVisible) {
-        toggleContextPanel();
-      }
-    }
-  }
 
   const graphControlsContent = (
     <GraphContextPanel

@@ -36,3 +36,4 @@ Canonical component registry: `docs/specs/system/spec-map.md`
 | documentation-registry-alignment-020 | component | implemented | codex | [traceability-lite-001, ui-qa-dx-001, storybook-dx-001]                         | [COMP-DOC-REGISTRY-020]              |
 | workflow-freshness-hardening-021     | component | implemented | codex | [traceability-lite-001, documentation-registry-alignment-020, ui-qa-dx-001]     | [COMP-WORKFLOW-FRESHNESS-021]        |
 | storybook-app-stability-022          | component | implemented | codex | [storybook-dx-001, ui-qa-dx-001, ui-automation-runtime-013]                     | [COMP-STORYBOOK-STABILITY-022]       |
+| pre-release-cleanup-023             | component | implemented | codex | [ui-qa-dx-001, storybook-dx-001, workflow-freshness-hardening-021, storybook-app-stability-022] | [COMP-PRE-RELEASE-CLEANUP-023] |

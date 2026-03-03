@@ -85,6 +85,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-KNOTD-STATUS-003              | knotd-session-status                 | designed  | component/knotd-session-status-003.md                 | [REL, CONF]                       | draft                             |
 | COMP-WORKFLOW-FRESHNESS-021        | workflow-freshness-hardening         | designed  | component/workflow-freshness-hardening-021.md         | [REL, COMP, CONF]                 | implemented                       |
 | COMP-STORYBOOK-STABILITY-022       | storybook-app-stability              | designed  | component/storybook-app-stability-022.md              | [REL, COMP, CONF]                 | implemented                       |
+| COMP-PRE-RELEASE-CLEANUP-023       | pre-release-cleanup                  | shipped   | component/pre-release-cleanup-023.md                  | [REL, COMP, CONF, CAP]            | implemented                       |
 
 ## Interfaces
 

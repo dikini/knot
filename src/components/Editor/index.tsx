@@ -967,8 +967,6 @@ export function Editor({ appKeymapSettings = DEFAULT_APP_KEYMAP_SETTINGS }: Edit
 
       // Refresh note list
       await useVaultStore.getState().loadNotes();
-
-      console.log("Note saved successfully");
     } catch (error) {
       console.error("Failed to save note:", error);
       alert(`Failed to save: ${error}`);

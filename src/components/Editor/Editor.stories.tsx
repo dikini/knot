@@ -410,16 +410,21 @@ export const SaveFailureShowsAlert: Story = {
   },
   play: async ({ canvas }) => {
     const originalAlert = window.alert;
+    const originalConsoleError = console.error;
     const alertSpy = fn();
+    const consoleErrorSpy = fn();
     window.alert = alertSpy as unknown as typeof window.alert;
+    console.error = consoleErrorSpy as unknown as typeof console.error;
 
     try {
       await userEvent.click(canvas.getByRole("button", { name: "Save" }));
       await waitFor(() => {
         expect(alertSpy).toHaveBeenCalled();
       });
+      expect(consoleErrorSpy).toHaveBeenCalled();
     } finally {
       window.alert = originalAlert;
+      console.error = originalConsoleError;
     }
   },
 };

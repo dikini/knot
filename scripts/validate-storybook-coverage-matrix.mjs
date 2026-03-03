@@ -4,6 +4,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const repoRoot = process.cwd();
 const auditPath = path.join(
@@ -13,9 +14,8 @@ const auditPath = path.join(
   "storybook-design-coverage-inventory-2026-02-22.md"
 );
 
-function fail(message) {
-  console.error(`[storybook-matrix] ${message}`);
-  process.exit(1);
+export function fail(message) {
+  throw new Error(`[storybook-matrix] ${message}`);
 }
 
 function readAuditFile() {
@@ -68,31 +68,60 @@ function countStoryExports(files) {
   return total;
 }
 
-function parseUiSpecRows(markdown) {
-  const sectionMatch = markdown.match(
-    /### UI-facing specs\n\n\| Spec ID \| Status \| Evidence \| Gap \|\n\| --- \| --- \| --- \| --- \|\n([\s\S]*?)\n\n### Process\/tooling specs/
+function extractSection(markdown, startHeading, endHeading) {
+  const startIndex = markdown.indexOf(startHeading);
+  if (startIndex === -1) {
+    return null;
+  }
+
+  const sectionStart = startIndex + startHeading.length;
+  const endIndex = markdown.indexOf(endHeading, sectionStart);
+  if (endIndex === -1) {
+    return markdown.slice(sectionStart);
+  }
+
+  return markdown.slice(sectionStart, endIndex);
+}
+
+function isMarkdownTableSeparator(line) {
+  const trimmed = line.trim();
+  return /^\|(?:\s*:?-{3,}:?\s*\|)+$/.test(trimmed);
+}
+
+function normalizeTableCells(line) {
+  return line
+    .split("|")
+    .map((cell) => cell.trim())
+    .filter(Boolean);
+}
+
+export function parseUiSpecRows(markdown) {
+  const section = extractSection(
+    markdown,
+    "### UI-facing specs",
+    "\n\n### Process/tooling specs"
   );
-  if (!sectionMatch) {
+  if (!section) {
     fail("could not parse UI-facing spec coverage table");
   }
 
-  return sectionMatch[1]
+  return section
     .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => line.startsWith("| `COMP-"))
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().startsWith("|"))
+    .filter((line) => !isMarkdownTableSeparator(line))
+    .map((line) => normalizeTableCells(line))
+    .filter((cells) => cells[0] === "Spec ID" || cells[0]?.startsWith("`COMP-"))
+    .filter((cells) => cells[0] !== "Spec ID")
     .map((line) => {
-      const cells = line
-        .split("|")
-        .map((cell) => cell.trim())
-        .filter(Boolean);
       return {
-        specId: cells[0] ?? "",
-        status: cells[1] ?? "",
+        specId: line[0]?.replaceAll("`", "") ?? "",
+        status: line[1] ?? "",
       };
     });
 }
 
-function parseGapSummary(markdown) {
+export function parseGapSummary(markdown) {
   const partialMatch = markdown.match(/UI-facing specs missing or partial story coverage: `(\d+)`/);
   const coveredMatch = markdown.match(/UI-facing specs fully covered: `(\d+)`/);
   if (!partialMatch || !coveredMatch) {
@@ -104,19 +133,33 @@ function parseGapSummary(markdown) {
   };
 }
 
-function ensureUiQaDxCovered(markdown) {
-  const rowMatch = markdown.match(
-    /\| `COMP-UI-QA-DX-001` \| ([a-z]+) \| ([^|]+) \|/
+export function ensureUiQaDxCovered(markdown) {
+  const section = extractSection(
+    markdown,
+    "### Process/tooling specs (Storybook stories not primary artifact)",
+    "\n\n### Backend/non-UI specs"
   );
-  if (!rowMatch) {
+  if (!section) {
     fail("could not find COMP-UI-QA-DX-001 row in process/tooling table");
   }
-  if (rowMatch[1] !== "covered") {
+
+  const row = section
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().startsWith("|"))
+    .filter((line) => !isMarkdownTableSeparator(line))
+    .map((line) => normalizeTableCells(line))
+    .find((cells) => cells[0]?.replaceAll("`", "") === "COMP-UI-QA-DX-001");
+
+  if (!row) {
+    fail("could not find COMP-UI-QA-DX-001 row in process/tooling table");
+  }
+  if (row[1] !== "covered") {
     fail("COMP-UI-QA-DX-001 must be marked covered");
   }
 }
 
-function main() {
+export function validateStorybookCoverageMatrix() {
   const markdown = readAuditFile();
   const storyFiles = extractStoryFiles(markdown);
   const declaredCount = extractDeclaredStoryCount(markdown);
@@ -154,4 +197,18 @@ function main() {
   );
 }
 
-main();
+const scriptPath = fileURLToPath(import.meta.url);
+const invokedAsScript =
+  typeof process !== "undefined" &&
+  typeof process.argv?.[1] === "string" &&
+  path.resolve(process.argv[1]) === scriptPath;
+
+if (invokedAsScript) {
+  try {
+    validateStorybookCoverageMatrix();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
+    process.exit(1);
+  }
+}
