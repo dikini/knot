@@ -3,12 +3,12 @@
 ## Metadata
 - ID: `COMP-KNOTD-OPS-008`
 - Scope: `component`
-- Status: `draft`
+- Status: `implemented`
 - Parent: `COMP-KNOTD-DAEMON-002`, `COMP-KNOTD-CAPABILITIES-006`
 - Concerns: `[REL, CONF]`
 - Trace: `DESIGN-knotd-mcp-ops`
 - Created: `2026-02-23`
-- Updated: `2026-02-27`
+- Updated: `2026-03-03`
 
 ## Purpose
 Operationalize knotd-backed MCP startup with deterministic preflight checks and operator tooling.

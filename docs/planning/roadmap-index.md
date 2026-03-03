@@ -33,6 +33,6 @@ Canonical component registry: `docs/specs/system/spec-map.md`
 | pdf-note-type-016                    | component | planned     | codex | [note-types-012, editor-modes-001]                                              | [COMP-PDF-NOTE-TYPE-016]             |
 | wikilink-embeds-017                  | component | planned     | codex | [markdown-engine-001, note-types-012, youtube-note-type-015, pdf-note-type-016] | [COMP-WIKILINK-EMBEDS-017]           |
 | settings-pane-001                    | component | planned     | -     | [tool-rail-context-001, vault-unsaved-changes-001]                              | [COMP-SETTINGS-PANE-001]             |
-| documentation-registry-alignment-020 | component | planned     | codex | [traceability-lite-001, ui-qa-dx-001, storybook-dx-001]                         | [COMP-DOC-REGISTRY-020]              |
-| workflow-freshness-hardening-021     | component | planned     | codex | [traceability-lite-001, documentation-registry-alignment-020, ui-qa-dx-001]     | [COMP-WORKFLOW-FRESHNESS-021]        |
-| storybook-app-stability-022          | component | planned     | codex | [storybook-dx-001, ui-qa-dx-001, ui-automation-runtime-013]                     | [COMP-STORYBOOK-STABILITY-022]       |
+| documentation-registry-alignment-020 | component | implemented | codex | [traceability-lite-001, ui-qa-dx-001, storybook-dx-001]                         | [COMP-DOC-REGISTRY-020]              |
+| workflow-freshness-hardening-021     | component | implemented | codex | [traceability-lite-001, documentation-registry-alignment-020, ui-qa-dx-001]     | [COMP-WORKFLOW-FRESHNESS-021]        |
+| storybook-app-stability-022          | component | implemented | codex | [storybook-dx-001, ui-qa-dx-001, ui-automation-runtime-013]                     | [COMP-STORYBOOK-STABILITY-022]       |

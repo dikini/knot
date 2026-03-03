@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-WORKFLOW-FRESHNESS-021`
 - Scope: `component`
-- Status: `draft`
+- Status: `implemented`
 - Parent: `COMP-TRACE-LITE-001`, `COMP-DOC-REGISTRY-020`, `COMP-UI-QA-DX-001`
 - Concerns: `[REL, COMP, CONF]`
 - Trace: `DESIGN-workflow-freshness-hardening-021`

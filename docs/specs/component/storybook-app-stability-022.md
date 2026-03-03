@@ -4,7 +4,7 @@
 
 - ID: `COMP-STORYBOOK-STABILITY-022`
 - Scope: `component`
-- Status: `draft`
+- Status: `implemented`
 - Parent: `COMP-STORYBOOK-DX-001`, `COMP-UI-QA-DX-001`, `COMP-UI-AUTOMATION-RUNTIME-013`
 - Concerns: `[REL, COMP, CONF]`
 - Trace: `DESIGN-storybook-app-stability-022`

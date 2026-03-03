@@ -3,7 +3,7 @@
 ## Metadata
 - ID: `COMP-DOC-REGISTRY-020`
 - Scope: `component`
-- Status: `draft`
+- Status: `implemented`
 - Parent: `COMP-TRACE-LITE-001`, `COMP-UI-QA-DX-001`, `COMP-STORYBOOK-DX-001`
 - Concerns: `[REL, COMP, CONF]`
 - Trace: `DESIGN-doc-registry-alignment-020`

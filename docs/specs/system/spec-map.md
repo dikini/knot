@@ -73,18 +73,18 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-LINUX-PACKAGING-018           | linux-appimage-packaging             | designed  | component/linux-appimage-packaging-018.md             | [REL, CONF, COMP]                 | draft                             |
 | COMP-IPC-TEST-CONTRACT-019         | ipc-test-contract-alignment          | designed  | component/ipc-test-contract-alignment-019.md          | [REL, CONS, COMP]                 | draft                             |
 | COMP-REACTIVE-ESSAY-001            | reactive-essay-runtime               | designed  | component/reactive-essay-runtime-001.md               | [REL, CONS, CAP, OBS, CONF]       | draft                             |
-| COMP-DOC-REGISTRY-020              | documentation-registry-alignment     | designed  | component/documentation-registry-alignment-020.md     | [REL, COMP, CONF]                 | draft                             |
+| COMP-DOC-REGISTRY-020              | documentation-registry-alignment     | designed  | component/documentation-registry-alignment-020.md     | [REL, COMP, CONF]                 | implemented                       |
 | COMP-KNOTD-CAPABILITIES-006        | knotd-capabilities-print             | designed  | component/knotd-capabilities-print-006.md             | [REL, CONF]                       | draft                             |
 | COMP-KNOTD-CHECK-004               | knotd-check-once                     | designed  | component/knotd-check-once-004.md                     | [REL, CONF]                       | draft                             |
 | COMP-KNOTD-DAEMON-002              | knotd-daemon-bootstrap               | designed  | component/knotd-daemon-bootstrap-002.md               | [REL, CONF]                       | draft                             |
 | COMP-KNOTD-IPC-009                 | knotd-local-ipc                      | designed  | component/knotd-local-ipc-009.md                      | [REL, CONF]                       | draft                             |
-| COMP-KNOTD-OPS-008                 | knotd-mcp-ops                        | designed  | component/knotd-mcp-ops-008.md                        | [REL, CONF]                       | draft                             |
+| COMP-KNOTD-OPS-008                 | knotd-mcp-ops                        | designed  | component/knotd-mcp-ops-008.md                        | [REL, CONF]                       | implemented                       |
 | COMP-KNOTD-PROBE-ENGINE-007        | knotd-probe-engine-consolidation     | designed  | component/knotd-probe-engine-consolidation-007.md     | [REL, CONF]                       | draft                             |
 | COMP-KNOTD-PROBE-JSON-005          | knotd-probe-json                     | designed  | component/knotd-probe-json-005.md                     | [REL, CONF]                       | draft                             |
 | COMP-KNOTD-RUNTIME-001             | knotd-runtime-platform-compatibility | designed  | component/knotd-runtime-platform-compatibility-001.md | [REL, CONF, CAP]                  | draft                             |
 | COMP-KNOTD-STATUS-003              | knotd-session-status                 | designed  | component/knotd-session-status-003.md                 | [REL, CONF]                       | draft                             |
-| COMP-WORKFLOW-FRESHNESS-021        | workflow-freshness-hardening         | designed  | component/workflow-freshness-hardening-021.md         | [REL, COMP, CONF]                 | draft                             |
-| COMP-STORYBOOK-STABILITY-022       | storybook-app-stability              | designed  | component/storybook-app-stability-022.md              | [REL, COMP, CONF]                 | draft                             |
+| COMP-WORKFLOW-FRESHNESS-021        | workflow-freshness-hardening         | designed  | component/workflow-freshness-hardening-021.md         | [REL, COMP, CONF]                 | implemented                       |
+| COMP-STORYBOOK-STABILITY-022       | storybook-app-stability              | designed  | component/storybook-app-stability-022.md              | [REL, COMP, CONF]                 | implemented                       |
 
 ## Interfaces
 
@@ -223,3 +223,5 @@ docs/specs/
 | 2026-03-01 | Restore edit-mode undo/redo and add shared toolbar history controls wired through a single command path                                                                             | COMP-EDITOR-HISTORY-005            |
 | 2026-03-03 | Align project registry docs to component spec metadata and add automated drift validation                                                                                           | COMP-DOC-REGISTRY-020              |
 | 2026-03-03 | Harden workflow freshness with staged validators, lighter hooks, and skill-policy alignment                                                                                         | COMP-WORKFLOW-FRESHNESS-021        |
+| 2026-03-03 | Fix native knotd MCP bridge notification forwarding and verify daemon-backed handshake                                                                                               | COMP-KNOTD-OPS-008                 |
+| 2026-03-03 | Stabilize Storybook App runtime mocks, listener failure handling, and coverage inventory                                                                                            | COMP-STORYBOOK-STABILITY-022       |
