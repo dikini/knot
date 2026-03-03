@@ -25,6 +25,7 @@ Package the Linux desktop UI, `knotd`, and operator tooling into a single AppIma
 - FR-7: `service install` MUST create or update a `systemd --user` unit in `~/.config/systemd/user/` plus a stable launcher entrypoint in `~/.local/bin/knot`.
 - FR-8: Generated service wiring MUST never depend on transient mounted AppImage paths; it MUST execute through a stable wrapper or launcher path.
 - FR-8a: `mcp codex install` MUST prefer the stable `~/.local/bin/knot` wrapper for `~/.codex/config.toml` whenever that wrapper exists, even when the installer itself is launched from an AppImage path.
+- FR-8b: `knot mcp bridge` MUST forward JSON-RPC notifications to the daemon socket without blocking for a response, while preserving request/response forwarding for messages that include an `id`.
 - FR-9: Launcher configuration MUST follow XDG directories: config in `~/.config/knot/`, persistent state/logs in `~/.local/state/knot/`, and runtime socket paths in `$XDG_RUNTIME_DIR/knot/` when available.
 - FR-10: Launcher MUST generate and consume a stable config file for operator defaults, including AppImage path, vault path, socket path, runtime mode, and log path.
 - FR-11: `service uninstall` MUST remove generated service artifacts while preserving user configuration by default; `--purge` MAY remove generated config/state.
@@ -47,6 +48,7 @@ Package the Linux desktop UI, `knotd`, and operator tooling into a single AppIma
 - AC-3a: Running `Knot.AppImage down` stops a managed `knotd` user service when installed and otherwise emits a clear explanation for ad hoc daemon sessions.
 - AC-4: Running `Knot.AppImage service install` writes a valid user unit and stable `~/.local/bin/knot` launcher.
 - AC-4a: Running `Knot.AppImage mcp codex install` after `service install` writes `command = "~/.local/bin/knot"` into the managed `knot_vault` block instead of the direct AppImage path.
+- AC-4b: Running `Knot.AppImage mcp bridge` against a reachable daemon completes `initialize`, `initialized`, and `tools/list` over stdio without stalling after the `initialized` notification.
 - AC-5: `systemctl --user start knotd` starts the bundled daemon through stable installed wiring.
 - AC-6: Generated config/state/service paths follow XDG locations.
 - AC-7: Moving the AppImage after installation yields a clear, actionable status/start error rather than silent failure.
@@ -55,6 +57,7 @@ Package the Linux desktop UI, `knotd`, and operator tooling into a single AppIma
 ## Verification Strategy
 - Unit tests for launcher config resolution and generated artifact content.
 - Targeted tests for `up` daemon reuse decisions and stale AppImage detection.
+- Targeted launcher bridge regression coverage for JSON-RPC notifications in the stdio-to-socket forwarding loop.
 - Bundle metadata verification for included launcher and `knotd` payloads.
 - Targeted runtime smoke for direct AppImage and service-managed daemon flows where feasible.
 

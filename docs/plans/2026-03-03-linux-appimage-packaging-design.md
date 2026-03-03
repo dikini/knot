@@ -41,6 +41,7 @@ The launcher must emit short, actionable output. When installation is stale, it 
 - The Tauri UI remains interactive and is never run as a user service.
 - `up` first probes the configured socket. If a daemon is already available, it launches only the UI in `daemon_ipc` mode.
 - Otherwise `up` starts an ad hoc `knotd`, waits for socket readiness, then launches the UI with the same socket path.
+- `mcp bridge` must treat JSON-RPC notifications as fire-and-forget frames. In particular, it must forward `initialized` without waiting for a daemon response before processing the next request.
 
 ## Packaging Model
 - Bundle `knotd` as a Tauri sidecar via `externalBin`.
@@ -58,3 +59,4 @@ The first successful slice is:
 2. `cargo check` passes for launcher and daemon wiring
 3. bundle config includes the staged `knotd` sidecar
 4. direct `knot up` and `knot service install --dry-run` flows behave predictably in tests
+5. native `knot mcp bridge` completes `initialize` -> `initialized` -> `tools/list` against a reachable daemon socket
