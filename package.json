@@ -28,7 +28,7 @@
     "codex:mcp:setup:all": "node scripts/setup-codex-storybook-mcp.mjs && node scripts/setup-codex-knotd-mcp.mjs",
     "tauri": "tauri",
     "tauri-dev": "tauri dev",
-    "tauri-build": "tauri build",
+    "tauri-build": "node scripts/tauri-build.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",

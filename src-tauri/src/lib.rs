@@ -18,6 +18,7 @@ pub mod event_log;
 pub mod graph;
 pub mod ipc;
 pub mod knotd_client;
+pub mod launcher;
 pub mod markdown;
 pub mod mcp;
 pub mod note;

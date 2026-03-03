@@ -70,6 +70,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
 | COMP-KNOTD-UI-010 | knotd-ui-daemon | designed | component/knotd-ui-daemon-010.md | [REL, CONF, CAP] | draft |
 | COMP-KNOTD-DEV-LIFECYCLE-011 | knotd-dev-lifecycle | designed | component/knotd-dev-lifecycle-011.md | [REL, CONF, CAP] | draft |
+| COMP-LINUX-PACKAGING-018 | linux-appimage-packaging | designed | component/linux-appimage-packaging-018.md | [REL, CONF, COMP] | draft |
 | COMP-REACTIVE-ESSAY-001 | reactive-essay-runtime | designed | component/reactive-essay-runtime-001.md | [REL, CONS, CAP, OBS, CONF] | draft (speculative; planning deferred) |
 
 ## Interfaces
@@ -196,6 +197,7 @@ docs/specs/
 | 2026-03-02 | Draft task-toggle roundtrip regression fix and task behavior automation follow-up | COMP-TASK-TOGGLE-ROUNDTRIP-014 |
 | 2026-03-02 | Draft YouTube note type with transcript-backed import and specialized rendering | COMP-YOUTUBE-NOTE-TYPE-015 |
 | 2026-03-02 | Draft wikilink embed design/spec/plan for plugin-backed `![[...]]` rendering across source/edit/view modes | COMP-WIKILINK-EMBEDS-017 |
+| 2026-03-03 | Draft single-AppImage Linux packaging spec with porcelain launcher, XDG config, and user-service integration | COMP-LINUX-PACKAGING-018 |
 | 2026-02-22 | Start UI QA DX implementation: add journey suite expansion, CI quality workflows, and review-artifact guide | COMP-UI-QA-DX-001 |
 | 2026-02-22 | Complete UI QA DX implementation with design-system token/primitive inventories and formal verification policy integration | COMP-UI-QA-DX-001 |
 | 2026-02-22 | Complete Storybook DX implementation and mark Storybook workflows/docs as operational | COMP-STORYBOOK-DX-001 |

@@ -33,14 +33,160 @@ fn ui_automation_group_disabled_result(seq: u64, group: &str) -> knot::ipc::AppC
     }
 }
 
-fn main() {
-    // Initialize tracing for logging
+fn init_tracing() {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
                 .add_directive(tracing::Level::INFO.into()),
         )
         .init();
+}
+
+fn apply_ui_runtime_env(
+    config: &knot::launcher::LauncherConfig,
+    paths: &knot::launcher::LauncherPaths,
+) {
+    let socket_path = knot::launcher::socket_path(config, paths);
+    match config.ui_mode {
+        knot::launcher::UiRuntimeMode::DaemonIpc => {
+            std::env::set_var("KNOT_UI_RUNTIME_MODE", "daemon_ipc");
+            std::env::set_var("KNOTD_SOCKET_PATH", socket_path);
+        }
+        knot::launcher::UiRuntimeMode::Embedded => {
+            std::env::remove_var("KNOT_UI_RUNTIME_MODE");
+            if std::env::var("KNOTD_SOCKET_PATH").is_err() {
+                std::env::set_var("KNOTD_SOCKET_PATH", socket_path);
+            }
+        }
+    }
+}
+
+fn run_bundled_knotd(
+    config: &knot::launcher::LauncherConfig,
+    paths: &knot::launcher::LauncherPaths,
+) -> knot::Result<i32> {
+    let knotd_bin = knot::launcher::resolve_knotd_binary()?;
+    let socket_path = knot::launcher::socket_path(config, paths);
+    let vault_path = knot::launcher::ensure_vault_path(config)?;
+    let status = std::process::Command::new(knotd_bin)
+        .arg("--listen-unix")
+        .arg(socket_path)
+        .arg("--vault")
+        .arg(vault_path)
+        .stdin(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .status()?;
+    Ok(status.code().unwrap_or(1))
+}
+
+fn ensure_daemon_for_ui(
+    config: &mut knot::launcher::LauncherConfig,
+    paths: &knot::launcher::LauncherPaths,
+) -> knot::Result<Option<std::process::Child>> {
+    if !knot::launcher::ui_should_use_daemon(config) {
+        apply_ui_runtime_env(config, paths);
+        return Ok(None);
+    }
+
+    let socket_path = knot::launcher::socket_path(config, paths);
+    if knot::launcher::is_socket_reachable(&socket_path) {
+        config.ui_mode = knot::launcher::UiRuntimeMode::DaemonIpc;
+        apply_ui_runtime_env(config, paths);
+        return Ok(None);
+    }
+
+    let mut child = knot::launcher::spawn_knotd(config, paths)?;
+    if let Err(error) = knot::launcher::wait_for_socket(&socket_path, Duration::from_secs(10)) {
+        let _ = child.kill();
+        return Err(error);
+    }
+    config.ui_mode = knot::launcher::UiRuntimeMode::DaemonIpc;
+    apply_ui_runtime_env(config, paths);
+    Ok(Some(child))
+}
+
+fn handle_launcher_command() -> knot::Result<Option<i32>> {
+    let args = std::env::args().collect::<Vec<_>>();
+    let mode = knot::launcher::parse_launcher_args(&args)?;
+    let (mut config, paths) = knot::launcher::launcher_config_and_paths()?;
+
+    match mode {
+        knot::launcher::LauncherMode::Help => {
+            println!("{}", knot::launcher::command_help());
+            Ok(Some(0))
+        }
+        knot::launcher::LauncherMode::Service(command) => match command {
+            knot::launcher::LauncherServiceCommand::Install { dry_run } => {
+                let appimage_path = knot::launcher::current_appimage_or_exe()?;
+                let artifacts =
+                    knot::launcher::install_service(&mut config, &paths, &appimage_path, dry_run)?;
+                if dry_run {
+                    println!("[dry-run] wrapper -> {}", paths.wrapper_path.display());
+                    println!("{}", artifacts.wrapper_script);
+                    println!("[dry-run] env -> {}", paths.env_path.display());
+                    println!("{}", artifacts.env_file);
+                    println!("[dry-run] unit -> {}", paths.unit_path.display());
+                    println!("{}", artifacts.unit_file);
+                } else {
+                    println!("Installed knot wrapper: {}", paths.wrapper_path.display());
+                    println!("Installed knotd unit: {}", paths.unit_path.display());
+                    println!("Next: systemctl --user enable --now knotd");
+                }
+                Ok(Some(0))
+            }
+            knot::launcher::LauncherServiceCommand::Uninstall { purge } => {
+                knot::launcher::uninstall_service(&paths, purge)?;
+                println!("Removed user service artifacts for knotd");
+                Ok(Some(0))
+            }
+            knot::launcher::LauncherServiceCommand::Start => {
+                knot::launcher::run_systemctl_user(["start", "knotd.service"])?;
+                println!("Started knotd.service");
+                Ok(Some(0))
+            }
+            knot::launcher::LauncherServiceCommand::Stop => {
+                knot::launcher::run_systemctl_user(["stop", "knotd.service"])?;
+                println!("Stopped knotd.service");
+                Ok(Some(0))
+            }
+            knot::launcher::LauncherServiceCommand::Restart => {
+                knot::launcher::run_systemctl_user(["restart", "knotd.service"])?;
+                println!("Restarted knotd.service");
+                Ok(Some(0))
+            }
+            knot::launcher::LauncherServiceCommand::Status => {
+                println!("{}", knot::launcher::service_status_summary(&config, &paths));
+                Ok(Some(0))
+            }
+        },
+        knot::launcher::LauncherMode::Knotd { .. } => Ok(Some(run_bundled_knotd(&config, &paths)?)),
+        knot::launcher::LauncherMode::Down => {
+            println!("{}", knot::launcher::down_summary(&paths)?);
+            Ok(Some(0))
+        }
+        knot::launcher::LauncherMode::Up => {
+            let child = ensure_daemon_for_ui(&mut config, &paths)?;
+            if let Some(mut child) = child {
+                let ui_result = run_tauri_app();
+                let _ = child.kill();
+                return ui_result.map(|_| Some(0));
+            }
+            Ok(None)
+        }
+        knot::launcher::LauncherMode::Ui => {
+            let child = ensure_daemon_for_ui(&mut config, &paths)?;
+            if let Some(mut child) = child {
+                let ui_result = run_tauri_app();
+                let _ = child.kill();
+                return ui_result.map(|_| Some(0));
+            }
+            Ok(None)
+        }
+    }
+}
+
+fn run_tauri_app() -> knot::Result<Option<i32>> {
 
     info!("Starting Knot application");
 
@@ -369,5 +515,24 @@ fn main() {
             knot::commands::ui_automation::ui_automation_complete_request,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Knot application");
+        .map_err(|error| knot::KnotError::Other(format!("error while running Knot application: {error}")))?;
+    Ok(Some(0))
+}
+
+fn main() {
+    init_tracing();
+
+    match handle_launcher_command() {
+        Ok(Some(code)) => std::process::exit(code),
+        Ok(None) => {
+            if let Err(error) = run_tauri_app() {
+                eprintln!("{error}");
+                std::process::exit(1);
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
 }

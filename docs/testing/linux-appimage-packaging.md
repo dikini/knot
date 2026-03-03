@@ -1,0 +1,65 @@
+# Linux AppImage Packaging
+
+This note captures the current Linux desktop packaging flow for the single-file AppImage build.
+
+## Build Host Requirements
+
+Linux AppImage bundling currently requires these host tools/packages:
+
+- `patchelf`
+- `pkg-config`
+- `librsvg2-dev` or equivalent package that provides `librsvg-2.0.pc`
+
+On Debian/Ubuntu systems:
+
+```bash
+sudo apt install patchelf pkg-config librsvg2-dev
+```
+
+## Build Command
+
+Use the repo wrapper rather than calling `tauri build` directly:
+
+```bash
+npm run tauri-build -- --bundles appimage
+```
+
+The wrapper in `scripts/tauri-build.mjs` does three Linux-specific things:
+
+- fails early with a clear message if `patchelf` is missing
+- fails early with a clear message if `pkg-config` cannot resolve `librsvg-2.0`
+- sets `APPIMAGE_EXTRACT_AND_RUN=1` for AppImage builds to avoid nested helper-AppImage mount failures in `linuxdeploy`
+
+## Output Artifact
+
+Successful builds currently produce:
+
+```text
+src-tauri/target/release/bundle/appimage/knot_0.1.0_amd64.AppImage
+```
+
+## Launcher Modes
+
+The AppImage launcher supports:
+
+```bash
+./knot_0.1.0_amd64.AppImage
+./knot_0.1.0_amd64.AppImage ui
+./knot_0.1.0_amd64.AppImage knotd
+./knot_0.1.0_amd64.AppImage up
+./knot_0.1.0_amd64.AppImage down
+./knot_0.1.0_amd64.AppImage service install
+./knot_0.1.0_amd64.AppImage service uninstall
+./knot_0.1.0_amd64.AppImage service start
+./knot_0.1.0_amd64.AppImage service stop
+./knot_0.1.0_amd64.AppImage service restart
+./knot_0.1.0_amd64.AppImage service status
+```
+
+Linux desktop defaults to daemon-backed UI mode. `ui` and the default entrypoint both ensure `knotd` is reachable before opening the Tauri application.
+
+## Notes
+
+- The generated user-service flow writes into XDG paths under `~/.config/knot`, `~/.local/state/knot`, and `~/.config/systemd/user/`.
+- `service install` requires a configured vault path via `~/.config/knot/knot.toml` or `KNOT_VAULT_PATH`.
+- The build may still depend on additional GTK/runtime libraries from the local distro environment because AppImage assembly is delegated to `linuxdeploy`.

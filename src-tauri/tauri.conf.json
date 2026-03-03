@@ -7,7 +7,8 @@
     "frontendDist": "../dist",
     "devUrl": "http://127.0.0.1:1420",
     "beforeDevCommand": "npm run dev",
-    "beforeBuildCommand": "npm run build"
+    "beforeBuildCommand": "npm run build",
+    "beforeBundleCommand": "node scripts/prepare-tauri-sidecars.mjs"
   },
   "app": {
     "windows": [
@@ -44,9 +45,16 @@
   "bundle": {
     "active": true,
     "targets": "all",
-
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
     "resources": [],
-    "externalBin": [],
+    "externalBin": ["binaries/knotd"],
     "copyright": "Copyright (c) 2026 Knot Contributors",
     "category": "Productivity",
     "shortDescription": "AI-native knowledge base",

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <title>Knot icon</title>
+  <desc>
+    Softened round knot icon with guide ring. The crossing map uses explicit front and back segments
+    so the weave remains legible at small application icon sizes.
+  </desc>
+  <defs>
+    <style>
+      .s1 { stroke: #7b5428; stroke-width: 28; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .s2 { stroke: #56716b; stroke-width: 28; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .s3 { stroke: #1f2c28; stroke-width: 28; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .guide { stroke: #b99760; stroke-width: 8; opacity: 0.85; fill: none; }
+    </style>
+    <linearGradient id="bg" x1="64" y1="64" x2="448" y2="448" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f3e8cd" />
+      <stop offset="1" stop-color="#e0cca4" />
+    </linearGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="120" fill="url(#bg)" />
+  <circle class="guide" cx="256" cy="256" r="184" />
+
+  <g id="back">
+    <path class="s1" d="M170 154 Q256 108 342 154" />
+    <path class="s1" d="M342 358 Q256 404 170 358" />
+
+    <path class="s2" d="M142 194 Q112 256 142 318" />
+    <path class="s2" d="M370 194 Q400 256 370 318" />
+
+    <path class="s3" d="M194 178 Q150 256 194 334" />
+    <path class="s3" d="M318 178 Q362 256 318 334" />
+  </g>
+
+  <g id="middle">
+    <path class="s1" d="M170 154 Q194 200 218 240" />
+    <path class="s1" d="M294 270 Q318 310 342 358" />
+
+    <path class="s2" d="M142 194 Q184 214 230 236" />
+    <path class="s2" d="M282 276 Q328 298 370 318" />
+
+    <path class="s3" d="M194 334 Q218 302 244 270" />
+    <path class="s3" d="M268 242 Q294 210 318 178" />
+  </g>
+
+  <g id="front">
+    <path class="s1" d="M218 240 Q238 250 256 262" />
+    <path class="s3" d="M244 270 Q256 256 268 242" />
+    <path class="s2" d="M230 236 Q256 258 282 276" />
+    <path class="s1" d="M256 262 Q274 266 294 270" />
+  </g>
+
+  <g id="closures">
+    <path class="s1" d="M342 154 Q378 256 342 358" opacity="0.98" />
+    <path class="s1" d="M170 358 Q134 256 170 154" opacity="0.98" />
+
+    <path class="s2" d="M142 318 Q256 384 370 318" opacity="0.98" />
+    <path class="s2" d="M370 194 Q256 128 142 194" opacity="0.98" />
+
+    <path class="s3" d="M194 178 Q256 146 318 178" opacity="0.98" />
+    <path class="s3" d="M318 334 Q256 366 194 334" opacity="0.98" />
+  </g>
+</svg>
