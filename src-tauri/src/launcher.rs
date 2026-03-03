@@ -583,13 +583,15 @@ pub fn uninstall_codex_mcp(paths: &LauncherPaths) -> Result<String> {
 }
 
 pub fn codex_command_path(paths: &LauncherPaths) -> Result<PathBuf> {
+    if paths.wrapper_path.exists() {
+        // TRACE: DESIGN-linux-appimage-packaging
+        // FR-8a: prefer the stable installed wrapper for Codex MCP wiring.
+        return Ok(paths.wrapper_path.clone());
+    }
     if let Ok(path) = std::env::var("APPIMAGE") {
         if !path.trim().is_empty() {
             return Ok(PathBuf::from(path));
         }
-    }
-    if paths.wrapper_path.exists() {
-        return Ok(paths.wrapper_path.clone());
     }
     current_appimage_or_exe()
 }
@@ -710,11 +712,13 @@ fn make_executable(_path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        apply_env_overrides, command_help, down_summary, parse_launcher_args,
-        remove_managed_codex_block, render_codex_mcp_block, render_install_artifacts,
-        resolve_launcher_paths, stale_appimage_message, LauncherConfig, LauncherEnv,
-        LauncherMcpCommand, LauncherMode, LauncherServiceCommand, UiRuntimeMode,
+        apply_env_overrides, codex_command_path, command_help, down_summary,
+        parse_launcher_args, remove_managed_codex_block, render_codex_mcp_block,
+        render_install_artifacts, resolve_launcher_paths, stale_appimage_message,
+        LauncherConfig, LauncherEnv, LauncherMcpCommand, LauncherMode,
+        LauncherServiceCommand, UiRuntimeMode,
     };
+    use std::fs;
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
 
@@ -883,6 +887,31 @@ mod tests {
         assert!(block.contains("[mcp_servers.knot_vault]"));
         assert!(block.contains("command = \"/home/tester/.local/bin/knot\""));
         assert!(block.contains("args = [\"mcp\", \"bridge\"]"));
+    }
+
+    #[test]
+    fn launcher_tdd_prefers_installed_wrapper_for_codex_mcp_over_appimage_env() {
+        let _lock = env_lock().lock().expect("env lock");
+        let root = std::env::temp_dir().join(format!("knot-launcher-test-{}", std::process::id()));
+        let home_dir = root.join("home");
+        let config_dir = home_dir.join(".config");
+        let state_dir = home_dir.join(".local/state");
+        let runtime_dir = root.join("run");
+        let env = LauncherEnv {
+            home_dir: Some(home_dir.clone()),
+            config_dir: Some(config_dir),
+            state_dir: Some(state_dir),
+            runtime_dir: Some(runtime_dir),
+        };
+        let paths = resolve_launcher_paths(&env).expect("paths");
+        fs::create_dir_all(paths.wrapper_path.parent().expect("wrapper parent")).expect("create wrapper dir");
+        fs::write(&paths.wrapper_path, "#!/usr/bin/env sh\n").expect("write wrapper");
+        let _guard = EnvGuard::set("APPIMAGE", "/tmp/transient/Knot.AppImage");
+
+        let selected = codex_command_path(&paths).expect("codex command path");
+
+        assert_eq!(selected, paths.wrapper_path);
+        let _ = fs::remove_dir_all(root);
     }
 
     #[test]

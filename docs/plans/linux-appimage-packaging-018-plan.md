@@ -26,6 +26,7 @@
 | LAP-004 | Add runtime helpers for bundled `knotd` resolution, daemon readiness probing, and `up` reuse behavior | M | LAP-002 | FR-5, FR-6, FR-13 |
 | LAP-005 | Wire AppImage bundling metadata and pre-bundle staging for the Linux `knotd` sidecar | M | LAP-004 | FR-1, FR-13 |
 | LAP-006 | Add targeted verification/docs updates for launcher UX and packaging behavior | S | LAP-005 | FR-14 |
+| LAP-007 | Add Codex MCP install regression coverage so wrapper selection wins over transient `APPIMAGE` paths when the stable launcher is installed | S | LAP-006 | FR-8a |
 
 ## Verification Commands
 - `cargo test --manifest-path src-tauri/Cargo.toml launcher::tests -- --nocapture`

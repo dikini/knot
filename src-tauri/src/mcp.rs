@@ -1912,7 +1912,7 @@ mod tests {
     }
 
     #[test]
-    fn tools_call_get_note_returns_image_payload_for_non_markdown_files() {
+    fn tools_call_get_note_returns_unknown_payload_for_non_markdown_files_when_plugins_disabled() {
         let server = setup_server();
         server
             .with_vault(|vault| {
@@ -1933,6 +1933,56 @@ mod tests {
             .handle_request(&json!({
                 "jsonrpc": "2.0",
                 "id": 301,
+                "method": "tools/call",
+                "params": {
+                    "name": "get_note",
+                    "arguments": { "path": "images/photo.jpg" }
+                }
+            }))
+            .expect("image get_note response");
+
+        let text = response["result"]["content"][0]["text"]
+            .as_str()
+            .expect("text");
+        let payload: Value = serde_json::from_str(text).expect("image note json");
+
+        assert_eq!(payload["path"], json!("images/photo.jpg"));
+        assert_eq!(payload["note_type"], json!("unknown"));
+        assert_eq!(payload["type_badge"], json!("JPG"));
+        assert_eq!(payload["available_modes"]["view"], json!(true));
+        assert_eq!(payload["available_modes"]["edit"], json!(false));
+        assert_eq!(payload["available_modes"]["source"], json!(false));
+        assert_eq!(payload["content"], json!(""));
+        assert_eq!(payload["media"], Value::Null);
+    }
+
+    #[test]
+    fn tools_call_get_note_returns_image_payload_for_non_markdown_files_when_plugins_enabled() {
+        let server = setup_server();
+        server
+            .with_vault_mut(|vault| {
+                vault
+                    .update_vault_settings_patch(&json!({
+                        "plugins_enabled": true
+                    }))
+                    .map_err(|e| (-32000, e.to_response_string()))?;
+                let image_path = vault.root_path().join("images/photo.jpg");
+                std::fs::create_dir_all(
+                    image_path
+                        .parent()
+                        .ok_or((-32000, "image path missing parent".to_string()))?,
+                )
+                .map_err(|e| (-32000, e.to_string()))?;
+                std::fs::write(&image_path, b"\xff\xd8\xff\xdb")
+                    .map_err(|e| (-32000, e.to_string()))?;
+                Ok(())
+            })
+            .expect("seed image with plugins enabled");
+
+        let response = server
+            .handle_request(&json!({
+                "jsonrpc": "2.0",
+                "id": 302,
                 "method": "tools/call",
                 "params": {
                     "name": "get_note",

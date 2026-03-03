@@ -71,6 +71,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-KNOTD-UI-010 | knotd-ui-daemon | designed | component/knotd-ui-daemon-010.md | [REL, CONF, CAP] | draft |
 | COMP-KNOTD-DEV-LIFECYCLE-011 | knotd-dev-lifecycle | designed | component/knotd-dev-lifecycle-011.md | [REL, CONF, CAP] | draft |
 | COMP-LINUX-PACKAGING-018 | linux-appimage-packaging | designed | component/linux-appimage-packaging-018.md | [REL, CONF, COMP] | draft |
+| COMP-IPC-TEST-CONTRACT-019 | ipc-test-contract-alignment | designed | component/ipc-test-contract-alignment-019.md | [REL, CONS, COMP] | draft |
 | COMP-REACTIVE-ESSAY-001 | reactive-essay-runtime | designed | component/reactive-essay-runtime-001.md | [REL, CONS, CAP, OBS, CONF] | draft (speculative; planning deferred) |
 
 ## Interfaces

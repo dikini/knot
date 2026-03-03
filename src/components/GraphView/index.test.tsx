@@ -298,6 +298,7 @@ describe("GraphView Component", () => {
       );
 
       await screen.findByText("Extremely Wide Alpha Label");
+      expect(await screen.findByText("70%")).toBeInTheDocument();
       expect(screen.getByTestId("graph-viewport")).toHaveAttribute("data-overflow-x", "false");
       expect(screen.getByTestId("graph-viewport")).toHaveAttribute("data-overflow-y", "false");
     });

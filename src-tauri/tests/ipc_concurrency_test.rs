@@ -1,4 +1,5 @@
 use knot::app_command::{AppCommand, ResourceCommand, SettingsCommand};
+use knot::ipc::{AppCommandResult, IpcDispatchRequest};
 use knot::{IpcClient, IpcServer};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
@@ -87,10 +88,28 @@ fn high_contention_same_note_seq_is_monotonic_and_last_write_is_deterministic() 
     let temp = create_vault_root();
     let socket_path = temp.path().join("ipc-high-contention.sock");
 
+    let (dispatch_tx, dispatch_rx) = mpsc::channel::<IpcDispatchRequest>();
     let (tx, rx) = mpsc::channel::<AppCommand>();
-    IpcServer::new(socket_path.clone(), tx)
+    IpcServer::new(socket_path.clone(), dispatch_tx)
         .start()
         .expect("start IPC server");
+    thread::spawn(move || {
+        while let Ok(request) = dispatch_rx.recv() {
+            let seq = request.envelope.seq;
+            tx.send(request.envelope.command.clone())
+                .unwrap_or_else(|err| panic!("failed to queue contention command: {err}"));
+            request
+                .response_tx
+                .send(AppCommandResult {
+                    success: true,
+                    message: "ok".to_string(),
+                    seq: Some(seq),
+                    error_code: None,
+                    payload: None,
+                })
+                .unwrap_or_else(|err| panic!("failed to send contention response: {err}"));
+        }
+    });
 
     let client = IpcClient::new(socket_path.clone());
     wait_for_socket(&client, &socket_path, Duration::from_secs(5));
@@ -178,10 +197,28 @@ fn mixed_resource_race_preserves_seq_integrity_and_valid_post_state_model() {
     let temp = create_vault_root();
     let socket_path = temp.path().join("ipc-mixed-race.sock");
 
+    let (dispatch_tx, dispatch_rx) = mpsc::channel::<IpcDispatchRequest>();
     let (tx, rx) = mpsc::channel::<AppCommand>();
-    IpcServer::new(socket_path.clone(), tx)
+    IpcServer::new(socket_path.clone(), dispatch_tx)
         .start()
         .expect("start IPC server");
+    thread::spawn(move || {
+        while let Ok(request) = dispatch_rx.recv() {
+            let seq = request.envelope.seq;
+            tx.send(request.envelope.command.clone())
+                .unwrap_or_else(|err| panic!("failed to queue mixed-race command: {err}"));
+            request
+                .response_tx
+                .send(AppCommandResult {
+                    success: true,
+                    message: "ok".to_string(),
+                    seq: Some(seq),
+                    error_code: None,
+                    payload: None,
+                })
+                .unwrap_or_else(|err| panic!("failed to send mixed-race response: {err}"));
+        }
+    });
 
     let client = IpcClient::new(socket_path.clone());
     wait_for_socket(&client, &socket_path, Duration::from_secs(5));

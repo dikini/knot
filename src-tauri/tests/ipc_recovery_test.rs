@@ -1,5 +1,6 @@
 use knot::app_command::{AppCommand, ResourceCommand};
 use knot::event_log::EventLog;
+use knot::ipc::{AppCommandResult, IpcDispatchRequest};
 use knot::{IpcClient, IpcServer};
 use std::collections::HashSet;
 use std::path::Path;
@@ -79,10 +80,29 @@ fn seq_recovers_after_server_restart_and_event_log_reload() {
     let temp = create_vault_root();
 
     let socket_one = temp.path().join("ipc-recovery-first.sock");
+    let (dispatch_tx_one, dispatch_rx_one) = mpsc::channel::<IpcDispatchRequest>();
     let (tx_one, rx_one) = mpsc::channel::<AppCommand>();
-    IpcServer::new(socket_one.clone(), tx_one)
+    IpcServer::new(socket_one.clone(), dispatch_tx_one)
         .start()
         .expect("start first IPC server");
+    thread::spawn(move || {
+        while let Ok(request) = dispatch_rx_one.recv() {
+            let seq = request.envelope.seq;
+            tx_one
+                .send(request.envelope.command.clone())
+                .unwrap_or_else(|err| panic!("failed to queue first-batch command: {err}"));
+            request
+                .response_tx
+                .send(AppCommandResult {
+                    success: true,
+                    message: "ok".to_string(),
+                    seq: Some(seq),
+                    error_code: None,
+                    payload: None,
+                })
+                .unwrap_or_else(|err| panic!("failed to send first-batch response: {err}"));
+        }
+    });
     let client_one = IpcClient::new(socket_one.clone());
     wait_for_socket(&client_one, &socket_one, Duration::from_secs(5));
 
@@ -114,10 +134,29 @@ fn seq_recovers_after_server_restart_and_event_log_reload() {
 
     // The new server should recover its next sequence from the persisted event log.
     let socket_two = socket_one.clone();
+    let (dispatch_tx_two, dispatch_rx_two) = mpsc::channel::<IpcDispatchRequest>();
     let (tx_two, rx_two) = mpsc::channel::<AppCommand>();
-    IpcServer::new(socket_two.clone(), tx_two)
+    IpcServer::new(socket_two.clone(), dispatch_tx_two)
         .start()
         .expect("start second IPC server");
+    thread::spawn(move || {
+        while let Ok(request) = dispatch_rx_two.recv() {
+            let seq = request.envelope.seq;
+            tx_two
+                .send(request.envelope.command.clone())
+                .unwrap_or_else(|err| panic!("failed to queue second-batch command: {err}"));
+            request
+                .response_tx
+                .send(AppCommandResult {
+                    success: true,
+                    message: "ok".to_string(),
+                    seq: Some(seq),
+                    error_code: None,
+                    payload: None,
+                })
+                .unwrap_or_else(|err| panic!("failed to send second-batch response: {err}"));
+        }
+    });
     let client_two = IpcClient::new(socket_two.clone());
     wait_for_socket(&client_two, &socket_two, Duration::from_secs(5));
 
