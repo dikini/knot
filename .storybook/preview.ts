@@ -6,6 +6,22 @@ import "../src/styles/App.css";
 sb.mock(import("../src/lib/api.ts"), { spy: true });
 sb.mock(import("@tauri-apps/api/event"), { spy: true });
 
+function ensureStorybookTauriInternals() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const tauriWindow = window as Window & {
+    __TAURI_INTERNALS__?: {
+      invoke: (command: string, args?: unknown) => Promise<unknown>;
+    };
+  };
+
+  tauriWindow.__TAURI_INTERNALS__ ??= {
+    invoke: async () => undefined,
+  };
+}
+
 const strictA11y =
   (typeof process !== "undefined" && process.env?.STORYBOOK_A11Y_STRICT === "1") ||
   (typeof globalThis !== "undefined" &&
@@ -13,6 +29,9 @@ const strictA11y =
       Reflect.get(globalThis, "STORYBOOK_A11Y_STRICT") === 1));
 
 const preview: Preview = {
+  async beforeEach() {
+    ensureStorybookTauriInternals();
+  },
   parameters: {
     layout: "fullscreen",
     controls: {

@@ -167,7 +167,9 @@ async function dispatchEditorUiAutomationRequest(
 
     window.addEventListener(UI_AUTOMATION_EDITOR_RESULT_EVENT, handleResult as EventListener);
     window.dispatchEvent(
-      new CustomEvent<UiAutomationEditorRequestDetail>(UI_AUTOMATION_EDITOR_REQUEST_EVENT, { detail })
+      new CustomEvent<UiAutomationEditorRequestDetail>(UI_AUTOMATION_EDITOR_REQUEST_EVENT, {
+        detail,
+      })
     );
   });
 }
@@ -195,9 +197,15 @@ function App() {
   const [vaultPlugins, setVaultPlugins] = useState<api.VaultPlugin[]>([]);
   const [isVaultSettingsLoading, setIsVaultSettingsLoading] = useState(false);
   const [isVaultPluginsLoading, setIsVaultPluginsLoading] = useState(false);
-  const [appKeymapSettings, setAppKeymapSettings] = useState<api.AppKeymapSettings>(DEFAULT_APP_KEYMAP_SETTINGS);
-  const [appKeymapDraft, setAppKeymapDraft] = useState<api.AppKeymapSettings>(DEFAULT_APP_KEYMAP_SETTINGS);
-  const [appKeymapErrors, setAppKeymapErrors] = useState<Partial<Record<ManagedShortcutFieldPath, string>>>({});
+  const [appKeymapSettings, setAppKeymapSettings] = useState<api.AppKeymapSettings>(
+    DEFAULT_APP_KEYMAP_SETTINGS
+  );
+  const [appKeymapDraft, setAppKeymapDraft] = useState<api.AppKeymapSettings>(
+    DEFAULT_APP_KEYMAP_SETTINGS
+  );
+  const [appKeymapErrors, setAppKeymapErrors] = useState<
+    Partial<Record<ManagedShortcutFieldPath, string>>
+  >({});
   const [isAppKeymapSettingsLoading, setIsAppKeymapSettingsLoading] = useState(false);
   const [uiAutomationSettings, setUiAutomationSettings] = useState<api.UiAutomationSettings>({
     enabled: false,
@@ -295,201 +303,217 @@ function App() {
     };
 
     void (async () => {
-      unlisten = await listen<UiAutomationFrontendRequest>("ui-automation://request", async (event) => {
-        const request = event.payload;
+      try {
+        unlisten = await listen<UiAutomationFrontendRequest>(
+          "ui-automation://request",
+          async (event) => {
+            const request = event.payload;
 
-        if (request.kind === "invoke_action") {
-          try {
-            if (request.action_id === "core.navigate.view") {
-              const nextView = request.args?.view;
-              if (nextView !== "editor" && nextView !== "graph" && nextView !== "settings") {
+            if (request.kind === "invoke_action") {
+              try {
+                if (request.action_id === "core.navigate.view") {
+                  const nextView = request.args?.view;
+                  if (nextView !== "editor" && nextView !== "graph" && nextView !== "settings") {
+                    await completeWithError(
+                      request.request_id,
+                      "Invalid view target",
+                      "UI_ACTION_INVALID_ARGUMENTS"
+                    );
+                    return;
+                  }
+                  setViewMode(nextView);
+                  await api.completeUiAutomationRequest(request.request_id, {
+                    success: true,
+                    message: `Switched to ${nextView}`,
+                    payload: { active_view: `view.${nextView}` },
+                  });
+                  return;
+                }
+
+                if (request.action_id === "core.navigate.note") {
+                  const notePath = request.args?.path;
+                  if (typeof notePath !== "string" || notePath.trim().length === 0) {
+                    await completeWithError(
+                      request.request_id,
+                      "Missing note path",
+                      "UI_ACTION_INVALID_ARGUMENTS"
+                    );
+                    return;
+                  }
+                  await loadNote(notePath);
+                  setViewMode("editor");
+                  await api.completeUiAutomationRequest(request.request_id, {
+                    success: true,
+                    message: `Loaded note ${notePath}`,
+                    payload: { active_view: "view.editor", active_note_path: notePath },
+                  });
+                  return;
+                }
+
+                if (request.action_id === "core.select.tool-mode") {
+                  const toolMode = request.args?.toolMode;
+                  if (toolMode !== "notes" && toolMode !== "search" && toolMode !== "graph") {
+                    await completeWithError(
+                      request.request_id,
+                      "Invalid tool mode",
+                      "UI_ACTION_INVALID_ARGUMENTS"
+                    );
+                    return;
+                  }
+                  handleToolModeSelect(toolMode);
+                  await api.completeUiAutomationRequest(request.request_id, {
+                    success: true,
+                    message: `Switched tool mode to ${toolMode}`,
+                    payload: { tool_mode: toolMode },
+                  });
+                  return;
+                }
+
+                if (request.action_id === "core.select.editor-mode") {
+                  const mode = request.args?.mode;
+                  if (mode !== "meta" && mode !== "source" && mode !== "edit" && mode !== "view") {
+                    await completeWithError(
+                      request.request_id,
+                      "Invalid editor mode",
+                      "UI_ACTION_INVALID_ARGUMENTS"
+                    );
+                    return;
+                  }
+                  const activeNotePath =
+                    currentNote?.path ?? useVaultStore.getState?.().currentNote?.path ?? null;
+                  if (!activeNotePath) {
+                    await completeWithError(
+                      request.request_id,
+                      "No note is open",
+                      "UI_TARGET_UNAVAILABLE"
+                    );
+                    return;
+                  }
+
+                  setViewMode("editor");
+                  await waitForEditorUiStabilization();
+
+                  const payload = await dispatchEditorUiAutomationRequest({
+                    requestId: request.request_id,
+                    actionId: request.action_id,
+                    path: activeNotePath,
+                    mode,
+                  });
+
+                  await api.completeUiAutomationRequest(request.request_id, {
+                    success: true,
+                    message: `Switched editor mode to ${mode}`,
+                    payload: payload ?? {
+                      active_view: "view.editor",
+                      editor_mode: mode,
+                      active_note_path: activeNotePath,
+                    },
+                  });
+                  return;
+                }
+
                 await completeWithError(
                   request.request_id,
-                  "Invalid view target",
-                  "UI_ACTION_INVALID_ARGUMENTS"
+                  `Unknown action: ${request.action_id}`,
+                  "UI_TARGET_NOT_FOUND"
                 );
-                return;
+              } catch (invokeError) {
+                await completeWithError(
+                  request.request_id,
+                  invokeError instanceof Error ? invokeError.message : "Failed to invoke UI action",
+                  "UI_ACTION_EXECUTION_FAILED"
+                );
               }
-              setViewMode(nextView);
-              await api.completeUiAutomationRequest(request.request_id, {
-                success: true,
-                message: `Switched to ${nextView}`,
-                payload: { active_view: `view.${nextView}` },
-              });
               return;
             }
 
-            if (request.action_id === "core.navigate.note") {
-              const notePath = request.args?.path;
-              if (typeof notePath !== "string" || notePath.trim().length === 0) {
+            if (request.kind === "invoke_behavior") {
+              try {
+                if (request.behavior_id === "core.task.toggle") {
+                  const notePath = request.args?.path;
+                  const taskIndex = request.args?.taskIndex;
+                  const mode = request.args?.mode;
+
+                  if (typeof notePath !== "string" || notePath.trim().length === 0) {
+                    await completeWithError(
+                      request.request_id,
+                      "Missing note path",
+                      "UI_ACTION_INVALID_ARGUMENTS"
+                    );
+                    return;
+                  }
+                  if (!Number.isInteger(taskIndex) || Number(taskIndex) < 0) {
+                    await completeWithError(
+                      request.request_id,
+                      "taskIndex must be a non-negative integer",
+                      "UI_ACTION_INVALID_ARGUMENTS"
+                    );
+                    return;
+                  }
+                  if (
+                    mode !== undefined &&
+                    mode !== "view" &&
+                    mode !== "edit" &&
+                    mode !== "source"
+                  ) {
+                    await completeWithError(
+                      request.request_id,
+                      "Invalid editor mode",
+                      "UI_ACTION_INVALID_ARGUMENTS"
+                    );
+                    return;
+                  }
+
+                  if (currentNote?.path !== notePath) {
+                    await loadNote(notePath);
+                  }
+                  setViewMode("editor");
+                  await waitForEditorUiStabilization();
+
+                  const payload = await dispatchEditorUiAutomationRequest({
+                    requestId: request.request_id,
+                    behaviorId: request.behavior_id,
+                    path: notePath,
+                    taskIndex: Number(taskIndex),
+                    mode,
+                  });
+
+                  await api.completeUiAutomationRequest(request.request_id, {
+                    success: true,
+                    message: `Toggled task ${taskIndex} in ${notePath}`,
+                    payload,
+                  });
+                  return;
+                }
+
                 await completeWithError(
                   request.request_id,
-                  "Missing note path",
-                  "UI_ACTION_INVALID_ARGUMENTS"
+                  `Unknown behavior: ${request.behavior_id}`,
+                  "UI_TARGET_NOT_FOUND"
                 );
-                return;
-              }
-              await loadNote(notePath);
-              setViewMode("editor");
-              await api.completeUiAutomationRequest(request.request_id, {
-                success: true,
-                message: `Loaded note ${notePath}`,
-                payload: { active_view: "view.editor", active_note_path: notePath },
-              });
-              return;
-            }
-
-            if (request.action_id === "core.select.tool-mode") {
-              const toolMode = request.args?.toolMode;
-              if (toolMode !== "notes" && toolMode !== "search" && toolMode !== "graph") {
+              } catch (invokeError) {
+                const codedError = invokeError as Error & { code?: string };
                 await completeWithError(
                   request.request_id,
-                  "Invalid tool mode",
-                  "UI_ACTION_INVALID_ARGUMENTS"
+                  invokeError instanceof Error
+                    ? invokeError.message
+                    : "Failed to invoke UI behavior",
+                  codedError.code ?? "UI_ACTION_EXECUTION_FAILED"
                 );
-                return;
               }
-              handleToolModeSelect(toolMode);
-              await api.completeUiAutomationRequest(request.request_id, {
-                success: true,
-                message: `Switched tool mode to ${toolMode}`,
-                payload: { tool_mode: toolMode },
-              });
-              return;
-            }
-
-            if (request.action_id === "core.select.editor-mode") {
-              const mode = request.args?.mode;
-              if (mode !== "meta" && mode !== "source" && mode !== "edit" && mode !== "view") {
-                await completeWithError(
-                  request.request_id,
-                  "Invalid editor mode",
-                  "UI_ACTION_INVALID_ARGUMENTS"
-                );
-                return;
-              }
-              const activeNotePath =
-                currentNote?.path ??
-                useVaultStore.getState?.().currentNote?.path ??
-                null;
-              if (!activeNotePath) {
-                await completeWithError(
-                  request.request_id,
-                  "No note is open",
-                  "UI_TARGET_UNAVAILABLE"
-                );
-                return;
-              }
-
-              setViewMode("editor");
-              await waitForEditorUiStabilization();
-
-              const payload = await dispatchEditorUiAutomationRequest({
-                requestId: request.request_id,
-                actionId: request.action_id,
-                path: activeNotePath,
-                mode,
-              });
-
-              await api.completeUiAutomationRequest(request.request_id, {
-                success: true,
-                message: `Switched editor mode to ${mode}`,
-                payload: payload ?? { active_view: "view.editor", editor_mode: mode, active_note_path: activeNotePath },
-              });
               return;
             }
 
             await completeWithError(
               request.request_id,
-              `Unknown action: ${request.action_id}`,
-              "UI_TARGET_NOT_FOUND"
-            );
-          } catch (invokeError) {
-            await completeWithError(
-              request.request_id,
-              invokeError instanceof Error ? invokeError.message : "Failed to invoke UI action",
-              "UI_ACTION_EXECUTION_FAILED"
+              "Frontend-driven screenshot capture is disabled in this runtime",
+              "UI_CAPTURE_UNSUPPORTED"
             );
           }
-          return;
-        }
-
-        if (request.kind === "invoke_behavior") {
-          try {
-            if (request.behavior_id === "core.task.toggle") {
-              const notePath = request.args?.path;
-              const taskIndex = request.args?.taskIndex;
-              const mode = request.args?.mode;
-
-              if (typeof notePath !== "string" || notePath.trim().length === 0) {
-                await completeWithError(
-                  request.request_id,
-                  "Missing note path",
-                  "UI_ACTION_INVALID_ARGUMENTS"
-                );
-                return;
-              }
-              if (!Number.isInteger(taskIndex) || Number(taskIndex) < 0) {
-                await completeWithError(
-                  request.request_id,
-                  "taskIndex must be a non-negative integer",
-                  "UI_ACTION_INVALID_ARGUMENTS"
-                );
-                return;
-              }
-              if (mode !== undefined && mode !== "view" && mode !== "edit" && mode !== "source") {
-                await completeWithError(
-                  request.request_id,
-                  "Invalid editor mode",
-                  "UI_ACTION_INVALID_ARGUMENTS"
-                );
-                return;
-              }
-
-              if (currentNote?.path !== notePath) {
-                await loadNote(notePath);
-              }
-              setViewMode("editor");
-              await waitForEditorUiStabilization();
-
-              const payload = await dispatchEditorUiAutomationRequest({
-                requestId: request.request_id,
-                behaviorId: request.behavior_id,
-                path: notePath,
-                taskIndex: Number(taskIndex),
-                mode,
-              });
-
-              await api.completeUiAutomationRequest(request.request_id, {
-                success: true,
-                message: `Toggled task ${taskIndex} in ${notePath}`,
-                payload,
-              });
-              return;
-            }
-
-            await completeWithError(
-              request.request_id,
-              `Unknown behavior: ${request.behavior_id}`,
-              "UI_TARGET_NOT_FOUND"
-            );
-          } catch (invokeError) {
-            const codedError = invokeError as Error & { code?: string };
-            await completeWithError(
-              request.request_id,
-              invokeError instanceof Error ? invokeError.message : "Failed to invoke UI behavior",
-              codedError.code ?? "UI_ACTION_EXECUTION_FAILED"
-            );
-          }
-          return;
-        }
-
-        await completeWithError(
-          request.request_id,
-          "Frontend-driven screenshot capture is disabled in this runtime",
-          "UI_CAPTURE_UNSUPPORTED"
         );
-      });
+      } catch (error) {
+        console.error("ui automation listener registration failed", error);
+      }
     })();
 
     return () => {
@@ -678,7 +702,11 @@ function App() {
           showTextLabels?: boolean;
         };
 
-        if (parsed.toolMode === "notes" || parsed.toolMode === "search" || parsed.toolMode === "graph") {
+        if (
+          parsed.toolMode === "notes" ||
+          parsed.toolMode === "search" ||
+          parsed.toolMode === "graph"
+        ) {
           setShellToolMode(parsed.toolMode);
         }
         if (
@@ -971,14 +999,20 @@ function App() {
     }
   };
 
-  const persistAppKeymapSettings = async (nextSettings: api.AppKeymapSettings, successMessage: string) => {
+  const persistAppKeymapSettings = async (
+    nextSettings: api.AppKeymapSettings,
+    successMessage: string
+  ) => {
     const validation = validateAppKeymapSettings(nextSettings);
     if (!validation.ok) {
       setAppKeymapErrors(
-        validation.errors.reduce<Partial<Record<ManagedShortcutFieldPath, string>>>((accumulator, issue) => {
-          accumulator[issue.field] = issue.message;
-          return accumulator;
-        }, {})
+        validation.errors.reduce<Partial<Record<ManagedShortcutFieldPath, string>>>(
+          (accumulator, issue) => {
+            accumulator[issue.field] = issue.message;
+            return accumulator;
+          },
+          {}
+        )
       );
       return;
     }
@@ -1160,7 +1194,11 @@ function App() {
             className={`content-area content-area--editor-${editorSurfaceMode} content-area--measure-${editorMeasureBand}`}
             ref={contentAreaRef}
             data-ui-automation-view-id={
-              viewMode === "editor" ? "view.editor" : viewMode === "graph" ? "view.graph" : "view.settings"
+              viewMode === "editor"
+                ? "view.editor"
+                : viewMode === "graph"
+                  ? "view.graph"
+                  : "view.settings"
             }
           >
             <div className="content-mode-toggle">
@@ -1169,7 +1207,9 @@ function App() {
                 label="Surface"
                 className="btn-secondary editor-surface-toggle"
                 showLabel={shell.showTextLabels}
-                onClick={() => setEditorSurfaceMode((mode) => (mode === "sepia" ? "dark" : "sepia"))}
+                onClick={() =>
+                  setEditorSurfaceMode((mode) => (mode === "sepia" ? "dark" : "sepia"))
+                }
               />
               <IconButton
                 icon={CaseSensitive}
@@ -1203,7 +1243,10 @@ function App() {
               />
             </div>
             {viewMode === "editor" ? (
-              <Editor key={currentNote?.path ?? "no-note-selected"} appKeymapSettings={appKeymapSettings} />
+              <Editor
+                key={currentNote?.path ?? "no-note-selected"}
+                appKeymapSettings={appKeymapSettings}
+              />
             ) : viewMode === "graph" ? (
               <GraphView
                 width={graphSize.width}
@@ -1345,7 +1388,11 @@ function App() {
         ) : (
           <>
             <p>Mode: {shell.toolMode}</p>
-            {currentNote ? <p>Note: {currentNote.title || currentNote.path}</p> : <p>No note selected</p>}
+            {currentNote ? (
+              <p>Note: {currentNote.title || currentNote.path}</p>
+            ) : (
+              <p>No note selected</p>
+            )}
           </>
         )}
       </InspectorRail>

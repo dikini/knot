@@ -234,10 +234,16 @@ vi.mock("@components/Editor", () => ({
         );
       };
 
-      window.addEventListener("ui-automation-editor-request", handleUiAutomationRequest as EventListener);
+      window.addEventListener(
+        "ui-automation-editor-request",
+        handleUiAutomationRequest as EventListener
+      );
       return () => {
         editorUnmountCount += 1;
-        window.removeEventListener("ui-automation-editor-request", handleUiAutomationRequest as EventListener);
+        window.removeEventListener(
+          "ui-automation-editor-request",
+          handleUiAutomationRequest as EventListener
+        );
       };
     }, []);
     return <div data-testid="editor-view">Editor</div>;
@@ -532,7 +538,9 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       expect(mockListen).toHaveBeenCalled();
     });
 
-    const automationCall = mockListen.mock.calls.find((call) => call[0] === "ui-automation://request");
+    const automationCall = mockListen.mock.calls.find(
+      (call) => call[0] === "ui-automation://request"
+    );
     expect(automationCall).toBeTruthy();
 
     const handler = automationCall?.[1] as unknown as (event: {
@@ -562,6 +570,26 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
         editor_mode: "meta",
       },
     });
+  });
+
+  it("logs listener registration failures instead of surfacing unhandled runtime errors", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    mockListen.mockRejectedValueOnce(new Error("listener unavailable"));
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(mockListen).toHaveBeenCalledWith("ui-automation://request", expect.any(Function));
+    });
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "ui automation listener registration failed",
+        expect.any(Error)
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
   });
 
   it("uses custom persisted tool-switch shortcuts instead of hard-coded defaults", async () => {
@@ -770,7 +798,6 @@ describe("App Graph Toggle (COMP-GRAPH-UI-001 FR-4)", () => {
       expect(mockToastSuccess).toHaveBeenCalled();
     });
   });
-
 });
 
 describe("getEditorMeasureBand (COMP-EDITOR-READING-001 FR-4)", () => {

@@ -1,0 +1,32 @@
+tasks:
+  - id: SAS-022-001
+    title: "Capture failing Storybook/App baseline and add the listener-registration regression test"
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-5]
+    dependencies: []
+    acceptance: "Red-state Storybook Vitest and matrix failures are recorded, and a targeted App test covers listener-registration failure handling"
+
+  - id: SAS-022-002
+    title: "Harden App listener setup and Storybook runtime defaults"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-3]
+    dependencies: [SAS-022-001]
+    acceptance: "App logs listener registration failures without unhandled rejections, and Storybook App stories supply safe Tauri API/event defaults"
+
+  - id: SAS-022-003
+    title: "Refresh Storybook coverage inventory exports"
+    status: planned
+    size: S
+    spec_refs: [FR-4]
+    dependencies: [SAS-022-002]
+    acceptance: "The coverage inventory count and export names match the current story files so qa:storybook-matrix passes"
+
+  - id: SAS-022-004
+    title: "Run verification and publish audit evidence"
+    status: planned
+    size: S
+    spec_refs: [FR-5]
+    dependencies: [SAS-022-003]
+    acceptance: "Targeted App tests, Storybook Vitest, matrix validation, typecheck, and the audit artifact all pass"

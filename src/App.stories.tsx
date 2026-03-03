@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, mocked, userEvent, waitFor } from "storybook/test";
+import { listen } from "@tauri-apps/api/event";
 import App from "./App";
 import { useEditorStore, useVaultStore, type ShellState } from "@lib/store";
 import * as api from "@lib/api";
@@ -62,6 +63,34 @@ const demoLayout: GraphLayout = {
   edges: [{ source: demoCurrentNote.path, target: "product-docs/roadmap-brief.md" }],
 };
 
+const demoAppKeymapSettings = {
+  keymaps: {
+    general: {
+      save_note: "Mod-s",
+      switch_notes: "Mod-1",
+      switch_search: "Mod-2",
+      switch_graph: "Mod-3",
+    },
+    editor: {
+      undo: "Mod-z",
+      redo: "Mod-Shift-z, Mod-y",
+      clear_paragraph: "Mod-Alt-0",
+    },
+  },
+  graph: {
+    readability_floor_percent: 70,
+  },
+} satisfies Awaited<ReturnType<typeof api.getAppKeymapSettings>>;
+
+const demoUiAutomationSettings = {
+  enabled: false,
+  groups: {
+    navigation: false,
+    screenshots: false,
+    behaviors: false,
+  },
+} satisfies Awaited<ReturnType<typeof api.getUiAutomationSettings>>;
+
 type AppStoryArgs = {
   vault: VaultInfo | null;
   noteList: NoteSummary[];
@@ -115,6 +144,13 @@ const meta: Meta<AppStoryArgs> = {
     mocked(api.isVaultOpen).mockResolvedValue(false);
     mocked(api.getVaultInfo).mockResolvedValue(null);
     mocked(api.syncExternalChanges).mockResolvedValue(undefined);
+    mocked(api.syncUiAutomationRegistry).mockResolvedValue(undefined);
+    mocked(api.syncUiAutomationState).mockResolvedValue(undefined);
+    mocked(api.completeUiAutomationRequest).mockResolvedValue(undefined);
+    mocked(api.getAppKeymapSettings).mockResolvedValue(demoAppKeymapSettings);
+    mocked(api.updateAppKeymapSettings).mockResolvedValue(demoAppKeymapSettings);
+    mocked(api.getUiAutomationSettings).mockResolvedValue(demoUiAutomationSettings);
+    mocked(api.updateUiAutomationSettings).mockResolvedValue(demoUiAutomationSettings);
     mocked(api.getGraphLayout).mockResolvedValue(demoLayout);
     mocked(api.openVaultDialog).mockRejectedValue(new Error("cancelled"));
     mocked(api.createVaultDialog).mockRejectedValue(new Error("cancelled"));
@@ -124,6 +160,7 @@ const meta: Meta<AppStoryArgs> = {
     mocked(api.setUnsavedChanges).mockResolvedValue(undefined);
     mocked(api.listNotes).mockResolvedValue(demoNotes);
     mocked(api.getNote).mockResolvedValue(demoCurrentNote);
+    mocked(listen).mockResolvedValue(() => undefined);
   },
   parameters: {
     layout: "fullscreen",
@@ -173,7 +210,9 @@ export const EditorActive: Story = {
     editorDirty: false,
   },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole("heading", { name: "Language Model Evaluation" })).toBeInTheDocument();
+    await expect(
+      canvas.getByRole("heading", { name: "Language Model Evaluation" })
+    ).toBeInTheDocument();
     await expect(canvas.getByRole("button", { name: "Graph mode" })).toBeInTheDocument();
   },
 };
@@ -222,7 +261,9 @@ export const AdaptiveLayoutRecovery: Story = {
   },
   play: async ({ canvas, canvasElement }) => {
     await expect(canvasElement.querySelector(".app--adaptive")).not.toBeNull();
-    await expect(canvas.queryByRole("complementary", { name: "Context panel" })).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("complementary", { name: "Context panel" })
+    ).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole("button", { name: "Graph mode" }));
     await expect(canvas.getByRole("button", { name: "Edit note" })).toBeInTheDocument();
     await expect(canvas.getByRole("complementary", { name: "Inspector rail" })).toBeInTheDocument();
@@ -366,7 +407,9 @@ export const HydratesPersistedShellAndView: Story = {
       expect(canvasElement.querySelector(".app--adaptive")).not.toBeNull();
     });
     await expect(canvas.getByRole("button", { name: "Edit note" })).toBeInTheDocument();
-    await expect(canvas.queryByRole("complementary", { name: "Context panel" })).not.toBeInTheDocument();
+    await expect(
+      canvas.queryByRole("complementary", { name: "Context panel" })
+    ).not.toBeInTheDocument();
     await expect(canvas.getByRole("complementary", { name: "Inspector rail" })).toBeInTheDocument();
   },
 };

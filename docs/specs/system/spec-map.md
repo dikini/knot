@@ -4,75 +4,87 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 
 ## Components
 
-| Spec ID               | Component       | Source    | Path                             | Concerns         | Status                                 |
-| --------------------- | --------------- | --------- | -------------------------------- | ---------------- | -------------------------------------- |
-| COMP-VAULT-001        | vault           | extracted | extracted/vault-001.md           | [REL, SEC, CAP]  | active (traceable, verified 100%)      |
-| COMP-NOTE-001         | note            | extracted | extracted/note-001.md            | [REL, CAP]       | active (traceable, verified 100%)      |
-| COMP-SEARCH-001       | search          | extracted | extracted/search-001.md          | [CAP, REL]       | active (traceable, verified 100%)      |
-| COMP-GRAPH-001        | graph           | extracted | extracted/graph-001.md           | [CAP, REL]       | active (traceable, verified 100%)      |
-| COMP-MARKDOWN-001     | markdown        | extracted | extracted/markdown-001.md        | [CAP]            | active (traceable, verified 100%)      |
-| COMP-DATABASE-001     | database        | extracted | extracted/database-001.md        | [REL, SEC, CAP]  | active (traceable, verified 100%)      |
-| COMP-FRONTEND-001     | frontend        | extracted | extracted/frontend-001.md        | [CAP, REL]       | active (traceable, verified 100%)      |
-| COMP-VAULT-UI-001     | vault-ui        | designed  | component/vault-ui-001.md        | [REL, SEC, CONF] | implemented (verified 100%)            |
-| COMP-CONTENT-LOAD-001 | content-loading | designed  | component/content-loading-001.md | [REL, SEC]       | implemented (bug fixed, verified 100%) |
-| COMP-NOTE-SEL-001     | note-selection  | designed  | component/note-selection-001.md  | [REL, CAP]       | implemented (verified 100%)            |
-| COMP-FILE-WATCH-001   | file-watcher    | designed  | component/file-watcher-001.md    | [REL, CONS]      | implemented (verified 100%)            |
-| COMP-GRAPH-UI-001     | graph-ui        | designed  | component/graph-ui-001.md        | [CAP, REL]       | implemented (verified 100%)            |
-| COMP-SEARCH-UI-001    | search-ui       | designed  | component/search-ui-001.md       | [CAP, REL]       | implemented (verified 100%)            |
-| COMP-TAG-EXTRACTION-001 | tag-extraction | designed  | component/tag-extraction-001.md  | [CAP]            | implemented (verified 100%)            |
-| COMP-TOOLCHAIN-001    | toolchain       | designed  | component/frontend-toolchain-modernization-001.md | [REL, CAP, COMP] | implemented (verified 100%)            |
-| COMP-UI-LAYOUT-002    | ui-layout       | designed  | component/ui-layout-002.md       | [CONF, CAP]      | implemented (all FR complete)          |
-| COMP-COMPLIANCE-001   | compliance-fixes | designed  | component/compliance-fixes-001.md | [REL, COMP]      | implemented (verified 100%)            |
-| COMP-LINT-001         | lint-cleanup    | designed  | component/lint-cleanup-001.md | [COMP, REL]      | implemented (verified 100%)            |
-| COMP-TRACE-LITE-001   | traceability-lite | designed  | component/traceability-lite-001.md | [COMP, REL]      | implemented (lightweight guardrails)   |
-| COMP-EDITOR-READING-001 | editor-reading | designed  | component/editor-reading-001.md | [CONF, CAP, REL] | implemented (verified 100%)            |
-| COMP-LAYOUT-RECOVERY-001 | layout-recovery | designed  | component/layout-recovery-001.md | [REL, CONF]      | implemented (verified 100%)            |
-| COMP-ICON-CHROME-001 | icon-chrome | designed | component/icon-chrome-001.md | [CONF, REL, CAP] | implemented (verified 100%) |
-| COMP-GRAPH-HOVER-001 | graph-hover-stability | designed | component/graph-hover-stability-001.md | [REL, CONF] | implemented (verified 100%) |
-| COMP-EXPLORER-TREE-001 | explorer-tree | designed | component/explorer-tree-001.md | [CONF, REL, CAP] | implemented (M0-M1-M2-M3 complete) |
-| COMP-EDITOR-EMPTY-DOC-001 | editor-empty-doc | designed | component/editor-empty-doc-001.md | [REL, CONF] | implemented (verified 100%) |
-| COMP-EXPLORER-PANEL-SEARCH-001 | explorer-panel-search | designed | component/explorer-panel-search-removal-001.md | [CONF] | implemented (verified 100%) |
-| COMP-GRAPH-CONSISTENCY-001 | graph-consistency | designed | component/graph-consistency-001.md | [REL, CONF] | implemented (verified 100%) |
-| COMP-EXPLORER-ICON-ACTIONS-001 | explorer-icon-actions | designed | component/explorer-icon-only-actions-001.md | [CONF] | implemented (verified 100%) |
-| COMP-EDITOR-MODES-001 | editor-modes | designed | component/editor-modes-wysiwym-001.md | [CONF, REL] | implemented (M0-M4 verified) |
-| COMP-EDITOR-WYSIWYM-002 | editor-wysiwym-fixes | designed | component/editor-wysiwym-002.md | [CONF, REL, CAP] | implemented (verified 100%) |
-| COMP-MARKDOWN-ENGINE-001 | markdown-engine | designed | component/markdown-engine-001.md | [REL, COMP, CAP, CONF] | implemented (verified 100%) |
-| COMP-MCP-SERVER-001 | mcp-server | designed | component/mcp-server-001.md | [REL, CONF] | implemented (verified 100%) |
-| COMP-MCP-SERVER-002 | mcp-server-mutations | designed | component/mcp-server-mutations-002.md | [REL, CONF] | implemented (verified 100%) |
-| COMP-TOOL-RAIL-CONTEXT-001 | tool-rail-context-policy | designed | component/tool-rail-context-policy-001.md | [CONF, REL, CAP] | implemented (verified 100%) |
-| COMP-GRAPH-MODES-002 | graph-modes | designed | component/graph-modes-002.md | [CONF, REL, CAP] | implemented (verified 100%) |
-| COMP-GRAPH-UI-CONTINUITY-003 | graph-ui-continuity | designed | component/graph-ui-continuity-003.md | [CONF, REL, CAP] | implemented (verified 100%) |
-| COMP-WINDOW-STARTUP-003 | window-startup-controls | designed | component/window-startup-controls-003.md | [CONF, REL] | implemented (verified 100%) |
-| COMP-NOTE-METADATA-001 | note-metadata-fidelity | designed | component/note-metadata-fidelity-001.md | [REL, CONF] | implemented (verified 100%) |
-| COMP-VAULT-UNSAVED-001 | vault-unsaved-changes | designed | component/vault-unsaved-changes-001.md | [REL, CONF] | implemented (verified 100%) |
-| COMP-VAULT-SWITCH-UX-001 | vault-switch-unsaved-ux | designed | component/vault-switch-ux-001.md | [CONF, REL] | implemented (verified 100%) |
-| COMP-MERMAID-001 | mermaid-diagrams | designed | component/mermaid-diagrams-001.md | [REL, SEC, CAP, COMP, CONF] | implemented (verified 100%) |
-| COMP-UI-AUTOMATION-DX-001 | ui-automation-dx | designed | component/ui-automation-dx-001.md | [REL, CAP, COMP, CONF] | implemented (verified 100%) |
-| COMP-MERMAID-INLINE-SPLIT-001 | mermaid-inline-insert-splitting | designed | component/mermaid-inline-insert-splitting-001.md | [REL, CONF, COMP] | implemented (verified in browser + editor tests) |
-| COMP-UI-QA-DX-001 | ui-quality-assurance-dx | designed | component/ui-quality-assurance-dx-001.md | [REL, CONF, COMP, CAP] | implemented (verified with CI gates + docs inventory) |
-| COMP-STORYBOOK-DX-001 | storybook-dx | designed | component/storybook-dx-001.md | [CONF, REL, COMP, CAP] | implemented (verified with Storybook build + MCP smoke) |
-| COMP-AUTHORING-FLOWS-001 | authoring-flows | designed | component/authoring-flows-001.md | [CONF, REL, COMP] | implemented (verified targeted) |
-| COMP-TYPECHECK-CLEANUP-002 | typecheck-cleanup | designed | component/typecheck-cleanup-002.md | [COMP, REL] | implemented (verified targeted) |
-| COMP-TASK-LIST-UI-003 | task-list-ui | designed | component/task-list-ui-003.md | [CONF, REL, COMP] | implemented (verified targeted) |
-| COMP-LIST-CONTINUATION-004 | list-continuation | designed | component/list-continuation-004.md | [CONF, REL] | implemented (verified targeted) |
-| COMP-EDITOR-HISTORY-005 | editor-history | designed | component/editor-history-005.md | [CONF, REL] | implemented (verified targeted) |
-| COMP-APP-KEYMAP-006 | app-keymap-settings | designed | component/app-keymap-settings-006.md | [CONF, REL] | implemented (verified targeted) |
-| COMP-MANAGED-SHORTCUTS-007 | managed-shortcuts | designed | component/managed-shortcuts-007.md | [CONF, REL] | implemented (verified targeted) |
-| COMP-MATH-PLUGIN-008 | math-plugin | designed | component/math-plugin-008.md | [CONF, REL, COMP] | implemented (verified targeted) |
-| COMP-NOTE-TYPES-012 | note-types | designed | component/note-types-012.md | [CONF, REL, COMP, CAP] | draft |
-| COMP-UI-AUTOMATION-RUNTIME-013 | ui-automation-runtime | designed | component/ui-automation-runtime-013.md | [REL, CONF, COMP, CAP] | implemented (verified targeted) |
-| COMP-TASK-TOGGLE-ROUNDTRIP-014 | task-toggle-roundtrip | designed | component/task-toggle-roundtrip-014.md | [REL, CONF, COMP] | implemented (verified targeted) |
-| COMP-YOUTUBE-NOTE-TYPE-015 | youtube-note-type | designed | component/youtube-note-type-015.md | [REL, CONF, COMP, CAP] | draft |
-| COMP-PDF-NOTE-TYPE-016 | pdf-note-type | designed | component/pdf-note-type-016.md | [REL, CONF, COMP, CAP] | draft |
-| COMP-WIKILINK-EMBEDS-017 | wikilink-embeds | designed | component/wikilink-embeds-017.md | [REL, SEC, CAP, CONS, COMP, CONF] | draft |
-| COMP-VIEW-LIST-STYLING-009 | view-list-styling | designed | component/view-list-styling-009.md | [CONF, REL, COMP] | implemented (verified targeted) |
-| COMP-NOTE-METADATA-FRONTMATTER-011 | note-metadata-frontmatter | designed | component/note-metadata-frontmatter-011.md | [CONF, REL, COMP] | implemented (verified targeted) |
-| COMP-SETTINGS-PANE-001 | settings-pane | designed | component/settings-pane-001.md | [CONF, REL, CAP] | draft |
-| COMP-KNOTD-UI-010 | knotd-ui-daemon | designed | component/knotd-ui-daemon-010.md | [REL, CONF, CAP] | draft |
-| COMP-KNOTD-DEV-LIFECYCLE-011 | knotd-dev-lifecycle | designed | component/knotd-dev-lifecycle-011.md | [REL, CONF, CAP] | draft |
-| COMP-LINUX-PACKAGING-018 | linux-appimage-packaging | designed | component/linux-appimage-packaging-018.md | [REL, CONF, COMP] | draft |
-| COMP-IPC-TEST-CONTRACT-019 | ipc-test-contract-alignment | designed | component/ipc-test-contract-alignment-019.md | [REL, CONS, COMP] | draft |
-| COMP-REACTIVE-ESSAY-001 | reactive-essay-runtime | designed | component/reactive-essay-runtime-001.md | [REL, CONS, CAP, OBS, CONF] | draft (speculative; planning deferred) |
+| Spec ID                            | Component                            | Source    | Path                                                  | Concerns                          | Status                            |
+| ---------------------------------- | ------------------------------------ | --------- | ----------------------------------------------------- | --------------------------------- | --------------------------------- |
+| COMP-VAULT-001                     | vault                                | extracted | extracted/vault-001.md                                | [REL, SEC, CAP]                   | active (traceable, verified 100%) |
+| COMP-NOTE-001                      | note                                 | extracted | extracted/note-001.md                                 | [REL, CAP]                        | active (traceable, verified 100%) |
+| COMP-SEARCH-001                    | search                               | extracted | extracted/search-001.md                               | [CAP, REL]                        | active (traceable, verified 100%) |
+| COMP-GRAPH-001                     | graph                                | extracted | extracted/graph-001.md                                | [CAP, REL]                        | active (traceable, verified 100%) |
+| COMP-MARKDOWN-001                  | markdown                             | extracted | extracted/markdown-001.md                             | [CAP]                             | active (traceable, verified 100%) |
+| COMP-DATABASE-001                  | database                             | extracted | extracted/database-001.md                             | [REL, SEC, CAP]                   | active (traceable, verified 100%) |
+| COMP-FRONTEND-001                  | frontend                             | extracted | extracted/frontend-001.md                             | [CAP, REL]                        | active (traceable, verified 100%) |
+| COMP-VAULT-UI-001                  | vault-ui                             | designed  | component/vault-ui-001.md                             | [REL, SEC, CONF]                  | implemented                       |
+| COMP-CONTENT-LOAD-001              | content-loading                      | designed  | component/content-loading-001.md                      | [REL, SEC]                        | implemented                       |
+| COMP-NOTE-SEL-001                  | note-selection                       | designed  | component/note-selection-001.md                       | [REL, CAP]                        | implemented                       |
+| COMP-FILE-WATCH-001                | file-watcher                         | designed  | component/file-watcher-001.md                         | [REL, CONS]                       | implemented                       |
+| COMP-GRAPH-UI-001                  | graph-ui                             | designed  | component/graph-ui-001.md                             | [CAP, REL]                        | implemented                       |
+| COMP-SEARCH-UI-001                 | search-ui                            | designed  | component/search-ui-001.md                            | [CAP, REL]                        | implemented                       |
+| COMP-TAG-EXTRACTION-001            | tag-extraction                       | designed  | component/tag-extraction-001.md                       | [CAP]                             | implemented                       |
+| COMP-TOOLCHAIN-001                 | toolchain                            | designed  | component/frontend-toolchain-modernization-001.md     | [REL, CAP, COMP]                  | implemented                       |
+| COMP-UI-LAYOUT-002                 | ui-layout                            | designed  | component/ui-layout-002.md                            | [CONF, CAP]                       | implemented                       |
+| COMP-COMPLIANCE-001                | compliance-fixes                     | designed  | component/compliance-fixes-001.md                     | [REL, COMP]                       | implemented                       |
+| COMP-LINT-001                      | lint-cleanup                         | designed  | component/lint-cleanup-001.md                         | [COMP, REL]                       | implemented                       |
+| COMP-TRACE-LITE-001                | traceability-lite                    | designed  | component/traceability-lite-001.md                    | [COMP, REL]                       | implemented                       |
+| COMP-EDITOR-READING-001            | editor-reading                       | designed  | component/editor-reading-001.md                       | [CONF, CAP, REL]                  | implemented                       |
+| COMP-LAYOUT-RECOVERY-001           | layout-recovery                      | designed  | component/layout-recovery-001.md                      | [REL, CONF]                       | implemented                       |
+| COMP-ICON-CHROME-001               | icon-chrome                          | designed  | component/icon-chrome-001.md                          | [CONF, REL, CAP]                  | implemented                       |
+| COMP-GRAPH-HOVER-001               | graph-hover-stability                | designed  | component/graph-hover-stability-001.md                | [REL, CONF]                       | implemented                       |
+| COMP-EXPLORER-TREE-001             | explorer-tree                        | designed  | component/explorer-tree-001.md                        | [CONF, REL, CAP]                  | implemented                       |
+| COMP-EDITOR-EMPTY-DOC-001          | editor-empty-doc                     | designed  | component/editor-empty-doc-001.md                     | [REL, CONF]                       | implemented                       |
+| COMP-EXPLORER-PANEL-SEARCH-001     | explorer-panel-search                | designed  | component/explorer-panel-search-removal-001.md        | [CONF]                            | implemented                       |
+| COMP-GRAPH-CONSISTENCY-001         | graph-consistency                    | designed  | component/graph-consistency-001.md                    | [REL, CONF]                       | implemented                       |
+| COMP-EXPLORER-ICON-ACTIONS-001     | explorer-icon-actions                | designed  | component/explorer-icon-only-actions-001.md           | [CONF]                            | implemented                       |
+| COMP-EDITOR-MODES-001              | editor-modes                         | designed  | component/editor-modes-wysiwym-001.md                 | [CONF, REL]                       | implemented (M0-M4)               |
+| COMP-EDITOR-WYSIWYM-002            | editor-wysiwym-fixes                 | designed  | component/editor-wysiwym-002.md                       | [CONF, REL, CAP]                  | implemented                       |
+| COMP-MARKDOWN-ENGINE-001           | markdown-engine                      | designed  | component/markdown-engine-001.md                      | [REL, COMP, CAP, CONF]            | implemented                       |
+| COMP-MCP-SERVER-001                | mcp-server                           | designed  | component/mcp-server-001.md                           | [REL, CONF]                       | implemented                       |
+| COMP-MCP-SERVER-002                | mcp-server-mutations                 | designed  | component/mcp-server-mutations-002.md                 | [REL, CONF]                       | implemented                       |
+| COMP-TOOL-RAIL-CONTEXT-001         | tool-rail-context-policy             | designed  | component/tool-rail-context-policy-001.md             | [CONF, REL, CAP]                  | implemented                       |
+| COMP-GRAPH-MODES-002               | graph-modes                          | designed  | component/graph-modes-002.md                          | [CONF, REL, CAP]                  | implemented                       |
+| COMP-GRAPH-UI-CONTINUITY-003       | graph-ui-continuity                  | designed  | component/graph-ui-continuity-003.md                  | [CONF, REL, CAP]                  | implemented                       |
+| COMP-WINDOW-STARTUP-003            | window-startup-controls              | designed  | component/window-startup-controls-003.md              | [CONF, REL]                       | implemented                       |
+| COMP-NOTE-METADATA-001             | note-metadata-fidelity               | designed  | component/note-metadata-fidelity-001.md               | [REL, CONF]                       | implemented                       |
+| COMP-VAULT-UNSAVED-001             | vault-unsaved-changes                | designed  | component/vault-unsaved-changes-001.md                | [REL, CONF]                       | implemented                       |
+| COMP-VAULT-SWITCH-UX-001           | vault-switch-unsaved-ux              | designed  | component/vault-switch-ux-001.md                      | [CONF, REL]                       | implemented                       |
+| COMP-MERMAID-001                   | mermaid-diagrams                     | designed  | component/mermaid-diagrams-001.md                     | [REL, SEC, CAP, COMP, CONF]       | implemented                       |
+| COMP-UI-AUTOMATION-DX-001          | ui-automation-dx                     | designed  | component/ui-automation-dx-001.md                     | [REL, CAP, COMP, CONF]            | implemented                       |
+| COMP-MERMAID-INLINE-SPLIT-001      | mermaid-inline-insert-splitting      | designed  | component/mermaid-inline-insert-splitting-001.md      | [REL, CONF, COMP]                 | implemented                       |
+| COMP-UI-QA-DX-001                  | ui-quality-assurance-dx              | designed  | component/ui-quality-assurance-dx-001.md              | [REL, CONF, COMP, CAP]            | implemented                       |
+| COMP-STORYBOOK-DX-001              | storybook-dx                         | designed  | component/storybook-dx-001.md                         | [CONF, REL, COMP, CAP]            | implemented                       |
+| COMP-AUTHORING-FLOWS-001           | authoring-flows                      | designed  | component/authoring-flows-001.md                      | [CONF, REL, COMP]                 | implemented                       |
+| COMP-TYPECHECK-CLEANUP-002         | typecheck-cleanup                    | designed  | component/typecheck-cleanup-002.md                    | [COMP, REL]                       | implemented                       |
+| COMP-TASK-LIST-UI-003              | task-list-ui                         | designed  | component/task-list-ui-003.md                         | [CONF, REL, COMP]                 | implemented                       |
+| COMP-LIST-CONTINUATION-004         | list-continuation                    | designed  | component/list-continuation-004.md                    | [CONF, REL]                       | implemented                       |
+| COMP-EDITOR-HISTORY-005            | editor-history                       | designed  | component/editor-history-005.md                       | [CONF, REL]                       | implemented                       |
+| COMP-APP-KEYMAP-006                | app-keymap-settings                  | designed  | component/app-keymap-settings-006.md                  | [CONF, REL]                       | implemented                       |
+| COMP-MANAGED-SHORTCUTS-007         | managed-shortcuts                    | designed  | component/managed-shortcuts-007.md                    | [CONF, REL]                       | implemented                       |
+| COMP-MATH-PLUGIN-008               | math-plugin                          | designed  | component/math-plugin-008.md                          | [CONF, REL, COMP]                 | implemented                       |
+| COMP-NOTE-TYPES-012                | note-types                           | designed  | component/note-types-012.md                           | [CONF, REL, COMP, CAP]            | verified                          |
+| COMP-UI-AUTOMATION-RUNTIME-013     | ui-automation-runtime                | designed  | component/ui-automation-runtime-013.md                | [REL, CONF, COMP, CAP]            | implemented                       |
+| COMP-TASK-TOGGLE-ROUNDTRIP-014     | task-toggle-roundtrip                | designed  | component/task-toggle-roundtrip-014.md                | [REL, CONF, COMP]                 | draft                             |
+| COMP-YOUTUBE-NOTE-TYPE-015         | youtube-note-type                    | designed  | component/youtube-note-type-015.md                    | [REL, CONF, COMP, CAP]            | draft                             |
+| COMP-PDF-NOTE-TYPE-016             | pdf-note-type                        | designed  | component/pdf-note-type-016.md                        | [REL, CONF, COMP, CAP]            | draft                             |
+| COMP-WIKILINK-EMBEDS-017           | wikilink-embeds                      | designed  | component/wikilink-embeds-017.md                      | [REL, SEC, CAP, CONS, COMP, CONF] | draft                             |
+| COMP-VIEW-LIST-STYLING-009         | view-list-styling                    | designed  | component/view-list-styling-009.md                    | [CONF, REL, COMP]                 | implemented                       |
+| COMP-NOTE-METADATA-FRONTMATTER-011 | note-metadata-frontmatter            | designed  | component/note-metadata-frontmatter-011.md            | [CONF, REL, COMP]                 | implemented                       |
+| COMP-SETTINGS-PANE-001             | settings-pane                        | designed  | component/settings-pane-001.md                        | [CONF, REL, CAP]                  | draft                             |
+| COMP-KNOTD-UI-010                  | knotd-ui-daemon                      | designed  | component/knotd-ui-daemon-010.md                      | [REL, CONF, CAP]                  | draft                             |
+| COMP-KNOTD-DEV-LIFECYCLE-011       | knotd-dev-lifecycle                  | designed  | component/knotd-dev-lifecycle-011.md                  | [REL, CONF, CAP]                  | draft                             |
+| COMP-LINUX-PACKAGING-018           | linux-appimage-packaging             | designed  | component/linux-appimage-packaging-018.md             | [REL, CONF, COMP]                 | draft                             |
+| COMP-IPC-TEST-CONTRACT-019         | ipc-test-contract-alignment          | designed  | component/ipc-test-contract-alignment-019.md          | [REL, CONS, COMP]                 | draft                             |
+| COMP-REACTIVE-ESSAY-001            | reactive-essay-runtime               | designed  | component/reactive-essay-runtime-001.md               | [REL, CONS, CAP, OBS, CONF]       | draft                             |
+| COMP-DOC-REGISTRY-020              | documentation-registry-alignment     | designed  | component/documentation-registry-alignment-020.md     | [REL, COMP, CONF]                 | draft                             |
+| COMP-KNOTD-CAPABILITIES-006        | knotd-capabilities-print             | designed  | component/knotd-capabilities-print-006.md             | [REL, CONF]                       | draft                             |
+| COMP-KNOTD-CHECK-004               | knotd-check-once                     | designed  | component/knotd-check-once-004.md                     | [REL, CONF]                       | draft                             |
+| COMP-KNOTD-DAEMON-002              | knotd-daemon-bootstrap               | designed  | component/knotd-daemon-bootstrap-002.md               | [REL, CONF]                       | draft                             |
+| COMP-KNOTD-IPC-009                 | knotd-local-ipc                      | designed  | component/knotd-local-ipc-009.md                      | [REL, CONF]                       | draft                             |
+| COMP-KNOTD-OPS-008                 | knotd-mcp-ops                        | designed  | component/knotd-mcp-ops-008.md                        | [REL, CONF]                       | draft                             |
+| COMP-KNOTD-PROBE-ENGINE-007        | knotd-probe-engine-consolidation     | designed  | component/knotd-probe-engine-consolidation-007.md     | [REL, CONF]                       | draft                             |
+| COMP-KNOTD-PROBE-JSON-005          | knotd-probe-json                     | designed  | component/knotd-probe-json-005.md                     | [REL, CONF]                       | draft                             |
+| COMP-KNOTD-RUNTIME-001             | knotd-runtime-platform-compatibility | designed  | component/knotd-runtime-platform-compatibility-001.md | [REL, CONF, CAP]                  | draft                             |
+| COMP-KNOTD-STATUS-003              | knotd-session-status                 | designed  | component/knotd-session-status-003.md                 | [REL, CONF]                       | draft                             |
+| COMP-WORKFLOW-FRESHNESS-021        | workflow-freshness-hardening         | designed  | component/workflow-freshness-hardening-021.md         | [REL, COMP, CONF]                 | draft                             |
+| COMP-STORYBOOK-STABILITY-022       | storybook-app-stability              | designed  | component/storybook-app-stability-022.md              | [REL, COMP, CONF]                 | draft                             |
 
 ## Interfaces
 
@@ -125,87 +137,89 @@ docs/specs/
 
 ## Change Log
 
-| Date       | Action                           | Specs Affected  |
-| ---------- | -------------------------------- | --------------- |
-| 2026-02-19 | Initial extraction from codebase | All COMP-\*-001 |
-| 2026-02-19 | Implement Graph UI component     | COMP-GRAPH-UI-001 |
-| 2026-02-20 | Add frontend toolchain modernization spec | COMP-TOOLCHAIN-001 |
-| 2026-02-20 | Implement and verify frontend toolchain modernization | COMP-TOOLCHAIN-001 |
-| 2026-02-20 | Implement Search UI component     | COMP-SEARCH-UI-001 |
-| 2026-02-20 | Implement Tag Extraction component | COMP-TAG-EXTRACTION-001 |
-| 2026-02-20 | Add compliance fixes spec and plan | COMP-COMPLIANCE-001 |
-| 2026-02-20 | Verify compliance fixes implementation | COMP-COMPLIANCE-001 |
-| 2026-02-20 | Add lint cleanup spec and plan | COMP-LINT-001 |
-| 2026-02-20 | Verify lint cleanup implementation | COMP-LINT-001 |
-| 2026-02-20 | Add lightweight traceability policy + hook | COMP-TRACE-LITE-001 |
-| 2026-02-20 | Document editor reading refresh and verification | COMP-EDITOR-READING-001 |
-| 2026-02-20 | Add left-pane collapse recovery guard and verification | COMP-LAYOUT-RECOVERY-001 |
-| 2026-02-20 | Add icon-first common chrome and label preference | COMP-ICON-CHROME-001 |
-| 2026-02-20 | Fix graph node hover transform instability | COMP-GRAPH-HOVER-001 |
-| 2026-02-20 | Design explorer tree navigation with backend metadata persistence | COMP-EXPLORER-TREE-001 |
-| 2026-02-20 | Implement explorer tree M0 read model and sidebar rendering | COMP-EXPLORER-TREE-001 |
-| 2026-02-20 | Implement explorer tree M1 context actions and optimistic rollback | COMP-EXPLORER-TREE-001 |
-| 2026-02-20 | Implement explorer tree M2 watcher event reconciliation | COMP-EXPLORER-TREE-001 |
-| 2026-02-20 | Implement explorer tree M3 accessibility and hidden-path hardening | COMP-EXPLORER-TREE-001 |
-| 2026-02-20 | Fix editor crash on empty note content parse | COMP-EDITOR-EMPTY-DOC-001 |
-| 2026-02-20 | Remove search box from Notes/Explorer panel | COMP-EXPLORER-PANEL-SEARCH-001 |
-| 2026-02-20 | Add graph consistency and selection-sync bugfix spec | COMP-GRAPH-CONSISTENCY-001 |
-| 2026-02-20 | Implement and verify graph consistency and selection-sync fixes | COMP-GRAPH-CONSISTENCY-001 |
-| 2026-02-20 | Add graph link-target alias resolution follow-up fix and verification | COMP-GRAPH-CONSISTENCY-001 |
-| 2026-02-20 | Add disconnected-node discoverability layout refinement and verification | COMP-GRAPH-CONSISTENCY-001 |
-| 2026-02-20 | Remove textual + New Note control; keep explorer icon-only actions | COMP-EXPLORER-ICON-ACTIONS-001 |
-| 2026-02-20 | Explore Medium-like editor interactions and draft mode-based editor spec | COMP-EDITOR-MODES-001 |
-| 2026-02-20 | Implement editor modes M0 (source/edit/view framework) and verify | COMP-EDITOR-MODES-001 |
-| 2026-02-20 | Implement editor modes M1 (selection floating toolbar) and verify | COMP-EDITOR-MODES-001 |
-| 2026-02-20 | Implement editor modes M2 (block inserter + contextual separation) and verify | COMP-EDITOR-MODES-001 |
-| 2026-02-20 | Implement editor modes M3 (syntax hardening, control placement, fidelity regression checks) and verify | COMP-EDITOR-MODES-001 |
-| 2026-02-20 | Implement editor modes M4 (floating-control keyboard access, focus states, and expanded markdown fidelity checks) and verify | COMP-EDITOR-MODES-001 |
-| 2026-02-21 | Define strict edit-mode WYSIWYM, toolbar distinguishability, and Enter paragraph stability fixes | COMP-EDITOR-WYSIWYM-002 |
-| 2026-02-21 | Implement and verify strict edit-mode WYSIWYM, toolbar distinguishability, and Enter paragraph stability fixes | COMP-EDITOR-WYSIWYM-002 |
-| 2026-02-20 | Design and implement MCP server with core tools and note resources | COMP-MCP-SERVER-001 |
-| 2026-02-20 | Extend MCP server with note mutation and directory management tools | COMP-MCP-SERVER-002 |
-| 2026-02-21 | Add tool rail and context panel interaction policy for deterministic toggling and future tool classification | COMP-TOOL-RAIL-CONTEXT-001 |
-| 2026-02-21 | Implement and verify hybrid tool/context policy with active-tool toggle and zero-trace folded panel | COMP-TOOL-RAIL-CONTEXT-001 |
-| 2026-02-21 | Define vault/node graph scopes with bounded local depth controls | COMP-GRAPH-MODES-002 |
-| 2026-02-21 | Implement and verify vault/node graph scopes with bounded local depth controls | COMP-GRAPH-MODES-002 |
-| 2026-02-21 | Define graph UI continuity and toggle semantics refinement | COMP-GRAPH-UI-CONTINUITY-003 |
-| 2026-02-21 | Implement and verify graph UI continuity and toggle semantics refinement | COMP-GRAPH-UI-CONTINUITY-003 |
-| 2026-02-21 | Implement startup-ready window reveal and accessible in-app window controls | COMP-WINDOW-STARTUP-003 |
-| 2026-02-22 | Draft markdown engine migration spec for prosemirror-markdown + markdown-it and reference links | COMP-MARKDOWN-ENGINE-001 |
-| 2026-02-22 | Implement and verify markdown engine migration with next-engine parser/serializer, reference links, and runtime toggle | COMP-MARKDOWN-ENGINE-001 |
-| 2026-02-22 | Draft note metadata fidelity spec and plan for backlink titles and heading positions | COMP-NOTE-METADATA-001 |
-| 2026-02-22 | Implement and verify note metadata fidelity for backlink titles and heading positions | COMP-NOTE-METADATA-001 |
-| 2026-02-22 | Draft vault unsaved-changes guard spec for open-vault replacement flows | COMP-VAULT-UNSAVED-001 |
-| 2026-02-22 | Draft implementation plan for vault unsaved-changes guard | COMP-VAULT-UNSAVED-001 |
-| 2026-02-22 | Implement and verify vault unsaved-changes guard for vault replacement flows | COMP-VAULT-UNSAVED-001 |
-| 2026-02-22 | Draft vault switch unsaved UX guard spec and implementation plan | COMP-VAULT-SWITCH-UX-001 |
-| 2026-02-22 | Implement and verify vault switch unsaved UX guard flow in app handlers | COMP-VAULT-SWITCH-UX-001 |
-| 2026-02-22 | Draft Mermaid diagrams spec for markdown view rendering and editor insertion | COMP-MERMAID-001 |
-| 2026-02-22 | Draft Mermaid diagrams implementation plan and roadmap entry | COMP-MERMAID-001 |
-| 2026-02-22 | Implement and verify Mermaid diagram rendering and block insertion workflow | COMP-MERMAID-001 |
-| 2026-02-22 | Draft UI automation DX spec and implementation plan for browser lane + native smoke lane | COMP-UI-AUTOMATION-DX-001 |
-| 2026-02-22 | Implement and verify UI automation DX lanes (browser-first + tauri-native smoke) and defer protocol-attach as future R&D | COMP-UI-AUTOMATION-DX-001 |
-| 2026-02-22 | Document Mermaid inline mark splitting bug and draft fix design (planning deferred) | COMP-MERMAID-INLINE-SPLIT-001 |
-| 2026-02-22 | Draft UI QA DX maturity spec for expanded test coverage, reviewable artifacts, and implementation-derived design system docs (planning deferred) | COMP-UI-QA-DX-001 |
-| 2026-02-22 | Draft Storybook DX integration spec including DevOps automation, MCP configuration, and skill/process documentation freshness requirements (planning deferred; Penpot out of scope) | COMP-STORYBOOK-DX-001 |
-| 2026-02-22 | Start Storybook DX implementation: scaffold Storybook, add baseline stories, add Storybook CI artifact workflow, and document MCP + freshness process | COMP-STORYBOOK-DX-001 |
-| 2026-02-22 | Implement Mermaid inline insertion boundary normalization and verify with editor + browser journey tests | COMP-MERMAID-INLINE-SPLIT-001 |
-| 2026-03-01 | Expand managed app shortcuts to safe shell + editor command paths and verify | COMP-MANAGED-SHORTCUTS-007 |
-| 2026-03-01 | Integrate upstream math plugin with KaTeX rendering and markdown round-trip verification | COMP-MATH-PLUGIN-008 |
-| 2026-03-01 | Normalize view-mode bullet, ordered, and task list spacing and task checkbox alignment | COMP-VIEW-LIST-STYLING-009 |
-| 2026-03-01 | Add YAML front matter note metadata support with a dedicated Meta editor mode | COMP-NOTE-METADATA-FRONTMATTER-011 |
-| 2026-03-02 | Draft semantic MCP UI automation runtime for discoverable actions, views, and screenshot capture | COMP-UI-AUTOMATION-RUNTIME-013 |
-| 2026-03-02 | Draft task-toggle roundtrip regression fix and task behavior automation follow-up | COMP-TASK-TOGGLE-ROUNDTRIP-014 |
-| 2026-03-02 | Draft YouTube note type with transcript-backed import and specialized rendering | COMP-YOUTUBE-NOTE-TYPE-015 |
-| 2026-03-02 | Draft wikilink embed design/spec/plan for plugin-backed `![[...]]` rendering across source/edit/view modes | COMP-WIKILINK-EMBEDS-017 |
-| 2026-03-03 | Draft single-AppImage Linux packaging spec with porcelain launcher, XDG config, and user-service integration | COMP-LINUX-PACKAGING-018 |
-| 2026-02-22 | Start UI QA DX implementation: add journey suite expansion, CI quality workflows, and review-artifact guide | COMP-UI-QA-DX-001 |
-| 2026-02-22 | Complete UI QA DX implementation with design-system token/primitive inventories and formal verification policy integration | COMP-UI-QA-DX-001 |
-| 2026-02-22 | Complete Storybook DX implementation and mark Storybook workflows/docs as operational | COMP-STORYBOOK-DX-001 |
-| 2026-02-23 | Draft settings pane and manual vault reindex design/specification | COMP-SETTINGS-PANE-001 |
-| 2026-02-23 | Draft UI daemon integration spec/plan for knotd-backed command routing | COMP-KNOTD-UI-010 |
-| 2026-02-23 | Draft speculative reactive essay runtime design with typed sensor streams and incremental fixed-point reconciliation (planning deferred) | COMP-REACTIVE-ESSAY-001 |
-| 2026-03-01 | Implement targeted frontend typecheck cleanup for daemon smoke mock typing and SearchBox story null narrowing | COMP-TYPECHECK-CLEANUP-002 |
-| 2026-03-01 | Implement task list checkbox UI in view/edit modes with transaction-safe toggling and markdown fidelity verification | COMP-TASK-LIST-UI-003 |
-| 2026-03-01 | Restore live editor Enter list continuation for bullet, ordered, and task lists with plugin-stack regression coverage | COMP-LIST-CONTINUATION-004 |
-| 2026-03-01 | Restore edit-mode undo/redo and add shared toolbar history controls wired through a single command path | COMP-EDITOR-HISTORY-005 |
+| Date       | Action                                                                                                                                                                              | Specs Affected                     |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| 2026-02-19 | Initial extraction from codebase                                                                                                                                                    | All COMP-\*-001                    |
+| 2026-02-19 | Implement Graph UI component                                                                                                                                                        | COMP-GRAPH-UI-001                  |
+| 2026-02-20 | Add frontend toolchain modernization spec                                                                                                                                           | COMP-TOOLCHAIN-001                 |
+| 2026-02-20 | Implement and verify frontend toolchain modernization                                                                                                                               | COMP-TOOLCHAIN-001                 |
+| 2026-02-20 | Implement Search UI component                                                                                                                                                       | COMP-SEARCH-UI-001                 |
+| 2026-02-20 | Implement Tag Extraction component                                                                                                                                                  | COMP-TAG-EXTRACTION-001            |
+| 2026-02-20 | Add compliance fixes spec and plan                                                                                                                                                  | COMP-COMPLIANCE-001                |
+| 2026-02-20 | Verify compliance fixes implementation                                                                                                                                              | COMP-COMPLIANCE-001                |
+| 2026-02-20 | Add lint cleanup spec and plan                                                                                                                                                      | COMP-LINT-001                      |
+| 2026-02-20 | Verify lint cleanup implementation                                                                                                                                                  | COMP-LINT-001                      |
+| 2026-02-20 | Add lightweight traceability policy + hook                                                                                                                                          | COMP-TRACE-LITE-001                |
+| 2026-02-20 | Document editor reading refresh and verification                                                                                                                                    | COMP-EDITOR-READING-001            |
+| 2026-02-20 | Add left-pane collapse recovery guard and verification                                                                                                                              | COMP-LAYOUT-RECOVERY-001           |
+| 2026-02-20 | Add icon-first common chrome and label preference                                                                                                                                   | COMP-ICON-CHROME-001               |
+| 2026-02-20 | Fix graph node hover transform instability                                                                                                                                          | COMP-GRAPH-HOVER-001               |
+| 2026-02-20 | Design explorer tree navigation with backend metadata persistence                                                                                                                   | COMP-EXPLORER-TREE-001             |
+| 2026-02-20 | Implement explorer tree M0 read model and sidebar rendering                                                                                                                         | COMP-EXPLORER-TREE-001             |
+| 2026-02-20 | Implement explorer tree M1 context actions and optimistic rollback                                                                                                                  | COMP-EXPLORER-TREE-001             |
+| 2026-02-20 | Implement explorer tree M2 watcher event reconciliation                                                                                                                             | COMP-EXPLORER-TREE-001             |
+| 2026-02-20 | Implement explorer tree M3 accessibility and hidden-path hardening                                                                                                                  | COMP-EXPLORER-TREE-001             |
+| 2026-02-20 | Fix editor crash on empty note content parse                                                                                                                                        | COMP-EDITOR-EMPTY-DOC-001          |
+| 2026-02-20 | Remove search box from Notes/Explorer panel                                                                                                                                         | COMP-EXPLORER-PANEL-SEARCH-001     |
+| 2026-02-20 | Add graph consistency and selection-sync bugfix spec                                                                                                                                | COMP-GRAPH-CONSISTENCY-001         |
+| 2026-02-20 | Implement and verify graph consistency and selection-sync fixes                                                                                                                     | COMP-GRAPH-CONSISTENCY-001         |
+| 2026-02-20 | Add graph link-target alias resolution follow-up fix and verification                                                                                                               | COMP-GRAPH-CONSISTENCY-001         |
+| 2026-02-20 | Add disconnected-node discoverability layout refinement and verification                                                                                                            | COMP-GRAPH-CONSISTENCY-001         |
+| 2026-02-20 | Remove textual + New Note control; keep explorer icon-only actions                                                                                                                  | COMP-EXPLORER-ICON-ACTIONS-001     |
+| 2026-02-20 | Explore Medium-like editor interactions and draft mode-based editor spec                                                                                                            | COMP-EDITOR-MODES-001              |
+| 2026-02-20 | Implement editor modes M0 (source/edit/view framework) and verify                                                                                                                   | COMP-EDITOR-MODES-001              |
+| 2026-02-20 | Implement editor modes M1 (selection floating toolbar) and verify                                                                                                                   | COMP-EDITOR-MODES-001              |
+| 2026-02-20 | Implement editor modes M2 (block inserter + contextual separation) and verify                                                                                                       | COMP-EDITOR-MODES-001              |
+| 2026-02-20 | Implement editor modes M3 (syntax hardening, control placement, fidelity regression checks) and verify                                                                              | COMP-EDITOR-MODES-001              |
+| 2026-02-20 | Implement editor modes M4 (floating-control keyboard access, focus states, and expanded markdown fidelity checks) and verify                                                        | COMP-EDITOR-MODES-001              |
+| 2026-02-21 | Define strict edit-mode WYSIWYM, toolbar distinguishability, and Enter paragraph stability fixes                                                                                    | COMP-EDITOR-WYSIWYM-002            |
+| 2026-02-21 | Implement and verify strict edit-mode WYSIWYM, toolbar distinguishability, and Enter paragraph stability fixes                                                                      | COMP-EDITOR-WYSIWYM-002            |
+| 2026-02-20 | Design and implement MCP server with core tools and note resources                                                                                                                  | COMP-MCP-SERVER-001                |
+| 2026-02-20 | Extend MCP server with note mutation and directory management tools                                                                                                                 | COMP-MCP-SERVER-002                |
+| 2026-02-21 | Add tool rail and context panel interaction policy for deterministic toggling and future tool classification                                                                        | COMP-TOOL-RAIL-CONTEXT-001         |
+| 2026-02-21 | Implement and verify hybrid tool/context policy with active-tool toggle and zero-trace folded panel                                                                                 | COMP-TOOL-RAIL-CONTEXT-001         |
+| 2026-02-21 | Define vault/node graph scopes with bounded local depth controls                                                                                                                    | COMP-GRAPH-MODES-002               |
+| 2026-02-21 | Implement and verify vault/node graph scopes with bounded local depth controls                                                                                                      | COMP-GRAPH-MODES-002               |
+| 2026-02-21 | Define graph UI continuity and toggle semantics refinement                                                                                                                          | COMP-GRAPH-UI-CONTINUITY-003       |
+| 2026-02-21 | Implement and verify graph UI continuity and toggle semantics refinement                                                                                                            | COMP-GRAPH-UI-CONTINUITY-003       |
+| 2026-02-21 | Implement startup-ready window reveal and accessible in-app window controls                                                                                                         | COMP-WINDOW-STARTUP-003            |
+| 2026-02-22 | Draft markdown engine migration spec for prosemirror-markdown + markdown-it and reference links                                                                                     | COMP-MARKDOWN-ENGINE-001           |
+| 2026-02-22 | Implement and verify markdown engine migration with next-engine parser/serializer, reference links, and runtime toggle                                                              | COMP-MARKDOWN-ENGINE-001           |
+| 2026-02-22 | Draft note metadata fidelity spec and plan for backlink titles and heading positions                                                                                                | COMP-NOTE-METADATA-001             |
+| 2026-02-22 | Implement and verify note metadata fidelity for backlink titles and heading positions                                                                                               | COMP-NOTE-METADATA-001             |
+| 2026-02-22 | Draft vault unsaved-changes guard spec for open-vault replacement flows                                                                                                             | COMP-VAULT-UNSAVED-001             |
+| 2026-02-22 | Draft implementation plan for vault unsaved-changes guard                                                                                                                           | COMP-VAULT-UNSAVED-001             |
+| 2026-02-22 | Implement and verify vault unsaved-changes guard for vault replacement flows                                                                                                        | COMP-VAULT-UNSAVED-001             |
+| 2026-02-22 | Draft vault switch unsaved UX guard spec and implementation plan                                                                                                                    | COMP-VAULT-SWITCH-UX-001           |
+| 2026-02-22 | Implement and verify vault switch unsaved UX guard flow in app handlers                                                                                                             | COMP-VAULT-SWITCH-UX-001           |
+| 2026-02-22 | Draft Mermaid diagrams spec for markdown view rendering and editor insertion                                                                                                        | COMP-MERMAID-001                   |
+| 2026-02-22 | Draft Mermaid diagrams implementation plan and roadmap entry                                                                                                                        | COMP-MERMAID-001                   |
+| 2026-02-22 | Implement and verify Mermaid diagram rendering and block insertion workflow                                                                                                         | COMP-MERMAID-001                   |
+| 2026-02-22 | Draft UI automation DX spec and implementation plan for browser lane + native smoke lane                                                                                            | COMP-UI-AUTOMATION-DX-001          |
+| 2026-02-22 | Implement and verify UI automation DX lanes (browser-first + tauri-native smoke) and defer protocol-attach as future R&D                                                            | COMP-UI-AUTOMATION-DX-001          |
+| 2026-02-22 | Document Mermaid inline mark splitting bug and draft fix design (planning deferred)                                                                                                 | COMP-MERMAID-INLINE-SPLIT-001      |
+| 2026-02-22 | Draft UI QA DX maturity spec for expanded test coverage, reviewable artifacts, and implementation-derived design system docs (planning deferred)                                    | COMP-UI-QA-DX-001                  |
+| 2026-02-22 | Draft Storybook DX integration spec including DevOps automation, MCP configuration, and skill/process documentation freshness requirements (planning deferred; Penpot out of scope) | COMP-STORYBOOK-DX-001              |
+| 2026-02-22 | Start Storybook DX implementation: scaffold Storybook, add baseline stories, add Storybook CI artifact workflow, and document MCP + freshness process                               | COMP-STORYBOOK-DX-001              |
+| 2026-02-22 | Implement Mermaid inline insertion boundary normalization and verify with editor + browser journey tests                                                                            | COMP-MERMAID-INLINE-SPLIT-001      |
+| 2026-03-01 | Expand managed app shortcuts to safe shell + editor command paths and verify                                                                                                        | COMP-MANAGED-SHORTCUTS-007         |
+| 2026-03-01 | Integrate upstream math plugin with KaTeX rendering and markdown round-trip verification                                                                                            | COMP-MATH-PLUGIN-008               |
+| 2026-03-01 | Normalize view-mode bullet, ordered, and task list spacing and task checkbox alignment                                                                                              | COMP-VIEW-LIST-STYLING-009         |
+| 2026-03-01 | Add YAML front matter note metadata support with a dedicated Meta editor mode                                                                                                       | COMP-NOTE-METADATA-FRONTMATTER-011 |
+| 2026-03-02 | Draft semantic MCP UI automation runtime for discoverable actions, views, and screenshot capture                                                                                    | COMP-UI-AUTOMATION-RUNTIME-013     |
+| 2026-03-02 | Draft task-toggle roundtrip regression fix and task behavior automation follow-up                                                                                                   | COMP-TASK-TOGGLE-ROUNDTRIP-014     |
+| 2026-03-02 | Draft YouTube note type with transcript-backed import and specialized rendering                                                                                                     | COMP-YOUTUBE-NOTE-TYPE-015         |
+| 2026-03-02 | Draft wikilink embed design/spec/plan for plugin-backed `![[...]]` rendering across source/edit/view modes                                                                          | COMP-WIKILINK-EMBEDS-017           |
+| 2026-03-03 | Draft single-AppImage Linux packaging spec with porcelain launcher, XDG config, and user-service integration                                                                        | COMP-LINUX-PACKAGING-018           |
+| 2026-02-22 | Start UI QA DX implementation: add journey suite expansion, CI quality workflows, and review-artifact guide                                                                         | COMP-UI-QA-DX-001                  |
+| 2026-02-22 | Complete UI QA DX implementation with design-system token/primitive inventories and formal verification policy integration                                                          | COMP-UI-QA-DX-001                  |
+| 2026-02-22 | Complete Storybook DX implementation and mark Storybook workflows/docs as operational                                                                                               | COMP-STORYBOOK-DX-001              |
+| 2026-02-23 | Draft settings pane and manual vault reindex design/specification                                                                                                                   | COMP-SETTINGS-PANE-001             |
+| 2026-02-23 | Draft UI daemon integration spec/plan for knotd-backed command routing                                                                                                              | COMP-KNOTD-UI-010                  |
+| 2026-02-23 | Draft speculative reactive essay runtime design with typed sensor streams and incremental fixed-point reconciliation (planning deferred)                                            | COMP-REACTIVE-ESSAY-001            |
+| 2026-03-01 | Implement targeted frontend typecheck cleanup for daemon smoke mock typing and SearchBox story null narrowing                                                                       | COMP-TYPECHECK-CLEANUP-002         |
+| 2026-03-01 | Implement task list checkbox UI in view/edit modes with transaction-safe toggling and markdown fidelity verification                                                                | COMP-TASK-LIST-UI-003              |
+| 2026-03-01 | Restore live editor Enter list continuation for bullet, ordered, and task lists with plugin-stack regression coverage                                                               | COMP-LIST-CONTINUATION-004         |
+| 2026-03-01 | Restore edit-mode undo/redo and add shared toolbar history controls wired through a single command path                                                                             | COMP-EDITOR-HISTORY-005            |
+| 2026-03-03 | Align project registry docs to component spec metadata and add automated drift validation                                                                                           | COMP-DOC-REGISTRY-020              |
+| 2026-03-03 | Harden workflow freshness with staged validators, lighter hooks, and skill-policy alignment                                                                                         | COMP-WORKFLOW-FRESHNESS-021        |
