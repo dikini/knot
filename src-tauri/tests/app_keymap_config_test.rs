@@ -45,7 +45,10 @@ fn app_keymap_settings_default_when_file_missing() {
 
     let loaded = load_app_keymap_settings(temp_dir.path()).expect("load defaults");
 
-    assert_eq!(loaded.keymaps.general.save_note, default_app_keymap_settings().keymaps.general.save_note);
+    assert_eq!(
+        loaded.keymaps.general.save_note,
+        default_app_keymap_settings().keymaps.general.save_note
+    );
 }
 
 #[test]

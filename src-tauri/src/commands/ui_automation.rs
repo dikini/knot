@@ -58,7 +58,9 @@ pub struct CapturedPng {
     pub height: u32,
 }
 
-pub fn capture_main_window_png<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> Result<CapturedPng, String> {
+pub fn capture_main_window_png<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
+) -> Result<CapturedPng, String> {
     #[cfg(target_os = "linux")]
     {
         use std::sync::mpsc::sync_channel;
@@ -81,15 +83,15 @@ pub fn capture_main_window_png<R: tauri::Runtime>(app: &tauri::AppHandle<R>) -> 
                         let snapshot = result
                             .map_err(|err| format!("Failed to snapshot Linux webview: {err}"))
                             .and_then(|surface: cairo::Surface| {
-                                let mapped = surface
-                                    .map_to_image(None)
-                                    .map_err(|err| format!("Failed to map snapshot surface: {err}"))?;
+                                let mapped = surface.map_to_image(None).map_err(|err| {
+                                    format!("Failed to map snapshot surface: {err}")
+                                })?;
                                 let width = mapped.width().max(0) as u32;
                                 let height = mapped.height().max(0) as u32;
                                 let mut bytes = Vec::new();
-                                mapped
-                                    .write_to_png(&mut bytes)
-                                    .map_err(|err| format!("Failed to encode snapshot PNG: {err}"))?;
+                                mapped.write_to_png(&mut bytes).map_err(|err| {
+                                    format!("Failed to encode snapshot PNG: {err}")
+                                })?;
                                 Ok(CapturedPng {
                                     bytes,
                                     width,
@@ -138,7 +140,15 @@ pub fn capture_view_screenshot<R: tauri::Runtime>(
 ) -> Result<serde_json::Value, String> {
     let captured = capture_main_window_png(app)?;
     let cropped = crop_png_to_frame(&captured, frame, pixel_ratio)?;
-    persist_capture_payload(cropped.bytes, cropped.width, cropped.height, name, "view", target_id, "view")
+    persist_capture_payload(
+        cropped.bytes,
+        cropped.width,
+        cropped.height,
+        name,
+        "view",
+        target_id,
+        "view",
+    )
 }
 
 fn crop_png_to_frame(
@@ -206,7 +216,8 @@ fn persist_capture_payload(
         }))
     );
     let path = output_dir.join(filename);
-    std::fs::write(&path, bytes).map_err(|err| format!("Failed to write screenshot artifact: {err}"))?;
+    std::fs::write(&path, bytes)
+        .map_err(|err| format!("Failed to write screenshot artifact: {err}"))?;
 
     Ok(json!({
         "file_path": path.to_string_lossy().to_string(),
@@ -223,7 +234,13 @@ fn sanitize_capture_name(value: String) -> String {
     let trimmed = value.trim();
     let sanitized = trimmed
         .chars()
-        .map(|ch| if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' { ch } else { '-' })
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                ch
+            } else {
+                '-'
+            }
+        })
         .collect::<String>();
     let collapsed = sanitized.trim_matches('-').to_string();
     if collapsed.is_empty() {

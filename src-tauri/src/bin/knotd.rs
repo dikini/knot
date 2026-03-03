@@ -190,7 +190,11 @@ fn probe_outcome(result: &Result<(), knot::error::KnotError>) -> ProbeOutcome {
 }
 
 fn probe_exit_code(outcome: &ProbeOutcome) -> i32 {
-    if outcome.ok { 0 } else { 3 }
+    if outcome.ok {
+        0
+    } else {
+        3
+    }
 }
 
 fn status_payload(config: &KnotdConfig, outcome: &ProbeOutcome) -> KnotdStatusPayload {
@@ -399,14 +403,22 @@ fn run_unix_socket_server(server: McpServer, socket_path: &Path) -> Result<(), S
     let shared_server = Arc::new(server);
 
     if socket_path.exists() {
-        fs::remove_file(socket_path)
-            .map_err(|err| format!("failed to remove stale socket {}: {err}", socket_path.display()))?;
+        fs::remove_file(socket_path).map_err(|err| {
+            format!(
+                "failed to remove stale socket {}: {err}",
+                socket_path.display()
+            )
+        })?;
     }
     let listener = UnixListener::bind(socket_path)
         .map_err(|err| format!("failed to bind socket {}: {err}", socket_path.display()))?;
     let permissions = fs::Permissions::from_mode(0o600);
-    fs::set_permissions(socket_path, permissions)
-        .map_err(|err| format!("failed to set socket permissions on {}: {err}", socket_path.display()))?;
+    fs::set_permissions(socket_path, permissions).map_err(|err| {
+        format!(
+            "failed to set socket permissions on {}: {err}",
+            socket_path.display()
+        )
+    })?;
 
     loop {
         let (stream, _addr) = listener
@@ -432,7 +444,10 @@ fn run_unix_socket_server(server: McpServer, socket_path: &Path) -> Result<(), S
 
 #[cfg(test)]
 mod tests {
-    use super::{capabilities_payload, help_text, parse_config, probe_exit_code, probe_json_payload, probe_outcome, probe_output_line, status_payload, KnotdConfig, RunMode};
+    use super::{
+        capabilities_payload, help_text, parse_config, probe_exit_code, probe_json_payload,
+        probe_outcome, probe_output_line, status_payload, KnotdConfig, RunMode,
+    };
     use knot::error::KnotError;
     use std::path::PathBuf;
 
@@ -452,8 +467,8 @@ mod tests {
 
     #[test]
     fn parse_uses_env_when_flag_missing() {
-        let cfg = parse_config(&args(&["knotd"]), Some("/tmp/env-vault".to_string()))
-            .expect("config");
+        let cfg =
+            parse_config(&args(&["knotd"]), Some("/tmp/env-vault".to_string())).expect("config");
         assert_eq!(cfg.vault_path, PathBuf::from("/tmp/env-vault"));
     }
 
@@ -521,10 +536,7 @@ mod tests {
         )
         .expect("config");
         assert_eq!(cfg.run_mode, RunMode::ServeUnix);
-        assert_eq!(
-            cfg.listen_unix_path,
-            Some(PathBuf::from("/tmp/knotd.sock"))
-        );
+        assert_eq!(cfg.listen_unix_path, Some(PathBuf::from("/tmp/knotd.sock")));
     }
 
     #[test]

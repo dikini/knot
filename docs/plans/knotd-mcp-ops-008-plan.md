@@ -6,7 +6,7 @@ Change-Type: design-update
 - Spec: `docs/specs/component/knotd-mcp-ops-008.md`
 - Trace: `DESIGN-knotd-mcp-ops`
 - Created: `2026-02-23`
-- Updated: `2026-02-27`
+- Updated: `2026-03-03`
 
 ## Tasks
 | ID | Task | Size | Depends | Refs |
@@ -22,6 +22,8 @@ Change-Type: design-update
 | KOP-009 | Extend ignore-policy verification to cover `.run/` dev-daemon artifacts | S | - | FR-9 |
 | KOP-010 | Ignore `.run/`, stop the dev daemon, and remove stale runtime artifacts | S | KOP-009 | FR-9 |
 | KOP-011 | Verify `.run/` ignore behavior and record cleanup audit | S | KOP-010 | AC-6 |
+| KOP-012 | Add native Rust bridge regression coverage for JSON-RPC notifications and patch request/notification forwarding | S | - | FR-10 |
+| KOP-013 | Re-run native bridge handshake verification against a live daemon-backed AppImage path | S | KOP-012 | AC-7 |
 
 ## Verification Commands
 - `npm run -s knotd:mcp:smoke`
@@ -30,3 +32,4 @@ Change-Type: design-update
 - `npm test -- --run src/tooling/knotdMcpConfig.test.ts`
 - `git check-ignore -v .mcp/knotd-mcp.json`
 - `git check-ignore -v .run/knotd-dev/knotd.log`
+- Native AppImage `mcp bridge` handshake against a reachable daemon socket

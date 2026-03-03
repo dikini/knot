@@ -542,8 +542,9 @@ impl NoteTypeRegistry {
             BuiltInNoteTypePluginInfo {
                 name: "youtube".to_string(),
                 display_name: "YouTube".to_string(),
-                description: "Render and import YouTube video notes with transcript-backed markdown."
-                    .to_string(),
+                description:
+                    "Render and import YouTube video notes with transcript-backed markdown."
+                        .to_string(),
             },
         ]
     }
@@ -642,7 +643,10 @@ mod tests {
                 description: Some("Runtime overview".to_string()),
             }
         );
-        assert_eq!(embed.description_source, Some(EmbedDescriptionSource::PluginDefined));
+        assert_eq!(
+            embed.description_source,
+            Some(EmbedDescriptionSource::PluginDefined)
+        );
         assert_eq!(embed.primary_action.target, EmbedActionTarget::Note);
     }
 
@@ -737,7 +741,10 @@ mod tests {
                 description: None,
             }
         );
-        assert_eq!(embed.description_source, Some(EmbedDescriptionSource::PluginDefined));
+        assert_eq!(
+            embed.description_source,
+            Some(EmbedDescriptionSource::PluginDefined)
+        );
     }
 
     #[test]
@@ -769,7 +776,7 @@ mod tests {
     #[test]
     fn markdown_description_extracts_yaml_block_scalars() {
         let description = extract_description_from_markdown_frontmatter(
-            "---\ndescription: |-\n  First line.\n  Second line.\nother: value\n---\n# Title\n"
+            "---\ndescription: |-\n  First line.\n  Second line.\nother: value\n---\n# Title\n",
         );
 
         assert_eq!(description, Some("First line.\nSecond line.".to_string()));

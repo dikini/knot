@@ -133,7 +133,11 @@ pub fn build_youtube_note_markdown(
         transcript.trim().to_string(),
     ];
 
-    while frontmatter.last().map(|line| line.is_empty()).unwrap_or(false) {
+    while frontmatter
+        .last()
+        .map(|line| line.is_empty())
+        .unwrap_or(false)
+    {
         frontmatter.pop();
     }
 
@@ -178,9 +182,12 @@ pub fn import_youtube_note(url: &str) -> Result<YouTubeImportResult, String> {
         .text()
         .map_err(|err| format!("Failed to read YouTube video page: {err}"))?;
 
-    let player_response_json = extract_json_object_after_marker(&watch_html, "ytInitialPlayerResponse = ")
-        .or_else(|| extract_json_object_after_marker(&watch_html, "var ytInitialPlayerResponse = "))
-        .ok_or_else(|| "Failed to locate YouTube player metadata".to_string())?;
+    let player_response_json =
+        extract_json_object_after_marker(&watch_html, "ytInitialPlayerResponse = ")
+            .or_else(|| {
+                extract_json_object_after_marker(&watch_html, "var ytInitialPlayerResponse = ")
+            })
+            .ok_or_else(|| "Failed to locate YouTube player metadata".to_string())?;
     let player_response: Value = serde_json::from_str(&player_response_json)
         .map_err(|err| format!("Failed to parse YouTube player metadata: {err}"))?;
     let innertube_api_key = extract_innertube_api_key(&watch_html)
@@ -199,11 +206,8 @@ pub fn import_youtube_note(url: &str) -> Result<YouTubeImportResult, String> {
         .unwrap_or_default()
         .to_string();
 
-    let transcript_player_response = fetch_transcript_player_response(
-        &client,
-        &innertube_api_key,
-        &parsed_url.video_id,
-    )?;
+    let transcript_player_response =
+        fetch_transcript_player_response(&client, &innertube_api_key, &parsed_url.video_id)?;
     let tracks = transcript_player_response
         .pointer("/captions/playerCaptionsTracklistRenderer/captionTracks")
         .and_then(Value::as_array)
@@ -390,7 +394,13 @@ pub fn build_youtube_note_path(
 }
 
 fn normalize_heading_text(value: &str) -> String {
-    value.trim().replace('\n', " ").trim().to_string().if_empty_then("YouTube Video").to_string()
+    value
+        .trim()
+        .replace('\n', " ")
+        .trim()
+        .to_string()
+        .if_empty_then("YouTube Video")
+        .to_string()
 }
 
 fn yaml_scalar(value: &str) -> String {
@@ -434,9 +444,18 @@ mod tests {
     fn normalize_youtube_url_extracts_video_id_from_watch_url() {
         let parsed = normalize_youtube_url("https://www.youtube.com/watch?v=abc123xyz00").unwrap();
         assert_eq!(parsed.video_id, "abc123xyz00");
-        assert_eq!(parsed.watch_url, "https://www.youtube.com/watch?v=abc123xyz00");
-        assert_eq!(parsed.embed_url, "https://www.youtube.com/embed/abc123xyz00");
-        assert_eq!(parsed.thumbnail_url, "https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg");
+        assert_eq!(
+            parsed.watch_url,
+            "https://www.youtube.com/watch?v=abc123xyz00"
+        );
+        assert_eq!(
+            parsed.embed_url,
+            "https://www.youtube.com/embed/abc123xyz00"
+        );
+        assert_eq!(
+            parsed.thumbnail_url,
+            "https://i.ytimg.com/vi/abc123xyz00/hqdefault.jpg"
+        );
     }
 
     #[test]

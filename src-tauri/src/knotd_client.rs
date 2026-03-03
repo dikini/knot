@@ -41,7 +41,8 @@ fn read_framed_message<R: BufRead>(reader: &mut R) -> Result<String, KnotError> 
         }
     }
 
-    let len = content_length.ok_or_else(|| KnotError::Other("Missing Content-Length".to_string()))?;
+    let len =
+        content_length.ok_or_else(|| KnotError::Other("Missing Content-Length".to_string()))?;
     let mut body = vec![0_u8; len];
     reader.read_exact(&mut body)?;
     String::from_utf8(body).map_err(|e| KnotError::Other(format!("Invalid UTF-8 payload: {e}")))

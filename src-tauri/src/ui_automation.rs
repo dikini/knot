@@ -256,7 +256,12 @@ impl UiAutomationRuntime {
                     target_id,
                 },
                 Some(payload),
-            ) => Some(materialize_screenshot_payload(name.clone(), target, target_id.clone(), payload)?),
+            ) => Some(materialize_screenshot_payload(
+                name.clone(),
+                target,
+                target_id.clone(),
+                payload,
+            )?),
             (_, payload) => payload,
         };
 
@@ -308,7 +313,8 @@ fn materialize_screenshot_payload(
         }))
     );
     let path = output_dir.join(filename);
-    std::fs::write(&path, bytes).map_err(|err| format!("Failed to write screenshot artifact: {err}"))?;
+    std::fs::write(&path, bytes)
+        .map_err(|err| format!("Failed to write screenshot artifact: {err}"))?;
 
     Ok(json!({
         "file_path": path.to_string_lossy().to_string(),
@@ -325,7 +331,13 @@ fn sanitize_file_stem(value: String) -> String {
     let trimmed = value.trim();
     let sanitized = trimmed
         .chars()
-        .map(|ch| if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' { ch } else { '-' })
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                ch
+            } else {
+                '-'
+            }
+        })
         .collect::<String>();
     let collapsed = sanitized.trim_matches('-').to_string();
     if collapsed.is_empty() {

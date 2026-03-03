@@ -1196,13 +1196,21 @@ mod tests {
         g.ensure_node("chain-7.md");
 
         let layout = g.compute_layout(800.0, 600.0);
-        let min_x = layout.nodes.iter().map(|node| node.x).fold(f64::INFINITY, f64::min);
+        let min_x = layout
+            .nodes
+            .iter()
+            .map(|node| node.x)
+            .fold(f64::INFINITY, f64::min);
         let max_x = layout
             .nodes
             .iter()
             .map(|node| node.x)
             .fold(f64::NEG_INFINITY, f64::max);
-        let min_y = layout.nodes.iter().map(|node| node.y).fold(f64::INFINITY, f64::min);
+        let min_y = layout
+            .nodes
+            .iter()
+            .map(|node| node.y)
+            .fold(f64::INFINITY, f64::min);
         let max_y = layout
             .nodes
             .iter()

@@ -60,7 +60,10 @@ pub struct IpcServer {
 
 impl IpcServer {
     /// Create a new IPC server
-    pub fn new(socket_path: impl Into<PathBuf>, dispatch_sender: Sender<IpcDispatchRequest>) -> Self {
+    pub fn new(
+        socket_path: impl Into<PathBuf>,
+        dispatch_sender: Sender<IpcDispatchRequest>,
+    ) -> Self {
         let socket_path = socket_path.into();
         let event_log = Self::build_event_log(&socket_path);
         let recovered_seq = event_log.as_ref().map(EventLog::last_seq).unwrap_or(0);
@@ -137,8 +140,10 @@ impl IpcServer {
                     request_id: envelope.request_id,
                     command: envelope.command,
                 };
-                let (response_tx, response_rx): (Sender<AppCommandResult>, Receiver<AppCommandResult>) =
-                    std::sync::mpsc::channel();
+                let (response_tx, response_rx): (
+                    Sender<AppCommandResult>,
+                    Receiver<AppCommandResult>,
+                ) = std::sync::mpsc::channel();
 
                 match dispatch_sender.send(IpcDispatchRequest {
                     envelope: queued,
@@ -261,8 +266,12 @@ impl IpcServer {
                 UiCommand::ListAutomationViews => "ui.list_automation_views".to_string(),
                 UiCommand::ListAutomationBehaviors => "ui.list_automation_behaviors".to_string(),
                 UiCommand::GetAutomationState => "ui.get_automation_state".to_string(),
-                UiCommand::InvokeAutomationAction { .. } => "ui.invoke_automation_action".to_string(),
-                UiCommand::InvokeAutomationBehavior { .. } => "ui.invoke_automation_behavior".to_string(),
+                UiCommand::InvokeAutomationAction { .. } => {
+                    "ui.invoke_automation_action".to_string()
+                }
+                UiCommand::InvokeAutomationBehavior { .. } => {
+                    "ui.invoke_automation_behavior".to_string()
+                }
                 UiCommand::CaptureAutomationScreenshot { .. } => {
                     "ui.capture_automation_screenshot".to_string()
                 }
@@ -283,10 +292,12 @@ impl IpcServer {
                 UiCommand::SwitchPanel { panel } => Some(panel.clone()),
                 UiCommand::TakeScreenshot { name } => Some(name.clone()),
                 UiCommand::InvokeAutomationAction { action_id, .. } => Some(action_id.clone()),
-                UiCommand::InvokeAutomationBehavior { behavior_id, .. } => Some(behavior_id.clone()),
-                UiCommand::CaptureAutomationScreenshot { target, target_id, .. } => {
-                    target_id.clone().or_else(|| Some(target.clone()))
+                UiCommand::InvokeAutomationBehavior { behavior_id, .. } => {
+                    Some(behavior_id.clone())
                 }
+                UiCommand::CaptureAutomationScreenshot {
+                    target, target_id, ..
+                } => target_id.clone().or_else(|| Some(target.clone())),
                 UiCommand::OpenNewVaultDialog
                 | UiCommand::OpenNewNoteDialog
                 | UiCommand::OpenPluginManagerDialog
@@ -422,8 +433,10 @@ mod tests {
 
         // Create server
         let (tx, rx): (Sender<AppCommand>, std::sync::mpsc::Receiver<AppCommand>) = channel();
-        let (dispatch_tx, dispatch_rx): (Sender<IpcDispatchRequest>, std::sync::mpsc::Receiver<IpcDispatchRequest>) =
-            channel();
+        let (dispatch_tx, dispatch_rx): (
+            Sender<IpcDispatchRequest>,
+            std::sync::mpsc::Receiver<IpcDispatchRequest>,
+        ) = channel();
         let server = IpcServer::new(&socket_path, dispatch_tx);
         server.start().unwrap();
         thread::spawn(move || {
@@ -472,8 +485,10 @@ mod tests {
     fn test_ipc_response_contains_seq_for_command() {
         let socket_path = format!("/tmp/botpane_test_seq_{}.sock", std::process::id());
 
-        let (dispatch_tx, dispatch_rx): (Sender<IpcDispatchRequest>, std::sync::mpsc::Receiver<IpcDispatchRequest>) =
-            channel();
+        let (dispatch_tx, dispatch_rx): (
+            Sender<IpcDispatchRequest>,
+            std::sync::mpsc::Receiver<IpcDispatchRequest>,
+        ) = channel();
         let server = IpcServer::new(&socket_path, dispatch_tx);
         server.start().unwrap();
         thread::spawn(move || {
@@ -510,8 +525,10 @@ mod tests {
     fn test_ipc_response_seq_is_monotonic_for_multiple_commands() {
         let socket_path = format!("/tmp/botpane_test_seq_multi_{}.sock", std::process::id());
 
-        let (dispatch_tx, dispatch_rx): (Sender<IpcDispatchRequest>, std::sync::mpsc::Receiver<IpcDispatchRequest>) =
-            channel();
+        let (dispatch_tx, dispatch_rx): (
+            Sender<IpcDispatchRequest>,
+            std::sync::mpsc::Receiver<IpcDispatchRequest>,
+        ) = channel();
         let server = IpcServer::new(&socket_path, dispatch_tx);
         server.start().unwrap();
         thread::spawn(move || {
@@ -566,6 +583,9 @@ mod tests {
         let client = IpcClient::new(missing_socket);
         let err = client.ping().expect_err("expected transport failure");
         let message = err.to_string().to_lowercase();
-        assert!(message.contains("knotd"), "error should reference knotd: {message}");
+        assert!(
+            message.contains("knotd"),
+            "error should reference knotd: {message}"
+        );
     }
 }

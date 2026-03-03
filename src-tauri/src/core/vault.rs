@@ -176,7 +176,10 @@ impl VaultManager {
     }
 
     pub fn note_type_registry(&self) -> NoteTypeRegistry {
-        NoteTypeRegistry::from_plugin_settings(self.config.plugins_enabled, &self.config.plugin_overrides)
+        NoteTypeRegistry::from_plugin_settings(
+            self.config.plugins_enabled,
+            &self.config.plugin_overrides,
+        )
     }
 
     /// Get current vault settings as JSON.
@@ -991,7 +994,11 @@ mod tests {
         let mut vault = VaultManager::create(&vault_path).unwrap();
 
         std::fs::create_dir_all(vault.root_path().join("images")).unwrap();
-        std::fs::write(vault.root_path().join("images/photo.jpg"), [0xff_u8, 0xd8, 0xff, 0x00]).unwrap();
+        std::fs::write(
+            vault.root_path().join("images/photo.jpg"),
+            [0xff_u8, 0xd8, 0xff, 0x00],
+        )
+        .unwrap();
 
         let result = vault.rename_note("images/photo.jpg", "archive/photo.jpg");
 
@@ -1031,7 +1038,8 @@ mod tests {
         assert!(files.contains(&"clips/sample-video.youtube.md".to_string()));
 
         let note_types = NoteTypeRegistry::default();
-        let resolved = note_types.resolve_path(&vault.root_path().join("clips/sample-video.youtube.md"));
+        let resolved =
+            note_types.resolve_path(&vault.root_path().join("clips/sample-video.youtube.md"));
         assert_eq!(resolved.note_type, NoteTypeId::YouTube);
         assert_eq!(resolved.type_badge.as_deref(), Some("YT"));
         assert!(resolved.available_modes.edit);
@@ -1058,7 +1066,10 @@ mod tests {
         assert!(!resolved.available_modes.edit);
         assert!(resolved.available_modes.view);
         assert_eq!(
-            resolved.media.as_ref().map(|media| media.mime_type.as_str()),
+            resolved
+                .media
+                .as_ref()
+                .map(|media| media.mime_type.as_str()),
             Some("application/pdf")
         );
     }
@@ -1087,8 +1098,14 @@ api_version = "1.0"
 
         let plugins = vault.list_installed_plugins().unwrap();
         assert_eq!(plugins.len(), 4);
-        let runtime_plugin = plugins.iter().find(|plugin| plugin.name == "test-plugin").unwrap();
-        let built_in_image = plugins.iter().find(|plugin| plugin.name == "image").unwrap();
+        let runtime_plugin = plugins
+            .iter()
+            .find(|plugin| plugin.name == "test-plugin")
+            .unwrap();
+        let built_in_image = plugins
+            .iter()
+            .find(|plugin| plugin.name == "image")
+            .unwrap();
         assert!(runtime_plugin.enabled);
         assert!(!runtime_plugin.effective_enabled);
         assert!(built_in_image.enabled);
@@ -1102,8 +1119,14 @@ api_version = "1.0"
             .unwrap();
 
         let plugins = vault.list_installed_plugins().unwrap();
-        let runtime_plugin = plugins.iter().find(|plugin| plugin.name == "test-plugin").unwrap();
-        let built_in_image = plugins.iter().find(|plugin| plugin.name == "image").unwrap();
+        let runtime_plugin = plugins
+            .iter()
+            .find(|plugin| plugin.name == "test-plugin")
+            .unwrap();
+        let built_in_image = plugins
+            .iter()
+            .find(|plugin| plugin.name == "image")
+            .unwrap();
         assert!(!runtime_plugin.enabled);
         assert!(!runtime_plugin.effective_enabled);
         assert!(!built_in_image.enabled);
@@ -1118,7 +1141,10 @@ api_version = "1.0"
 
         std::fs::write(vault.root_path().join("paper.pdf"), b"%PDF-1.5").unwrap();
         assert_eq!(
-            vault.note_type_registry().resolve_path(&vault.root_path().join("paper.pdf")).note_type,
+            vault
+                .note_type_registry()
+                .resolve_path(&vault.root_path().join("paper.pdf"))
+                .note_type,
             NoteTypeId::Unknown
         );
 
@@ -1128,7 +1154,10 @@ api_version = "1.0"
             }))
             .unwrap();
         assert_eq!(
-            vault.note_type_registry().resolve_path(&vault.root_path().join("paper.pdf")).note_type,
+            vault
+                .note_type_registry()
+                .resolve_path(&vault.root_path().join("paper.pdf"))
+                .note_type,
             NoteTypeId::Pdf
         );
 
@@ -1138,7 +1167,10 @@ api_version = "1.0"
             }))
             .unwrap();
         assert_eq!(
-            vault.note_type_registry().resolve_path(&vault.root_path().join("paper.pdf")).note_type,
+            vault
+                .note_type_registry()
+                .resolve_path(&vault.root_path().join("paper.pdf"))
+                .note_type,
             NoteTypeId::Unknown
         );
     }
@@ -1202,7 +1234,10 @@ api_version = "1.0"
 
         let mut vault = VaultManager::create(&vault_path).unwrap();
         vault
-            .save_note("runtime/manifesto.md", "# Runtime Manifesto\n\nCore principles.")
+            .save_note(
+                "runtime/manifesto.md",
+                "# Runtime Manifesto\n\nCore principles.",
+            )
             .unwrap();
         vault
             .save_note(
@@ -1229,6 +1264,9 @@ api_version = "1.0"
 
         let mut reopened_backlinks = reopened.graph().get_backlinks("runtime/manifesto.md");
         reopened_backlinks.sort();
-        assert_eq!(reopened_backlinks, vec!["runtime/current-design.md".to_string()]);
+        assert_eq!(
+            reopened_backlinks,
+            vec!["runtime/current-design.md".to_string()]
+        );
     }
 }

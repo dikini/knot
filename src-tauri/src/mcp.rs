@@ -162,10 +162,10 @@ impl McpServer {
     where
         F: FnOnce(&RuntimeHost) -> Result<T, (i32, String)>,
     {
-        let runtime = self
-            .runtime
-            .as_ref()
-            .ok_or((-32000, "Runtime host is not available in this server mode".to_string()))?;
+        let runtime = self.runtime.as_ref().ok_or((
+            -32000,
+            "Runtime host is not available in this server mode".to_string(),
+        ))?;
         f(runtime)
     }
 
@@ -971,8 +971,9 @@ impl McpServer {
                         .map_err(|e| (-32000, e.to_response_string()))?
                         .into_iter()
                         .map(|n| {
-                            let resolved =
-                                vault.note_type_registry().resolve_path(&vault.root_path().join(&n.path));
+                            let resolved = vault
+                                .note_type_registry()
+                                .resolve_path(&vault.root_path().join(&n.path));
                             json!({
                                 "id": n.id,
                                 "path": n.path,
@@ -993,9 +994,13 @@ impl McpServer {
                     "isError": false
                 }))
             }
-            "list_ui_actions" => self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationActions)),
+            "list_ui_actions" => {
+                self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationActions))
+            }
             "list_ui_views" => self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationViews)),
-            "list_ui_behaviors" => self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationBehaviors)),
+            "list_ui_behaviors" => {
+                self.execute_ui_tool(AppCommand::Ui(UiCommand::ListAutomationBehaviors))
+            }
             "get_ui_state" => self.execute_ui_tool(AppCommand::Ui(UiCommand::GetAutomationState)),
             "invoke_ui_action" => {
                 let action_id = arguments
@@ -1157,8 +1162,11 @@ impl McpServer {
                 }))
             }
             "is_vault_open" => {
-                let is_open = self.with_runtime(|runtime| Ok(runtime.vault().blocking_lock().is_some()))?;
-                Ok(json!({ "content": [{ "type": "text", "text": serde_json::to_string(&is_open).unwrap_or_else(|_| "false".to_string()) }], "isError": false }))
+                let is_open =
+                    self.with_runtime(|runtime| Ok(runtime.vault().blocking_lock().is_some()))?;
+                Ok(
+                    json!({ "content": [{ "type": "text", "text": serde_json::to_string(&is_open).unwrap_or_else(|_| "false".to_string()) }], "isError": false }),
+                )
             }
             "get_recent_notes" => {
                 let limit = arguments.get("limit").and_then(Value::as_u64).unwrap_or(20) as usize;
@@ -1171,7 +1179,8 @@ impl McpServer {
                     Ok(notes
                         .into_iter()
                         .map(|n| {
-                            let resolved = vault.note_type_registry()
+                            let resolved = vault
+                                .note_type_registry()
                                 .resolve_path(&vault.root_path().join(&n.path));
                             json!({
                                 "id": n.id,
@@ -1226,7 +1235,10 @@ impl McpServer {
                 }))
             }
             "update_vault_settings" => {
-                let patch = arguments.get("patch").cloned().ok_or((-32602, "Missing argument: patch".to_string()))?;
+                let patch = arguments
+                    .get("patch")
+                    .cloned()
+                    .ok_or((-32602, "Missing argument: patch".to_string()))?;
                 let payload = self.with_vault_mut(|vault| {
                     vault
                         .update_vault_settings_patch(&patch)
@@ -1278,7 +1290,9 @@ impl McpServer {
                         .unwrap_or_else(|| chrono::Utc::now().timestamp());
                     Ok(json!({"path": path, "name": name, "note_count": note_count, "last_modified": last_modified}))
                 })?;
-                Ok(json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&info).unwrap_or_else(|_| "{}".to_string()) }], "isError": false }))
+                Ok(
+                    json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&info).unwrap_or_else(|_| "{}".to_string()) }], "isError": false }),
+                )
             }
             "open_vault" => {
                 let path = arguments
@@ -1310,7 +1324,9 @@ impl McpServer {
                         .unwrap_or_else(|| chrono::Utc::now().timestamp());
                     Ok(json!({"path": path, "name": name, "note_count": note_count, "last_modified": last_modified}))
                 })?;
-                Ok(json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&info).unwrap_or_else(|_| "{}".to_string()) }], "isError": false }))
+                Ok(
+                    json!({ "content": [{ "type": "text", "text": serde_json::to_string_pretty(&info).unwrap_or_else(|_| "{}".to_string()) }], "isError": false }),
+                )
             }
             "close_vault" => {
                 self.with_runtime(|runtime| {
@@ -1331,7 +1347,8 @@ impl McpServer {
                         .map(|note| {
                             let path = note.path.clone();
                             let title = note.title.clone();
-                            let resolved = vault.note_type_registry()
+                            let resolved = vault
+                                .note_type_registry()
                                 .resolve_path(&vault.root_path().join(&path));
                             ExplorerTreeNote {
                                 path,
@@ -1537,7 +1554,11 @@ fn build_explorer_tree_json(
         }
     }
 
-    fn folder_expanded(path: &str, expansion_state_initialized: bool, expanded_folders: &[String]) -> bool {
+    fn folder_expanded(
+        path: &str,
+        expansion_state_initialized: bool,
+        expanded_folders: &[String],
+    ) -> bool {
         if path.is_empty() {
             return true;
         }
@@ -1563,7 +1584,11 @@ fn build_explorer_tree_json(
             .collect::<Vec<_>>();
 
         let mut notes = current.notes.clone();
-        notes.sort_by(|a, b| a.display_title.to_ascii_lowercase().cmp(&b.display_title.to_ascii_lowercase()));
+        notes.sort_by(|a, b| {
+            a.display_title
+                .to_ascii_lowercase()
+                .cmp(&b.display_title.to_ascii_lowercase())
+        });
 
         json!({
             "path": current.path,
@@ -1808,7 +1833,10 @@ mod tests {
             .expect("tokio runtime");
 
         rt.block_on(async {
-            runtime.create_new(&root).await.expect("create runtime vault");
+            runtime
+                .create_new(&root)
+                .await
+                .expect("create runtime vault");
             runtime
                 .with_manager_mut(|vault| {
                     vault
@@ -1843,11 +1871,9 @@ mod tests {
             json!(PROTOCOL_VERSION)
         );
         assert!(response["result"]["capabilities"]["tools"].is_object());
-        assert!(
-            response["result"]["capabilities"]
-                .get("resources")
-                .is_none()
-        );
+        assert!(response["result"]["capabilities"]
+            .get("resources")
+            .is_none());
     }
 
     #[test]
@@ -2258,7 +2284,8 @@ mod tests {
             .as_str()
             .expect("create temp-empty directory text");
         assert_eq!(
-            serde_json::from_str::<Value>(remove_dir_text).expect("create temp-empty directory JSON payload"),
+            serde_json::from_str::<Value>(remove_dir_text)
+                .expect("create temp-empty directory JSON payload"),
             Value::Null
         );
 
@@ -2278,7 +2305,8 @@ mod tests {
             .as_str()
             .expect("remove directory text");
         assert_eq!(
-            serde_json::from_str::<Value>(remove_empty_dir_text).expect("remove directory JSON payload"),
+            serde_json::from_str::<Value>(remove_empty_dir_text)
+                .expect("remove directory JSON payload"),
             Value::Null
         );
     }

@@ -7,11 +7,11 @@ use tauri::{Manager, State, Window};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons};
 use tracing::{info, instrument};
 
-use crate::commands::emit_event;
 use crate::app_config::{
-    app_config_root, load_app_keymap_settings, load_ui_automation_settings, save_app_keymap_settings,
-    save_ui_automation_settings, AppKeymapSettings, UiAutomationSettings,
+    app_config_root, load_app_keymap_settings, load_ui_automation_settings,
+    save_app_keymap_settings, save_ui_automation_settings, AppKeymapSettings, UiAutomationSettings,
 };
+use crate::commands::emit_event;
 use crate::core::{VaultManager, VaultPluginInfo};
 use crate::error::KnotError;
 use crate::knotd_client;
@@ -81,7 +81,7 @@ pub async fn create_vault(
         ensure_can_replace_open_vault(has_open_vault, state.has_unsaved_changes().await)?;
         let info: VaultInfo =
             knotd_client::call_tool_typed("create_vault", serde_json::json!({ "path": path }))
-            .map_err(|e| e.to_response_string())?;
+                .map_err(|e| e.to_response_string())?;
         sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
         state.set_unsaved_changes(false).await;
         return Ok(info);
@@ -122,19 +122,19 @@ pub async fn open_vault(
         let has_open_vault: bool =
             knotd_client::call_tool_typed("is_vault_open", serde_json::json!({}))
                 .map_err(|e| e.to_response_string())?;
-        ensure_can_replace_open_vault(
-            has_open_vault,
-            state.has_unsaved_changes().await,
-        )?;
+        ensure_can_replace_open_vault(has_open_vault, state.has_unsaved_changes().await)?;
         let info: VaultInfo =
             knotd_client::call_tool_typed("open_vault", serde_json::json!({ "path": path }))
-            .map_err(|e| e.to_response_string())?;
+                .map_err(|e| e.to_response_string())?;
         sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
         state.set_unsaved_changes(false).await;
         return Ok(info);
     }
 
-    ensure_can_replace_open_vault(state.is_vault_open().await, state.has_unsaved_changes().await)?;
+    ensure_can_replace_open_vault(
+        state.is_vault_open().await,
+        state.has_unsaved_changes().await,
+    )?;
 
     let mut vault_guard = state.vault().lock().await;
 
@@ -283,22 +283,20 @@ pub async fn open_vault_dialog(
         let has_open_vault: bool =
             knotd_client::call_tool_typed("is_vault_open", serde_json::json!({}))
                 .map_err(|e| e.to_response_string())?;
-        ensure_can_replace_open_vault(
-            has_open_vault,
-            state.has_unsaved_changes().await,
-        )?;
-        let info: VaultInfo = knotd_client::call_tool_typed(
-            "open_vault",
-            serde_json::json!({ "path": path_str }),
-        )
-        .map_err(|e| e.to_response_string())?;
+        ensure_can_replace_open_vault(has_open_vault, state.has_unsaved_changes().await)?;
+        let info: VaultInfo =
+            knotd_client::call_tool_typed("open_vault", serde_json::json!({ "path": path_str }))
+                .map_err(|e| e.to_response_string())?;
         sync_asset_protocol_scope(&app, &state, Some(PathBuf::from(&info.path))).await?;
         state.set_unsaved_changes(false).await;
         info!(path = path_str, "vault opened from dialog via daemon");
         return Ok(info);
     }
 
-    ensure_can_replace_open_vault(state.is_vault_open().await, state.has_unsaved_changes().await)?;
+    ensure_can_replace_open_vault(
+        state.is_vault_open().await,
+        state.has_unsaved_changes().await,
+    )?;
 
     // Close any existing vault
     let mut vault_guard = state.vault().lock().await;
@@ -494,9 +492,15 @@ async fn sync_asset_protocol_scope(
 }
 
 /// SPEC: COMP-VAULT-UNSAVED-001 FR-1, FR-2, FR-3, FR-4
-fn ensure_can_replace_open_vault(has_open_vault: bool, has_unsaved_changes: bool) -> Result<(), String> {
+fn ensure_can_replace_open_vault(
+    has_open_vault: bool,
+    has_unsaved_changes: bool,
+) -> Result<(), String> {
     if has_open_vault && has_unsaved_changes {
-        return Err("Cannot switch vault: unsaved changes detected. Save or discard your note edits first.".to_string());
+        return Err(
+            "Cannot switch vault: unsaved changes detected. Save or discard your note edits first."
+                .to_string(),
+        );
     }
     Ok(())
 }
@@ -644,7 +648,8 @@ pub async fn update_app_keymap_settings(
     settings: AppKeymapSettings,
 ) -> Result<AppKeymapSettings, String> {
     let config_root = app_config_root().map_err(|error| error.to_response_string())?;
-    save_app_keymap_settings(&config_root, &settings).map_err(|error| error.to_response_string())?;
+    save_app_keymap_settings(&config_root, &settings)
+        .map_err(|error| error.to_response_string())?;
     load_app_keymap_settings(&config_root).map_err(|error| error.to_response_string())
 }
 
@@ -663,7 +668,8 @@ pub async fn update_ui_automation_settings(
     settings: UiAutomationSettings,
 ) -> Result<UiAutomationSettings, String> {
     let config_root = app_config_root().map_err(|error| error.to_response_string())?;
-    save_ui_automation_settings(&config_root, &settings).map_err(|error| error.to_response_string())?;
+    save_ui_automation_settings(&config_root, &settings)
+        .map_err(|error| error.to_response_string())?;
     load_ui_automation_settings(&config_root).map_err(|error| error.to_response_string())
 }
 
@@ -784,11 +790,6 @@ mod tests {
     fn bug_vault_unsaved_001_blocks_replace_when_dirty() {
         let result = ensure_can_replace_open_vault(true, true);
         assert!(result.is_err());
-        assert!(
-            result
-                .err()
-                .unwrap_or_default()
-                .contains("unsaved changes")
-        );
+        assert!(result.err().unwrap_or_default().contains("unsaved changes"));
     }
 }

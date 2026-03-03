@@ -4,6 +4,7 @@
 
 use crate::error::{KnotError, Result};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::fs;
 use std::io::{self, BufRead, BufReader, Write};
 #[cfg(unix)]
@@ -119,7 +120,9 @@ pub fn parse_launcher_args(args: &[String]) -> Result<LauncherMode> {
                 Some("install") => LauncherMode::Mcp(LauncherMcpCommand::CodexInstall),
                 Some("uninstall") => LauncherMode::Mcp(LauncherMcpCommand::CodexUninstall),
                 Some(other) => {
-                    return Err(KnotError::Config(format!("unknown mcp codex command: {other}")))
+                    return Err(KnotError::Config(format!(
+                        "unknown mcp codex command: {other}"
+                    )))
                 }
                 None => LauncherMode::Mcp(LauncherMcpCommand::CodexInstall),
             },
@@ -624,9 +627,8 @@ fn read_stdio_message<R: BufRead>(input: &mut R) -> io::Result<Option<String>> {
             }
         }
 
-        let length = content_length.ok_or_else(|| {
-            io::Error::new(io::ErrorKind::InvalidData, "Missing Content-Length")
-        })?;
+        let length = content_length
+            .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidData, "Missing Content-Length"))?;
         let mut body = vec![0_u8; length];
         input.read_exact(&mut body)?;
         return String::from_utf8(body)
@@ -653,6 +655,46 @@ fn write_framed_message<W: Write>(output: &mut W, payload: &str) -> io::Result<(
 }
 
 #[cfg(unix)]
+fn message_expects_response(message: &str) -> io::Result<bool> {
+    let value: Value = serde_json::from_str(message)
+        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
+    Ok(value.get("id").is_some())
+}
+
+#[cfg(unix)]
+fn bridge_stdio_to_socket<R, W, SW, SR>(
+    stdin: &mut R,
+    stdout: &mut W,
+    socket_writer: &mut SW,
+    socket_reader: &mut SR,
+) -> Result<()>
+where
+    R: BufRead,
+    W: Write,
+    SW: Write,
+    SR: BufRead,
+{
+    while let Some(message) = read_stdio_message(stdin).map_err(KnotError::from)? {
+        if message.is_empty() {
+            continue;
+        }
+
+        let expects_response = message_expects_response(&message).map_err(KnotError::from)?;
+        write_framed_message(socket_writer, &message).map_err(KnotError::from)?;
+        if !expects_response {
+            continue;
+        }
+        let response = crate::mcp::read_framed_message(socket_reader)
+            .map_err(KnotError::from)?
+            .ok_or_else(|| KnotError::Other("knotd MCP socket closed".to_string()))?;
+        writeln!(stdout, "{response}").map_err(KnotError::from)?;
+        stdout.flush().map_err(KnotError::from)?;
+    }
+
+    Ok(())
+}
+
+#[cfg(unix)]
 pub fn run_mcp_bridge(config: &LauncherConfig, paths: &LauncherPaths) -> Result<i32> {
     let socket = socket_path(config, paths);
     let mut stream = UnixStream::connect(&socket).map_err(|err| {
@@ -670,18 +712,7 @@ pub fn run_mcp_bridge(config: &LauncherConfig, paths: &LauncherPaths) -> Result<
     let mut stdin = BufReader::new(io::stdin().lock());
     let mut stdout = io::stdout().lock();
 
-    while let Some(message) = read_stdio_message(&mut stdin).map_err(KnotError::from)? {
-        if message.is_empty() {
-            continue;
-        }
-        write_framed_message(&mut stream, &message).map_err(KnotError::from)?;
-        let response = crate::mcp::read_framed_message(&mut socket_reader)
-            .map_err(KnotError::from)?
-            .ok_or_else(|| KnotError::Other("knotd MCP socket closed".to_string()))?;
-        writeln!(stdout, "{response}").map_err(KnotError::from)?;
-        stdout.flush().map_err(KnotError::from)?;
-    }
-
+    bridge_stdio_to_socket(&mut stdin, &mut stdout, &mut stream, &mut socket_reader)?;
     Ok(0)
 }
 
@@ -712,15 +743,21 @@ fn make_executable(_path: &Path) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        apply_env_overrides, codex_command_path, command_help, down_summary,
-        parse_launcher_args, remove_managed_codex_block, render_codex_mcp_block,
-        render_install_artifacts, resolve_launcher_paths, stale_appimage_message,
-        LauncherConfig, LauncherEnv, LauncherMcpCommand, LauncherMode,
-        LauncherServiceCommand, UiRuntimeMode,
+        apply_env_overrides, bridge_stdio_to_socket, codex_command_path, command_help,
+        down_summary, parse_launcher_args, remove_managed_codex_block, render_codex_mcp_block,
+        render_install_artifacts, resolve_launcher_paths, stale_appimage_message, LauncherConfig,
+        LauncherEnv, LauncherMcpCommand, LauncherMode, LauncherServiceCommand, UiRuntimeMode,
     };
+    use crate::mcp::read_framed_message;
+    use serde_json::json;
+    use serde_json::Value;
     use std::fs;
+    use std::io::{BufReader, Cursor, Write};
+    use std::os::unix::net::UnixStream;
     use std::path::PathBuf;
     use std::sync::{Mutex, OnceLock};
+    use std::thread;
+    use std::time::Duration;
 
     fn sample_env() -> LauncherEnv {
         LauncherEnv {
@@ -776,15 +813,23 @@ mod tests {
             LauncherMode::Down
         );
         assert_eq!(
-            parse_launcher_args(&["knot".into(), "service".into(), "install".into()]).expect("parse service install"),
+            parse_launcher_args(&["knot".into(), "service".into(), "install".into()])
+                .expect("parse service install"),
             LauncherMode::Service(LauncherServiceCommand::Install { dry_run: false })
         );
         assert_eq!(
-            parse_launcher_args(&["knot".into(), "mcp".into(), "bridge".into()]).expect("parse mcp bridge"),
+            parse_launcher_args(&["knot".into(), "mcp".into(), "bridge".into()])
+                .expect("parse mcp bridge"),
             LauncherMode::Mcp(LauncherMcpCommand::Bridge)
         );
         assert_eq!(
-            parse_launcher_args(&["knot".into(), "mcp".into(), "codex".into(), "install".into()]).expect("parse mcp codex install"),
+            parse_launcher_args(&[
+                "knot".into(),
+                "mcp".into(),
+                "codex".into(),
+                "install".into()
+            ])
+            .expect("parse mcp codex install"),
             LauncherMode::Mcp(LauncherMcpCommand::CodexInstall)
         );
     }
@@ -793,11 +838,23 @@ mod tests {
     fn launcher_tdd_resolves_xdg_paths_with_runtime_socket_preference() {
         let paths = resolve_launcher_paths(&sample_env()).expect("paths");
 
-        assert_eq!(paths.config_root, PathBuf::from("/home/tester/.config/knot"));
-        assert_eq!(paths.state_root, PathBuf::from("/home/tester/.local/state/knot"));
+        assert_eq!(
+            paths.config_root,
+            PathBuf::from("/home/tester/.config/knot")
+        );
+        assert_eq!(
+            paths.state_root,
+            PathBuf::from("/home/tester/.local/state/knot")
+        );
         assert_eq!(paths.runtime_root, PathBuf::from("/run/user/1000/knot"));
-        assert_eq!(paths.socket_path, PathBuf::from("/run/user/1000/knot/knotd.sock"));
-        assert_eq!(paths.wrapper_path, PathBuf::from("/home/tester/.local/bin/knot"));
+        assert_eq!(
+            paths.socket_path,
+            PathBuf::from("/run/user/1000/knot/knotd.sock")
+        );
+        assert_eq!(
+            paths.wrapper_path,
+            PathBuf::from("/home/tester/.local/bin/knot")
+        );
         assert_eq!(
             paths.unit_path,
             PathBuf::from("/home/tester/.config/systemd/user/knotd.service")
@@ -815,15 +872,26 @@ mod tests {
             ui_mode: UiRuntimeMode::DaemonIpc,
         };
 
-        let artifacts =
-            render_install_artifacts(&config, PathBuf::from("/opt/Knot.AppImage").as_path(), &paths)
-                .expect("artifacts");
+        let artifacts = render_install_artifacts(
+            &config,
+            PathBuf::from("/opt/Knot.AppImage").as_path(),
+            &paths,
+        )
+        .expect("artifacts");
 
-        assert!(artifacts.wrapper_script.contains("exec \"/opt/Knot.AppImage\" \"$@\""));
+        assert!(artifacts
+            .wrapper_script
+            .contains("exec \"/opt/Knot.AppImage\" \"$@\""));
         assert!(artifacts.env_file.contains("KNOT_VAULT_PATH=/vaults/main"));
-        assert!(artifacts.env_file.contains("KNOTD_SOCKET_PATH=/run/user/1000/knot/knotd.sock"));
-        assert!(artifacts.unit_file.contains("EnvironmentFile=%h/.config/knot/knotd.env"));
-        assert!(artifacts.unit_file.contains("ExecStart=%h/.local/bin/knot knotd --service"));
+        assert!(artifacts
+            .env_file
+            .contains("KNOTD_SOCKET_PATH=/run/user/1000/knot/knotd.sock"));
+        assert!(artifacts
+            .unit_file
+            .contains("EnvironmentFile=%h/.config/knot/knotd.env"));
+        assert!(artifacts
+            .unit_file
+            .contains("ExecStart=%h/.local/bin/knot knotd --service"));
         assert!(artifacts.unit_file.contains("Restart=on-failure"));
     }
 
@@ -904,7 +972,8 @@ mod tests {
             runtime_dir: Some(runtime_dir),
         };
         let paths = resolve_launcher_paths(&env).expect("paths");
-        fs::create_dir_all(paths.wrapper_path.parent().expect("wrapper parent")).expect("create wrapper dir");
+        fs::create_dir_all(paths.wrapper_path.parent().expect("wrapper parent"))
+            .expect("create wrapper dir");
         fs::write(&paths.wrapper_path, "#!/usr/bin/env sh\n").expect("write wrapper");
         let _guard = EnvGuard::set("APPIMAGE", "/tmp/transient/Knot.AppImage");
 
@@ -933,5 +1002,120 @@ command = "npx"
         assert!(!next.contains("/old/bridge.mjs"));
         assert!(next.contains("model = \"gpt-5\""));
         assert!(next.contains("[mcp_servers.playwright]"));
+    }
+
+    #[test]
+    fn launcher_tdd_bridge_does_not_wait_for_initialized_notification_response() {
+        fn frame(value: serde_json::Value) -> Vec<u8> {
+            let payload = value.to_string();
+            format!("Content-Length: {}\r\n\r\n{payload}", payload.len()).into_bytes()
+        }
+
+        let (mut bridge_stream, mut daemon_stream) = UnixStream::pair().expect("unix stream pair");
+        bridge_stream
+            .set_read_timeout(Some(Duration::from_millis(250)))
+            .expect("bridge read timeout");
+        daemon_stream
+            .set_read_timeout(Some(Duration::from_millis(250)))
+            .expect("daemon read timeout");
+        let mut stdin = Cursor::new(
+            [
+                frame(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {},
+                        "clientInfo": { "name": "launcher-test", "version": "1.0.0" }
+                    }
+                })),
+                frame(json!({
+                    "jsonrpc": "2.0",
+                    "method": "initialized",
+                    "params": {}
+                })),
+                frame(json!({
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/list",
+                    "params": {}
+                })),
+            ]
+            .concat(),
+        );
+        let mut stdout = Vec::new();
+
+        let server = thread::spawn(move || {
+            let mut reader =
+                BufReader::new(daemon_stream.try_clone().expect("clone daemon stream"));
+            let initialize = read_framed_message(&mut reader)
+                .expect("read initialize")
+                .expect("initialize frame");
+            let initialize_value: Value =
+                serde_json::from_str(&initialize).expect("parse initialize request");
+            assert_eq!(initialize_value["method"], "initialize");
+
+            daemon_stream
+                .write_all(&frame(json!({
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "result": { "serverInfo": { "name": "knotd", "version": "test" } }
+                })))
+                .expect("write initialize response");
+            daemon_stream.flush().expect("flush initialize response");
+
+            let initialized = read_framed_message(&mut reader)
+                .expect("read initialized")
+                .expect("initialized frame");
+            let initialized_value: Value =
+                serde_json::from_str(&initialized).expect("parse initialized notification");
+            assert_eq!(initialized_value["method"], "initialized");
+
+            let tools_list = read_framed_message(&mut reader)
+                .expect("read tools/list")
+                .expect("tools/list frame");
+            let tools_list_value: Value =
+                serde_json::from_str(&tools_list).expect("parse tools/list request");
+            assert_eq!(tools_list_value["method"], "tools/list");
+
+            daemon_stream
+                .write_all(&frame(json!({
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "result": { "tools": [] }
+                })))
+                .expect("write tools/list response");
+            daemon_stream.flush().expect("flush tools/list response");
+        });
+
+        let mut socket_reader =
+            BufReader::new(bridge_stream.try_clone().expect("clone bridge stream"));
+        let result = bridge_stdio_to_socket(
+            &mut stdin,
+            &mut stdout,
+            &mut bridge_stream,
+            &mut socket_reader,
+        );
+
+        assert!(result.is_ok(), "bridge returned error: {result:?}");
+
+        let lines = String::from_utf8(stdout)
+            .expect("stdout utf8")
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .map(str::to_owned)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            lines.len(),
+            2,
+            "expected initialize and tools/list responses"
+        );
+        let first: Value = serde_json::from_str(&lines[0]).expect("parse first response");
+        let second: Value = serde_json::from_str(&lines[1]).expect("parse second response");
+        assert_eq!(first["id"], 1);
+        assert_eq!(second["id"], 2);
+
+        server.join().expect("server thread");
     }
 }

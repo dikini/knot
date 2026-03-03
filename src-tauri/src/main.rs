@@ -156,7 +156,10 @@ fn handle_launcher_command() -> knot::Result<Option<i32>> {
                 Ok(Some(0))
             }
             knot::launcher::LauncherServiceCommand::Status => {
-                println!("{}", knot::launcher::service_status_summary(&config, &paths));
+                println!(
+                    "{}",
+                    knot::launcher::service_status_summary(&config, &paths)
+                );
                 Ok(Some(0))
             }
         },
@@ -179,7 +182,10 @@ fn handle_launcher_command() -> knot::Result<Option<i32>> {
             }
             knot::launcher::LauncherMcpCommand::CodexInstall => {
                 let command_path = knot::launcher::codex_command_path(&paths)?;
-                println!("{}", knot::launcher::install_codex_mcp(&paths, &command_path)?);
+                println!(
+                    "{}",
+                    knot::launcher::install_codex_mcp(&paths, &command_path)?
+                );
                 Ok(Some(0))
             }
             knot::launcher::LauncherMcpCommand::CodexUninstall => {
@@ -209,7 +215,6 @@ fn handle_launcher_command() -> knot::Result<Option<i32>> {
 }
 
 fn run_tauri_app() -> knot::Result<Option<i32>> {
-
     info!("Starting Knot application");
 
     tauri::Builder::default()

@@ -14,13 +14,14 @@ use tauri::Window;
 use tracing::{info, instrument};
 use walkdir::WalkDir;
 
+use crate::knotd_client;
 use crate::state::response::{
     Backlink, ExplorerFolderNode, ExplorerNoteNode, ExplorerTree, Heading, NoteData, NoteSummary,
 };
-use crate::knotd_client;
 use crate::state::AppState;
 use crate::youtube::{
-    build_youtube_note_markdown, build_youtube_note_path, extract_youtube_metadata, import_youtube_note,
+    build_youtube_note_markdown, build_youtube_note_path, extract_youtube_metadata,
+    import_youtube_note,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -79,9 +80,13 @@ pub async fn get_note(path: String, state: State<'_, AppState>) -> Result<NoteDa
 
 #[tauri::command]
 #[instrument(skip(state))]
-pub async fn read_note_media_base64(file_path: String, state: State<'_, AppState>) -> Result<String, String> {
-    let requested_path =
-        PathBuf::from(&file_path).canonicalize().map_err(|e| format!("Failed to resolve media path: {e}"))?;
+pub async fn read_note_media_base64(
+    file_path: String,
+    state: State<'_, AppState>,
+) -> Result<String, String> {
+    let requested_path = PathBuf::from(&file_path)
+        .canonicalize()
+        .map_err(|e| format!("Failed to resolve media path: {e}"))?;
 
     let vault_root = if state.is_daemon_mode() {
         state
@@ -96,14 +101,16 @@ pub async fn read_note_media_base64(file_path: String, state: State<'_, AppState
             .ok_or_else(|| "No vault is open".to_string())?
     };
 
-    let resolved_root =
-        vault_root.canonicalize().map_err(|e| format!("Failed to resolve current vault path: {e}"))?;
+    let resolved_root = vault_root
+        .canonicalize()
+        .map_err(|e| format!("Failed to resolve current vault path: {e}"))?;
 
     if !requested_path.starts_with(&resolved_root) {
         return Err("Requested media path is outside the current vault".to_string());
     }
 
-    let bytes = std::fs::read(&requested_path).map_err(|e| format!("Failed to read media file: {e}"))?;
+    let bytes =
+        std::fs::read(&requested_path).map_err(|e| format!("Failed to read media file: {e}"))?;
     Ok(base64::engine::general_purpose::STANDARD.encode(bytes))
 }
 
@@ -442,8 +449,9 @@ pub async fn get_graph_layout(
 #[instrument(skip(state))]
 pub async fn get_explorer_tree(state: State<'_, AppState>) -> Result<ExplorerTree, String> {
     if state.is_daemon_mode() {
-        let notes: Vec<NoteSummary> = knotd_client::call_tool_typed("list_notes", serde_json::json!({}))
-            .map_err(|e| e.to_response_string())?;
+        let notes: Vec<NoteSummary> =
+            knotd_client::call_tool_typed("list_notes", serde_json::json!({}))
+                .map_err(|e| e.to_response_string())?;
         let settings: serde_json::Value =
             knotd_client::call_tool_typed("get_vault_settings", serde_json::json!({}))
                 .map_err(|e| e.to_response_string())?;
@@ -879,7 +887,8 @@ fn build_explorer_tree(
 
 /// Helper to convert NoteMeta to NoteSummary.
 fn note_to_summary(vault_root: &Path, meta: crate::note::NoteMeta) -> NoteSummary {
-    let resolved = crate::note_type::NoteTypeRegistry::default().resolve_path(&vault_root.join(&meta.path));
+    let resolved =
+        crate::note_type::NoteTypeRegistry::default().resolve_path(&vault_root.join(&meta.path));
     NoteSummary {
         id: meta.id,
         path: meta.path,
@@ -898,7 +907,9 @@ pub(crate) fn build_note_data(
     vault: &crate::core::VaultManager,
     note: crate::note::Note,
 ) -> NoteData {
-    let mut resolved = vault.note_type_registry().resolve_path(&vault_root.join(note.path()));
+    let mut resolved = vault
+        .note_type_registry()
+        .resolve_path(&vault_root.join(note.path()));
     let (headings, backlinks, content) = if note_type_has_text_content(resolved.note_type) {
         let note_headings = note.headings();
         let heading_positions = compute_heading_positions(note.content(), &note_headings);
@@ -1041,11 +1052,7 @@ fn parse_atx_heading_line(line: &str) -> Option<(u8, String)> {
         return None;
     }
 
-    let text = rest
-        .trim()
-        .trim_end_matches('#')
-        .trim()
-        .to_string();
+    let text = rest.trim().trim_end_matches('#').trim().to_string();
 
     if text.is_empty() {
         return None;

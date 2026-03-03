@@ -186,7 +186,10 @@ pub fn load_ui_automation_settings(config_root: &Path) -> Result<UiAutomationSet
     Ok(config.ui_automation)
 }
 
-pub fn save_ui_automation_settings(config_root: &Path, settings: &UiAutomationSettings) -> Result<()> {
+pub fn save_ui_automation_settings(
+    config_root: &Path,
+    settings: &UiAutomationSettings,
+) -> Result<()> {
     let mut config = load_app_config_file(config_root)?;
     config.ui_automation = settings.clone();
     save_app_config_file(config_root, &config)?;
@@ -196,10 +199,22 @@ pub fn save_ui_automation_settings(config_root: &Path, settings: &UiAutomationSe
 pub fn validate_app_keymap_settings(settings: &AppKeymapSettings) -> Result<()> {
     let mut seen: HashMap<String, &str> = HashMap::new();
     let managed_values = [
-        ("general.save_note", settings.keymaps.general.save_note.as_str()),
-        ("general.switch_notes", settings.keymaps.general.switch_notes.as_str()),
-        ("general.switch_search", settings.keymaps.general.switch_search.as_str()),
-        ("general.switch_graph", settings.keymaps.general.switch_graph.as_str()),
+        (
+            "general.save_note",
+            settings.keymaps.general.save_note.as_str(),
+        ),
+        (
+            "general.switch_notes",
+            settings.keymaps.general.switch_notes.as_str(),
+        ),
+        (
+            "general.switch_search",
+            settings.keymaps.general.switch_search.as_str(),
+        ),
+        (
+            "general.switch_graph",
+            settings.keymaps.general.switch_graph.as_str(),
+        ),
         ("editor.undo", settings.keymaps.editor.undo.as_str()),
         ("editor.redo", settings.keymaps.editor.redo.as_str()),
         (
@@ -253,7 +268,8 @@ pub fn app_config_path(config_root: &Path) -> PathBuf {
 }
 
 pub fn app_config_root() -> Result<PathBuf> {
-    let config_dir = dirs::config_dir().ok_or_else(|| KnotError::Config("Could not determine config directory".to_string()))?;
+    let config_dir = dirs::config_dir()
+        .ok_or_else(|| KnotError::Config("Could not determine config directory".to_string()))?;
     Ok(config_dir.join("knot"))
 }
 
@@ -365,7 +381,9 @@ fn normalize_chord(raw: &str) -> std::result::Result<String, String> {
     }
 
     if ordered.is_empty() {
-        return Err(format!("Shortcut must include at least one supported modifier: {raw}"));
+        return Err(format!(
+            "Shortcut must include at least one supported modifier: {raw}"
+        ));
     }
 
     ordered.push(normalized_key);
@@ -417,8 +435,9 @@ mod tests {
     use super::{
         default_app_keymap_settings, default_ui_automation_settings, load_app_keymap_settings,
         load_ui_automation_settings, save_app_keymap_settings, save_ui_automation_settings,
-        validate_app_keymap_settings, AppKeymapSettings, EditorKeymapSettings, GraphUiSettings,
-        GeneralKeymapSettings, ManagedKeymapSections, UiAutomationGroups, UiAutomationSettings,
+        validate_app_keymap_settings, AppKeymapSettings, EditorKeymapSettings,
+        GeneralKeymapSettings, GraphUiSettings, ManagedKeymapSections, UiAutomationGroups,
+        UiAutomationSettings,
     };
     use tempfile::TempDir;
 
