@@ -87,3 +87,22 @@ test("renders GFM tables and footnotes in view mode while keeping raw HTML liter
   await expect(page.locator("span")).toHaveCount(0);
   await expect(page.locator(".editor-content")).toContainText("<span>unsafe</span>");
 });
+
+test("source mode keeps unsupported rich table-cell content out of the browser lane contract", async ({ page }) => {
+  await openMarkdownNote(
+    page,
+    [
+      "# Demo",
+      "",
+      "| Feature | Details |",
+      "| --- | --- |",
+      "| Tables | First line |",
+    ].join("\n")
+  );
+
+  await page.getByRole("tab", { name: "Source" }).click();
+  const sourceEditor = page.getByLabel("Source markdown editor");
+  await expect(sourceEditor).toHaveValue(/\| Tables \| First line \|/);
+  await expect(sourceEditor).not.toHaveValue(/Quoted detail/);
+  await expect(sourceEditor).not.toHaveValue(/Item detail/);
+});

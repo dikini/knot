@@ -71,6 +71,15 @@ Policy:
 
 If the product later wants HTML-like richer blocks, they should be defined as explicit markdown extensions or note-type behavior, not smuggled in as arbitrary raw HTML support.
 
+### 7. Rich Table Cells Are Not Part of The Contract
+
+Native GFM pipe tables in markdown notes are treated as paragraph-style cell content only.
+
+Policy:
+- inline-rich content inside a cell is fine
+- multi-block content inside a cell is outside the supported markdown-note contract
+- serializer behavior must fail clearly instead of flattening block content into lossy text
+
 ## Skill/Workflow Augmentations
 - `bk-design`: classify every proposed markdown feature as `native_gfm`, `knot_extension`, or `future_extension`, and state whether backend support is required.
 - `bk-plan`: break work into parser, schema, source/edit/view, backend-if-needed, and regression tasks.

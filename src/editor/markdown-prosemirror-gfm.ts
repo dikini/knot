@@ -163,7 +163,10 @@ function serializeTableCellChildren(cell: ProseMirrorNode): MdastNode[] {
       inlineNodes.push(...serializeInlineChildren(child));
       return;
     }
-    inlineNodes.push({ type: "text", value: child.textContent });
+    // TRACE: DESIGN-gfm-markdown-platform-024 FR-18
+    throw new Error(
+      `GFM table cells support paragraph content only; received "${child.type.name}".`
+    );
   });
   return inlineNodes.length > 0 ? inlineNodes : [{ type: "text", value: "" }];
 }

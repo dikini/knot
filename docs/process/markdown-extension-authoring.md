@@ -72,6 +72,7 @@ Useful mixed fixtures:
 - extension beside task lists
 - extension mixed with links or autolinks
 - raw HTML beside supported markdown content when relevant to fallback or policy boundaries
+- unsupported rich table-cell content when native GFM cannot represent the structure safely
 
 ### Step 5: Implement Frontend First
 

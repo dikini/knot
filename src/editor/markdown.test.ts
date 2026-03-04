@@ -520,6 +520,42 @@ describe("Markdown Parser", () => {
       expect(serialized).toContain("[docs](https://example.com)");
     });
 
+    it("should reject block content inside table cells during serialization", () => {
+      const doc = parseMarkdown([
+        "| Feature | Details |",
+        "| --- | --- |",
+        "| Tables | First line |",
+      ].join("\n"));
+
+      const table = doc.child(0);
+      const detailsCell = table.child(1)?.child(1);
+      const blockquote = doc.type.schema.nodes.blockquote.create(
+        null,
+        doc.type.schema.nodes.paragraph.create(null, [doc.type.schema.text("Quoted detail")])
+      );
+      const list = doc.type.schema.nodes.bullet_list.create(null, [
+        doc.type.schema.nodes.list_item.create(
+          { task: false, checked: false },
+          [doc.type.schema.nodes.paragraph.create(null, [doc.type.schema.text("Item detail")])]
+        ),
+      ]);
+      const enrichedCell = detailsCell.type.create(detailsCell.attrs, [
+        detailsCell.child(0),
+        blockquote,
+        list,
+      ]);
+      const enrichedRow = table.child(1).type.create(table.child(1).attrs, [
+        table.child(1).child(0),
+        enrichedCell,
+      ]);
+      const enrichedTable = table.type.create(table.attrs, [table.child(0), enrichedRow]);
+      const enrichedDoc = doc.type.create(doc.attrs, [enrichedTable]);
+
+      expect(() => serializeMarkdown(enrichedDoc)).toThrow(
+        /table cells support paragraph content only/i
+      );
+    });
+
     it("should preserve raw HTML as literal text when serialized", () => {
       const markdown = "<span>unsafe</span>";
       const doc = parseMarkdown(markdown);

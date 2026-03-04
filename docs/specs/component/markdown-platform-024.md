@@ -67,6 +67,7 @@ This spec is limited to markdown notes and markdown syntax extensions. It does n
   - a workflow guide for implementing a markdown extension under BK
 - FR-16: Existing markdown-note behavior that remains in scope MUST be regression-safe across source, edit, and view modes during migration.
 - FR-17: Raw HTML is not part of the supported markdown-note feature surface in this component revision. The GFM-native path MUST treat raw HTML as unsupported, and the public/frontend markdown-note path MUST preserve raw HTML-looking input as literal text rather than rendering live HTML.
+- FR-18: Native GFM table support in markdown notes is limited to paragraph-style cell content. Multi-block table cells are outside the supported markdown-note contract for this component revision and MUST fail clearly rather than flattening silently during serialization.
 
 ### Behavior
 **Given** a markdown note contains native GFM tables, task lists, autolinks, and footnotes  
@@ -84,6 +85,10 @@ This spec is limited to markdown notes and markdown syntax extensions. It does n
 **Given** a markdown note contains raw HTML such as `<span>unsafe</span>`  
 **When** the note is parsed, rendered in view mode, or serialized through the public markdown-note API  
 **Then** the content is treated as literal text and is not rendered as live HTML.
+
+**Given** a markdown note or in-memory editor document contains a table cell with block content beyond paragraph-style inline content  
+**When** the markdown-note serializer runs  
+**Then** serialization fails clearly instead of flattening that content into lossy plain text.
 
 ## Implementation Options Considered
 | Option | Summary | Pros | Cons |
@@ -133,14 +138,15 @@ The spec intentionally does not require a single bridge package between markdown
 | Prefer maintained upstream libraries for GFM tables, markdown syntax, math, and directives/extensions | Lowers maintenance risk and aligns with ecosystem behavior | Integration work shifts to bridging and policy rather than bespoke code |
 | Keep directives/asides in the extension lane rather than promoting them into native markdown | Preserves native-first discipline while still leaving room for richer markdown-note semantics | Future aside-like syntax remains an explicit extension instead of a built-in guarantee |
 | Treat raw HTML as unsupported content for markdown notes and preserve it only as literal text on the public/frontend path | Avoids accidental live HTML rendering and keeps the supported surface explicit | Users do not get raw HTML rendering even though some markdown ecosystems allow it |
+| Reject multi-block table cells instead of inventing a lossy table-cell fallback | Native GFM pipe tables do not provide a clean representation for rich block cell content | Some ProseMirror-valid document states are intentionally outside the markdown-note contract |
 
 ## Concern Mapping
 | Concern | Requirement | Implementation Strategy |
 | --- | --- | --- |
 | REL | FR-6, FR-7, FR-8, FR-16 | One frontend model for source/edit/view, deterministic round-trip tests, and staged migration reduce drift |
 | SEC | FR-4, FR-9, FR-10, FR-13, FR-17 | Extensions remain explicit and typed; backend mirroring is opt-in and reviewable rather than accidental; raw HTML is not silently promoted into live rendering |
-| CAP | FR-6, FR-7, FR-10, FR-14 | Reuse maintained libraries and bounded feature registration instead of repeated ad hoc parsing logic |
-| CONS | FR-1, FR-2, FR-3, FR-6, FR-7, FR-8, FR-17 | Native GFM first, explicit extension classification, schema-based support, and the literal-text raw-HTML rule keep behavior stable across surfaces |
+| CAP | FR-6, FR-7, FR-10, FR-14, FR-18 | Reuse maintained libraries and bounded feature registration instead of repeated ad hoc parsing logic, and avoid inventing lossy rich-table fallbacks |
+| CONS | FR-1, FR-2, FR-3, FR-6, FR-7, FR-8, FR-17, FR-18 | Native GFM first, explicit extension classification, schema-based support, literal-text raw-HTML handling, and explicit rejection of unsupported table-cell structures keep behavior stable across surfaces |
 | COMP | FR-1, FR-3, FR-13, FR-16 | Existing markdown support remains regression-safe while the platform upgrades to a broader syntax target |
 | CONF | FR-6, FR-7, FR-11, FR-12, FR-15 | Users and contributors get one clear support contract, while process docs define how extensions should be added |
 

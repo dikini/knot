@@ -10,7 +10,7 @@ import { defaultMarkdownExtensionRegistry } from "./markdown-extensions";
 import { serializeProseMirrorDocumentToGfm } from "./markdown-prosemirror-gfm";
 import { schema } from "./schema";
 import { parseGfmMarkdown } from "./markdown-gfm";
-import { parseMarkdownNextDocument, serializeMarkdownNextDocument } from "./markdown-next";
+import { parseMarkdownNextDocument } from "./markdown-next";
 import type {
   MarkdownEngineComparison,
   MarkdownEngineResult,
@@ -45,18 +45,14 @@ export function parseMarkdown(content: string, options: ParseOptions = {}): Pros
 }
 
 export function serializeMarkdown(doc: ProseMirrorNode): string {
-  try {
-    return normalizeEscapedLiteralHtml(
-      normalizeEscapedWikilinks(
-        serializeProseMirrorDocumentToGfm(
-          doc,
-          defaultMarkdownExtensionRegistry
-        )
+  return normalizeEscapedLiteralHtml(
+    normalizeEscapedWikilinks(
+      serializeProseMirrorDocumentToGfm(
+        doc,
+        defaultMarkdownExtensionRegistry
       )
-    );
-  } catch {
-    return serializeLegacyMarkdown(doc);
-  }
+    )
+  );
 }
 
 export function compareMarkdownEngines(content: string, options: ParseOptions = {}): MarkdownEngineComparison {
@@ -126,35 +122,6 @@ function findReferenceDefinition(
   return referenceDefinitions[normalizeReferenceId(refId)] ?? null;
 }
 
-function serializeReferenceDefinitions(doc: ProseMirrorNode): string[] {
-  const attrs = doc.attrs as {
-    referenceDefinitions?: Record<string, ReferenceDefinition>;
-    referenceOrder?: string[];
-  };
-
-  const referenceDefinitions = attrs.referenceDefinitions ?? {};
-  const referenceOrder = attrs.referenceOrder ?? Object.values(referenceDefinitions).map((value) => value.id);
-  const seen = new Set<string>();
-
-  return referenceOrder
-    .filter((id) => {
-      const normalized = normalizeReferenceId(id);
-      if (seen.has(normalized)) {
-        return false;
-      }
-      seen.add(normalized);
-      return true;
-    })
-    .map((id) => findReferenceDefinition(referenceDefinitions, id))
-    .filter((definition): definition is ReferenceDefinition => definition !== null)
-    .map((definition) => {
-      if (definition.title) {
-        return `[${definition.id}]: ${definition.href} "${definition.title}"`;
-      }
-      return `[${definition.id}]: ${definition.href}`;
-    });
-}
-
 function normalizeEscapedWikilinks(markdown: string): string {
   const normalizedBracketEscapes = markdown.replace(/\\(?=[\[\]])/g, "");
 
@@ -165,21 +132,10 @@ function normalizeEscapedWikilinks(markdown: string): string {
 }
 
 function normalizeEscapedLiteralHtml(markdown: string): string {
+  // TODO(markdown-platform-024): scope this to raw-HTML fallback cases only.
+  // This currently strips escapes before angle brackets globally to preserve
+  // literal HTML-looking source, but it can also rewrite intentional escapes.
   return markdown.replace(/\\(?=[<>])/g, "");
-}
-
-function serializeLegacyMarkdown(doc: ProseMirrorNode): string {
-  const content = normalizeEscapedWikilinks(serializeMarkdownNextDocument(doc));
-  const definitions = serializeReferenceDefinitions(doc);
-  if (definitions.length === 0) {
-    return content;
-  }
-
-  if (content.trim().length === 0) {
-    return definitions.join("\n");
-  }
-
-  return `${content}\n\n${definitions.join("\n")}`;
 }
 
 function resolveReferenceState(content: string, options: ParseOptions): MarkdownReferenceState {

@@ -42,6 +42,7 @@ Define how UI verification artifacts are produced and reviewed by humans and age
 ## Coverage Reference
 Current browser journey suite:
 - `e2e/browser/app-shell.spec.ts`
+- `e2e/browser/markdown-gfm.spec.ts`
 - `e2e/browser/markdown-mermaid.spec.ts`
 - `e2e/browser/ui-journeys.spec.ts`
 
