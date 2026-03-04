@@ -66,4 +66,6 @@ Example MCP usage from the AppImage launcher:
 
 ## License
 
-MIT OR Apache-2.0
+This project is available under either MIT or Apache-2.0.
+
+See [LICENSING.md](/home/dikini/Projects/knot/LICENSING.md), [LICENSE-MIT](/home/dikini/Projects/knot/LICENSE-MIT), and [LICENSE-APACHE](/home/dikini/Projects/knot/LICENSE-APACHE).
