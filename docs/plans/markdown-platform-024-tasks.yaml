@@ -1,0 +1,108 @@
+tasks:
+  - id: MDP-001
+    title: "Define native-versus-extension markdown feature inventory and fixture matrix"
+    status: planned
+    size: S
+    spec_refs: [FR-1, FR-2, FR-3, FR-4, FR-5]
+    concerns: [CONS, COMP]
+    dependencies: []
+    acceptance: "A documented inventory exists for native GFM, Knot extensions, and deferred extension candidates, with a fixture matrix covering source/edit/view behavior."
+
+  - id: MDP-002
+    title: "Add failing round-trip and mixed-feature tests for GFM baseline and Knot extensions"
+    status: planned
+    size: M
+    spec_refs: [FR-3, FR-5, FR-6, FR-8, FR-16]
+    concerns: [REL, CONS, COMP]
+    dependencies: [MDP-001]
+    acceptance: "Targeted tests fail until tables, autolinks, footnotes, and mixed extension cases are supported through the new markdown-note pipeline."
+
+  - id: MDP-003
+    title: "Introduce a GFM-capable markdown syntax layer behind a migration seam"
+    status: planned
+    size: L
+    spec_refs: [FR-1, FR-8, FR-14]
+    concerns: [REL, CAP, COMP]
+    dependencies: [MDP-001, MDP-002]
+    acceptance: "Markdown notes can be parsed and serialized through a GFM-capable syntax layer without removing the ability to compare old and new behavior during migration."
+
+  - id: MDP-004
+    title: "Define extension registration primitives and port current custom syntax onto them"
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5, FR-9, FR-10]
+    concerns: [SEC, CONS, CONF]
+    dependencies: [MDP-003]
+    acceptance: "Wikilinks, embed wikilinks, and math are represented as explicit registered markdown extensions with typed metadata and documented responsibilities."
+
+  - id: MDP-005
+    title: "Expand the frontend schema for native GFM tables and footnote-compatible support"
+    status: planned
+    size: L
+    spec_refs: [FR-3, FR-6, FR-14]
+    concerns: [CONS, CAP, CONF]
+    dependencies: [MDP-003]
+    acceptance: "The frontend schema can represent the native GFM baseline additions required by the spec, including tables and a footnote-compatible model."
+
+  - id: MDP-006
+    title: "Wire edit mode to the expanded schema and maintained table support"
+    status: planned
+    size: M
+    spec_refs: [FR-6, FR-7, FR-11, FR-12]
+    concerns: [CONF, CONS, REL]
+    dependencies: [MDP-004, MDP-005]
+    acceptance: "Edit mode operates on the expanded markdown-note schema for the new native GFM features without introducing note-type-specific behavior."
+
+  - id: MDP-007
+    title: "Keep view mode on the shared frontend model and render new GFM constructs there"
+    status: planned
+    size: M
+    spec_refs: [FR-6, FR-7, FR-16]
+    concerns: [CONS, CONF, CAP]
+    dependencies: [MDP-005, MDP-006]
+    acceptance: "View mode renders the new native GFM support through the same frontend document model as edit mode, with no separate preview-only feature surface."
+
+  - id: MDP-008
+    title: "Reintegrate wikilinks, embeds, and math through the new syntax layer and shared model"
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5, FR-6, FR-7, FR-8, FR-16]
+    concerns: [CONS, COMP, REL]
+    dependencies: [MDP-004, MDP-005, MDP-006]
+    acceptance: "Current markdown-note extensions continue to round-trip and render correctly through the new GFM-first pipeline."
+
+  - id: MDP-009
+    title: "Audit backend markdown responsibilities and add only required mirrors"
+    status: planned
+    size: M
+    spec_refs: [FR-13, FR-16]
+    concerns: [SEC, CAP, COMP]
+    dependencies: [MDP-001, MDP-008]
+    acceptance: "Backend parsing/rendering is updated only for features actually required by backend responsibilities, with intentional frontend-only gaps documented if any remain."
+
+  - id: MDP-010
+    title: "Publish extension registration docs and implementation-facing examples"
+    status: planned
+    size: S
+    spec_refs: [FR-9, FR-10, FR-15]
+    concerns: [CONF, CONS]
+    dependencies: [MDP-004]
+    acceptance: "Repo process docs clearly describe markdown extension policy, authoring workflow, and the extension record expected by future implementation work."
+
+  - id: MDP-011
+    title: "Add migration gating and compatibility checks for existing markdown notes"
+    status: planned
+    size: S
+    spec_refs: [FR-14, FR-16]
+    concerns: [REL, COMP]
+    dependencies: [MDP-003, MDP-008, MDP-009]
+    acceptance: "The migration path has explicit compatibility checks for existing markdown notes and a bounded mechanism for detecting regressions before full cutover."
+
+  - id: MDP-012
+    title: "Verify the markdown platform migration and record the audit trail"
+    status: planned
+    size: M
+    spec_refs: [FR-6, FR-7, FR-13, FR-15, FR-16]
+    concerns: [REL, CONF, COMP]
+    dependencies: [MDP-007, MDP-009, MDP-010, MDP-011]
+    acceptance: "Verification covers source/edit/view consistency, backend-needed mirrors, extension docs alignment, and records any remaining gaps in an audit artifact."

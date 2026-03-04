@@ -39,8 +39,8 @@ describe("renderMarkdownToHtml", () => {
   it("toggles the targeted task item back into markdown", () => {
     const markdown = "- [x] Done\n- [ ] Todo";
 
-    expect(toggleTaskListItemInMarkdown(markdown, 1)).toBe("- [x] Done\n\n- [x] Todo");
-    expect(toggleTaskListItemInMarkdown(markdown, 0)).toBe("- [ ] Done\n\n- [ ] Todo");
+    expect(toggleTaskListItemInMarkdown(markdown, 1)).toBe("- [x] Done\n- [x] Todo");
+    expect(toggleTaskListItemInMarkdown(markdown, 0)).toBe("- [ ] Done\n- [ ] Todo");
     expect(toggleTaskListItemInMarkdown(markdown, 2)).toBeNull();
   });
 
@@ -60,6 +60,104 @@ describe("renderMarkdownToHtml", () => {
 
     expect(container.querySelector(".katex-display")).not.toBeNull();
     expect(container.textContent).toContain("x2+y2=z2");
+  });
+
+  it("renders GFM tables through the shared document model", () => {
+    const html = renderMarkdownToHtml([
+      "| Feature | Status |",
+      "| --- | --- |",
+      "| Tables | Ready |",
+    ].join("\n"));
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    const table = container.querySelector("table");
+    const rows = container.querySelectorAll("tr");
+
+    expect(table).not.toBeNull();
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.querySelectorAll("th")).toHaveLength(2);
+    expect(rows[1]?.querySelectorAll("td")).toHaveLength(2);
+    expect(table?.textContent).toContain("Feature");
+    expect(table?.textContent).toContain("Ready");
+  });
+
+  it("renders GFM footnote references and definitions through the shared document model", () => {
+    const html = renderMarkdownToHtml([
+      "Reference[^1]",
+      "",
+      "[^1]: Footnote body",
+    ].join("\n"));
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    const reference = container.querySelector("sup[data-footnote-reference='true']");
+    const definition = container.querySelector("section[data-footnote-definition='true']");
+
+    expect(reference).not.toBeNull();
+    expect(reference?.textContent).toBe("1");
+    expect(definition).not.toBeNull();
+    expect(definition?.textContent).toContain("Footnote body");
+  });
+
+  it("renders nested formatting inside table cells and footnote definitions", () => {
+    const html = renderMarkdownToHtml([
+      "| Feature | Details |",
+      "| --- | --- |",
+      "| Tables | **Bold** and [docs](https://example.com)[^1] |",
+      "",
+      "[^1]: Footnote with **strong** text and [more](https://example.com/more).",
+    ].join("\n"));
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    const tableStrong = container.querySelector("table strong");
+    const tableLink = container.querySelector("table a[href='https://example.com']");
+    const footnoteStrong = container.querySelector("section[data-footnote-definition='true'] strong");
+    const footnoteLink = container.querySelector(
+      "section[data-footnote-definition='true'] a[href='https://example.com/more']"
+    );
+
+    expect(tableStrong?.textContent).toBe("Bold");
+    expect(tableLink?.textContent).toBe("docs");
+    expect(footnoteStrong?.textContent).toBe("strong");
+    expect(footnoteLink?.textContent).toBe("more");
+  });
+
+  it("renders multiline footnotes with nested lists and mixed table-cell formatting", () => {
+    const html = renderMarkdownToHtml([
+      "| Feature | Details |",
+      "| --- | --- |",
+      "| Tables | **Bold** *italic* ~~strike~~ `code` [docs](https://example.com)[^1] |",
+      "",
+      "[^1]: First paragraph",
+      "",
+      "    - Child 1",
+      "    - Child 2",
+    ].join("\n"));
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    const tableEm = container.querySelector("table em");
+    const tableStrike = container.querySelector("table s");
+    const tableCode = container.querySelector("table code");
+    const footnoteListItems = container.querySelectorAll(
+      "section[data-footnote-definition='true'] li"
+    );
+
+    expect(tableEm?.textContent).toBe("italic");
+    expect(tableStrike?.textContent).toBe("strike");
+    expect(tableCode?.textContent).toBe("code");
+    expect(footnoteListItems).toHaveLength(2);
+  });
+
+  it("renders raw HTML as literal text instead of live DOM", () => {
+    const html = renderMarkdownToHtml("<span>unsafe</span>");
+    const container = document.createElement("div");
+    container.innerHTML = html;
+
+    expect(container.querySelector("span")).toBeNull();
+    expect(container.textContent).toBe("<span>unsafe</span>");
   });
 
   it("renders Mermaid diagrams with the wrapper as explicit container", async () => {

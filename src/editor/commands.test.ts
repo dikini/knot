@@ -5,6 +5,7 @@ import { schema } from "./schema";
 import {
   clearBlockFormatting,
   insertDisplayMath,
+  insertFootnoteReference,
   insertInlineMath,
   redoHistory,
   undoHistory,
@@ -98,5 +99,26 @@ describe("Editor commands", () => {
 
     expect(handled).toBe(true);
     expect(state.doc.child(1)?.type.name).toBe("math_display");
+  });
+
+  it("inserts a footnote reference node at the selection", () => {
+    let state = EditorState.create({
+      schema,
+      doc: schema.node("doc", null, [schema.node("paragraph", null, [schema.text("Alpha")])]),
+    });
+
+    state = state.apply(state.tr.setSelection(TextSelection.create(state.doc, 6)));
+
+    const handled = insertFootnoteReference("calc")(state, (tr: Transaction) => {
+      state = state.apply(tr);
+    });
+
+    expect(handled).toBe(true);
+    expect(state.doc.child(0)?.childCount).toBe(2);
+    expect(state.doc.child(0)?.child(1)?.type.name).toBe("footnote_reference");
+    expect(state.doc.child(0)?.child(1)?.attrs).toEqual({
+      id: "calc",
+      label: "calc",
+    });
   });
 });

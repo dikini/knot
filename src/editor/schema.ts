@@ -9,8 +9,9 @@
  */
 
 import { Schema, DOMOutputSpec, Node as ProseMirrorNode, Mark } from "prosemirror-model";
+import { tableNodes } from "prosemirror-tables";
 
-const nodes = {
+const baseNodes = {
   doc: {
     attrs: {
       referenceDefinitions: { default: {} },
@@ -140,6 +141,76 @@ const nodes = {
     },
   },
 
+  table: {
+    content: "table_row+",
+    group: "block",
+    tableRole: "table",
+    isolating: true,
+    parseDOM: [{ tag: "table" }],
+    toDOM(): DOMOutputSpec {
+      return ["table", ["tbody", 0]];
+    },
+  },
+
+  table_row: {
+    content: "(table_header | table_cell)+",
+    tableRole: "row",
+    parseDOM: [{ tag: "tr" }],
+    toDOM(): DOMOutputSpec {
+      return ["tr", 0];
+    },
+  },
+
+  table_header: {
+    content: "block+",
+    tableRole: "header_cell",
+    isolating: true,
+    parseDOM: [{ tag: "th" }],
+    toDOM(): DOMOutputSpec {
+      return ["th", 0];
+    },
+  },
+
+  table_cell: {
+    content: "block+",
+    tableRole: "cell",
+    isolating: true,
+    parseDOM: [{ tag: "td" }],
+    toDOM(): DOMOutputSpec {
+      return ["td", 0];
+    },
+  },
+
+  footnote_definition: {
+    attrs: {
+      id: {},
+      label: { default: null },
+    },
+    content: "block+",
+    group: "block",
+    defining: true,
+    parseDOM: [
+      {
+        tag: "section[data-footnote-definition]",
+        getAttrs: (dom: HTMLElement) => ({
+          id: dom.getAttribute("data-footnote-id"),
+          label: dom.getAttribute("data-footnote-label"),
+        }),
+      },
+    ],
+    toDOM(node: ProseMirrorNode): DOMOutputSpec {
+      return [
+        "section",
+        {
+          "data-footnote-definition": "true",
+          "data-footnote-id": node.attrs.id,
+          "data-footnote-label": node.attrs.label ?? node.attrs.id,
+        },
+        0,
+      ];
+    },
+  },
+
   image: {
     inline: true,
     attrs: {
@@ -186,6 +257,37 @@ const nodes = {
     },
   },
 
+  footnote_reference: {
+    inline: true,
+    group: "inline",
+    atom: true,
+    selectable: false,
+    attrs: {
+      id: {},
+      label: { default: null },
+    },
+    parseDOM: [
+      {
+        tag: "sup[data-footnote-reference]",
+        getAttrs: (dom: HTMLElement) => ({
+          id: dom.getAttribute("data-footnote-id"),
+          label: dom.getAttribute("data-footnote-label"),
+        }),
+      },
+    ],
+    toDOM(node: ProseMirrorNode): DOMOutputSpec {
+      return [
+        "sup",
+        {
+          "data-footnote-reference": "true",
+          "data-footnote-id": node.attrs.id,
+          "data-footnote-label": node.attrs.label ?? node.attrs.id,
+        },
+        node.attrs.label ?? node.attrs.id,
+      ];
+    },
+  },
+
   horizontal_rule: {
     group: "block",
     parseDOM: [{ tag: "hr" }],
@@ -197,6 +299,17 @@ const nodes = {
   text: {
     group: "inline",
   },
+};
+
+const tableNodeSpecs = tableNodes({
+  tableGroup: "block",
+  cellContent: "block+",
+  cellAttributes: {},
+});
+
+const nodes = {
+  ...baseNodes,
+  ...tableNodeSpecs,
 };
 
 const marks = {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseMarkdown, serializeMarkdown } from "./markdown";
+import { compareMarkdownEngines, parseMarkdown, serializeMarkdown } from "./markdown";
 
 describe("Markdown Parser", () => {
   describe("Parse Markdown", () => {
@@ -99,7 +99,7 @@ describe("Markdown Parser", () => {
 
       expect(doc.childCount).toBe(1);
       expect(doc.child(0).type.name).toBe("blockquote");
-      expect(doc.child(0).textContent).toBe("First line Second line");
+      expect(doc.child(0).textContent).toBe("First line\nSecond line");
     });
 
     it("should parse bullet lists", () => {
@@ -145,6 +145,105 @@ describe("Markdown Parser", () => {
       expect(doc.child(0).child(1).attrs.task).toBe(true);
       expect(doc.child(0).child(1).attrs.checked).toBe(false);
       expect(doc.child(0).child(1).textContent).toBe("Todo");
+    });
+
+    it("should parse GFM tables through the public markdown API", () => {
+      const doc = parseMarkdown([
+        "| Feature | Status |",
+        "| --- | --- |",
+        "| Tables | Ready |",
+      ].join("\n"));
+
+      expect(doc.childCount).toBe(1);
+      expect(doc.child(0).type.name).toBe("table");
+      expect(doc.child(0).child(0)?.type.name).toBe("table_row");
+      expect(doc.child(0).child(1)?.child(1)?.textContent).toBe("Ready");
+    });
+
+    it("should parse GFM footnotes through the public markdown API", () => {
+      const doc = parseMarkdown([
+        "Reference[^1]",
+        "",
+        "[^1]: Footnote body",
+      ].join("\n"));
+
+      expect(doc.childCount).toBe(2);
+      expect(doc.child(0).type.name).toBe("paragraph");
+      expect(doc.child(0).child(1)?.type.name).toBe("footnote_reference");
+      expect(doc.child(1).type.name).toBe("footnote_definition");
+      expect(doc.child(1).textContent).toContain("Footnote body");
+    });
+
+    it("should parse nested formatting inside GFM table cells", () => {
+      const doc = parseMarkdown([
+        "| Feature | Details |",
+        "| --- | --- |",
+        "| Tables | **Bold** and [docs](https://example.com) |",
+      ].join("\n"));
+
+      const detailsCell = doc.child(0).child(1)?.child(1);
+      const paragraph = detailsCell?.child(0);
+      const boldText = paragraph?.child(0);
+      const linkText = paragraph?.child(2);
+
+      expect(detailsCell?.type.name).toBe("table_cell");
+      expect(boldText?.marks.some((mark) => mark.type.name === "strong")).toBe(true);
+      expect(linkText?.marks.some((mark) => mark.type.name === "link")).toBe(true);
+    });
+
+    it("should parse nested formatting inside footnote definitions", () => {
+      const doc = parseMarkdown([
+        "Reference[^1]",
+        "",
+        "[^1]: **Bold** footnote with [docs](https://example.com).",
+      ].join("\n"));
+
+      const paragraph = doc.child(1)?.child(0);
+      const boldText = paragraph?.child(0);
+      const linkText = paragraph?.child(2);
+
+      expect(doc.child(1)?.type.name).toBe("footnote_definition");
+      expect(boldText?.marks.some((mark) => mark.type.name === "strong")).toBe(true);
+      expect(linkText?.marks.some((mark) => mark.type.name === "link")).toBe(true);
+    });
+
+    it("should parse multiline footnote definitions with nested lists", () => {
+      const doc = parseMarkdown([
+        "Reference[^1]",
+        "",
+        "[^1]: First paragraph",
+        "",
+        "    - Child 1",
+        "    - Child 2",
+      ].join("\n"));
+
+      expect(doc.child(1)?.type.name).toBe("footnote_definition");
+      expect(doc.child(1)?.child(0)?.type.name).toBe("paragraph");
+      expect(doc.child(1)?.child(1)?.type.name).toBe("bullet_list");
+      expect(doc.child(1)?.child(1)?.childCount).toBe(2);
+    });
+
+    it("should parse mixed inline marks inside a single table cell", () => {
+      const doc = parseMarkdown([
+        "| Feature | Details |",
+        "| --- | --- |",
+        "| Tables | **Bold** *italic* ~~strike~~ `code` [docs](https://example.com) |",
+      ].join("\n"));
+
+      const paragraph = doc.child(0).child(1)?.child(1)?.child(0);
+      expect(paragraph?.child(0)?.marks.some((mark) => mark.type.name === "strong")).toBe(true);
+      expect(paragraph?.child(2)?.marks.some((mark) => mark.type.name === "em")).toBe(true);
+      expect(paragraph?.child(4)?.marks.some((mark) => mark.type.name === "strike")).toBe(true);
+      expect(paragraph?.child(6)?.marks.some((mark) => mark.type.name === "code")).toBe(true);
+      expect(paragraph?.child(8)?.marks.some((mark) => mark.type.name === "link")).toBe(true);
+    });
+
+    it("should treat raw HTML as literal text on the public markdown API", () => {
+      const doc = parseMarkdown("<span>unsafe</span>");
+
+      expect(doc.childCount).toBe(1);
+      expect(doc.child(0)?.type.name).toBe("paragraph");
+      expect(doc.child(0)?.textContent).toBe("<span>unsafe</span>");
     });
 
     it("should parse inline formatting - bold", () => {
@@ -332,6 +431,103 @@ describe("Markdown Parser", () => {
       expect(serialized).toContain("- [ ] Todo");
     });
 
+    it("should serialize GFM tables from the public markdown API", () => {
+      const markdown = [
+        "| Feature | Status |",
+        "| --- | --- |",
+        "| Tables | Ready |",
+      ].join("\n");
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toBe([
+        "|Feature|Status|",
+        "|-|-|",
+        "|Tables|Ready|",
+      ].join("\n"));
+    });
+
+    it("should serialize GFM footnotes from the public markdown API", () => {
+      const markdown = [
+        "Reference[^1]",
+        "",
+        "[^1]: Footnote body",
+      ].join("\n");
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toBe(markdown);
+    });
+
+    it("should serialize nested formatting inside GFM table cells", () => {
+      const markdown = [
+        "| Feature | Details |",
+        "| --- | --- |",
+        "| Tables | **Bold** and [docs](https://example.com) |",
+      ].join("\n");
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("**Bold**");
+      expect(serialized).toContain("[docs](https://example.com)");
+      expect(serialized).toContain("|Tables|");
+    });
+
+    it("should serialize nested formatting inside footnote definitions", () => {
+      const markdown = [
+        "Reference[^1]",
+        "",
+        "[^1]: **Bold** footnote with [docs](https://example.com).",
+      ].join("\n");
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("[^1]:");
+      expect(serialized).toContain("**Bold**");
+      expect(serialized).toContain("[docs](https://example.com)");
+    });
+
+    it("should serialize multiline footnote definitions with nested lists", () => {
+      const markdown = [
+        "Reference[^1]",
+        "",
+        "[^1]: First paragraph",
+        "",
+        "    - Child 1",
+        "    - Child 2",
+      ].join("\n");
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("[^1]: First paragraph");
+      expect(serialized).toContain("- Child 1");
+      expect(serialized).toContain("- Child 2");
+    });
+
+    it("should serialize mixed inline marks inside a single table cell", () => {
+      const markdown = [
+        "| Feature | Details |",
+        "| --- | --- |",
+        "| Tables | **Bold** *italic* ~~strike~~ `code` [docs](https://example.com) |",
+      ].join("\n");
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toContain("**Bold**");
+      expect(serialized).toContain("*italic*");
+      expect(serialized).toContain("~~strike~~");
+      expect(serialized).toContain("`code`");
+      expect(serialized).toContain("[docs](https://example.com)");
+    });
+
+    it("should preserve raw HTML as literal text when serialized", () => {
+      const markdown = "<span>unsafe</span>";
+      const doc = parseMarkdown(markdown);
+      const serialized = serializeMarkdown(doc);
+
+      expect(serialized).toBe(markdown);
+    });
+
     it("should serialize horizontal rules", () => {
       const doc = parseMarkdown("---");
       const serialized = serializeMarkdown(doc);
@@ -360,7 +556,7 @@ describe("Markdown Parser", () => {
       const doc = parseMarkdown("[[Note Name]]");
       const serialized = serializeMarkdown(doc);
 
-      expect(serialized).toContain("[[Note Name|Note Name]]");
+      expect(serialized).toContain("[[Note Name]]");
     });
 
     it("should serialize wikilinks with display text", () => {
@@ -374,7 +570,7 @@ describe("Markdown Parser", () => {
       const doc = parseMarkdown("![[Note Name]]");
       const serialized = serializeMarkdown(doc);
 
-      expect(serialized).toContain("![[Note Name|Note Name]]");
+      expect(serialized).toContain("![[Note Name]]");
     });
 
     it("should serialize embedded wikilinks with display text", () => {
@@ -462,6 +658,16 @@ describe("Markdown Parser", () => {
       doc.forEach((child) => {
         expect(child.type.name).toBe("horizontal_rule");
       });
+    });
+
+    it("should report raw HTML as unsupported on the GFM seam while public parsing stays literal", () => {
+      const markdown = "<aside>unsafe</aside>";
+      const comparison = compareMarkdownEngines(markdown);
+
+      expect(comparison.gfm.document).toBeNull();
+      expect(comparison.gfm.diagnostics.some((diagnostic) => diagnostic.code === "unsupported-html")).toBe(true);
+      expect(comparison.legacy.document?.textContent).toBe(markdown);
+      expect(parseMarkdown(markdown).textContent).toBe(markdown);
     });
   });
 });

@@ -5,59 +5,78 @@
  */
 
 import { Node as ProseMirrorNode } from "prosemirror-model";
+import type { MarkdownExtensionRegistry } from "./markdown-extensions";
+import { defaultMarkdownExtensionRegistry } from "./markdown-extensions";
+import { serializeProseMirrorDocumentToGfm } from "./markdown-prosemirror-gfm";
 import { schema } from "./schema";
+import { parseGfmMarkdown } from "./markdown-gfm";
 import { parseMarkdownNextDocument, serializeMarkdownNextDocument } from "./markdown-next";
+import type {
+  MarkdownEngineComparison,
+  MarkdownEngineResult,
+  MarkdownReferenceState,
+  ReferenceDefinition,
+} from "./markdown-syntax";
+
+export type {
+  MarkdownDiagnostic,
+  MarkdownDiagnosticSeverity,
+  MarkdownEngineComparison,
+  MarkdownEngineName,
+  MarkdownEngineResult,
+  MarkdownReferenceState,
+  ReferenceDefinition,
+} from "./markdown-syntax";
 
 export interface ParseOptions {
   preserveWhitespace?: boolean;
   collectReferenceDefinitions?: boolean;
   referenceDefinitions?: Record<string, ReferenceDefinition>;
   referenceOrder?: string[];
-}
-
-export interface ReferenceDefinition {
-  id: string;
-  href: string;
-  title: string | null;
+  extensionRegistry?: MarkdownExtensionRegistry;
 }
 
 export function parseMarkdown(content: string, options: ParseOptions = {}): ProseMirrorNode {
-  const lines = content.split("\n");
-  const inheritedDefinitions = options.referenceDefinitions ?? {};
-  const inheritedOrder =
-    options.referenceOrder ?? Object.values(inheritedDefinitions).map((value) => value.id);
-  const extracted =
-    options.collectReferenceDefinitions === false
-      ? { definitions: [] as ReferenceDefinition[] }
-      : extractReferenceDefinitions(lines);
-
-  const referenceDefinitions: Record<string, ReferenceDefinition> = { ...inheritedDefinitions };
-  const referenceOrder = [...inheritedOrder];
-
-  for (const definition of extracted.definitions) {
-    const normalized = normalizeReferenceId(definition.id);
-    if (!referenceOrder.includes(definition.id)) {
-      referenceOrder.push(definition.id);
-    }
-    referenceDefinitions[normalized] = definition;
+  const comparison = compareMarkdownEngines(content, options);
+  if (comparison.gfm.document !== null && comparison.gfm.diagnostics.length === 0) {
+    return comparison.gfm.document;
   }
-
-  const parsed = parseMarkdownNextDocument(content);
-  return schema.node("doc", { referenceDefinitions, referenceOrder }, parsed.content);
+  return comparison.legacy.document!;
 }
 
 export function serializeMarkdown(doc: ProseMirrorNode): string {
-  const content = normalizeEscapedWikilinks(serializeMarkdownNextDocument(doc));
-  const definitions = serializeReferenceDefinitions(doc);
-  if (definitions.length === 0) {
-    return content;
+  try {
+    return normalizeEscapedLiteralHtml(
+      normalizeEscapedWikilinks(
+        serializeProseMirrorDocumentToGfm(
+          doc,
+          defaultMarkdownExtensionRegistry
+        )
+      )
+    );
+  } catch {
+    return serializeLegacyMarkdown(doc);
   }
+}
 
-  if (content.trim().length === 0) {
-    return definitions.join("\n");
-  }
+export function compareMarkdownEngines(content: string, options: ParseOptions = {}): MarkdownEngineComparison {
+  const referenceState = resolveReferenceState(content, options);
+  return {
+    legacy: parseLegacyMarkdown(content, referenceState),
+    gfm: parseGfmMarkdown(content, undefined, options.extensionRegistry),
+  };
+}
 
-  return `${content}\n\n${definitions.join("\n")}`;
+function parseLegacyMarkdown(content: string, referenceState: MarkdownReferenceState): MarkdownEngineResult & {
+  document: ProseMirrorNode;
+} {
+  const parsed = parseMarkdownNextDocument(content);
+  return {
+    engine: "legacy",
+    markdown: content,
+    document: schema.node("doc", referenceState, parsed.content),
+    diagnostics: [],
+  };
 }
 
 function normalizeReferenceId(value: string): string {
@@ -115,8 +134,17 @@ function serializeReferenceDefinitions(doc: ProseMirrorNode): string[] {
 
   const referenceDefinitions = attrs.referenceDefinitions ?? {};
   const referenceOrder = attrs.referenceOrder ?? Object.values(referenceDefinitions).map((value) => value.id);
+  const seen = new Set<string>();
 
   return referenceOrder
+    .filter((id) => {
+      const normalized = normalizeReferenceId(id);
+      if (seen.has(normalized)) {
+        return false;
+      }
+      seen.add(normalized);
+      return true;
+    })
     .map((id) => findReferenceDefinition(referenceDefinitions, id))
     .filter((definition): definition is ReferenceDefinition => definition !== null)
     .map((definition) => {
@@ -128,8 +156,66 @@ function serializeReferenceDefinitions(doc: ProseMirrorNode): string[] {
 }
 
 function normalizeEscapedWikilinks(markdown: string): string {
-  return markdown.replace(/\\\[\\\[([^\n\]]+)\\\]\\\]/g, (_match, inner: string) => {
+  const normalizedBracketEscapes = markdown.replace(/\\(?=[\[\]])/g, "");
+
+  return normalizedBracketEscapes.replace(/\\+\[\\+\[([^\n\]]+)\\+\]\\+\]/g, (_match, inner: string) => {
     const value = inner.trim();
     return value.length > 0 ? `[[${value}]]` : _match;
   });
+}
+
+function normalizeEscapedLiteralHtml(markdown: string): string {
+  return markdown.replace(/\\(?=[<>])/g, "");
+}
+
+function serializeLegacyMarkdown(doc: ProseMirrorNode): string {
+  const content = normalizeEscapedWikilinks(serializeMarkdownNextDocument(doc));
+  const definitions = serializeReferenceDefinitions(doc);
+  if (definitions.length === 0) {
+    return content;
+  }
+
+  if (content.trim().length === 0) {
+    return definitions.join("\n");
+  }
+
+  return `${content}\n\n${definitions.join("\n")}`;
+}
+
+function resolveReferenceState(content: string, options: ParseOptions): MarkdownReferenceState {
+  const inheritedDefinitions = options.referenceDefinitions ?? {};
+  const inheritedOrder =
+    options.referenceOrder ?? Object.values(inheritedDefinitions).map((value) => value.id);
+  const extracted =
+    options.collectReferenceDefinitions === false
+      ? []
+      : extractReferenceDefinitions(content.split("\n")).definitions;
+
+  const referenceDefinitions: Record<string, ReferenceDefinition> = {};
+  const referenceOrder: string[] = [];
+  const seenOrder = new Set<string>();
+
+  const addDefinition = (definition: ReferenceDefinition) => {
+    const normalized = normalizeReferenceId(definition.id);
+    referenceDefinitions[normalized] = definition;
+    if (seenOrder.has(normalized)) {
+      return;
+    }
+    seenOrder.add(normalized);
+    referenceOrder.push(definition.id);
+  };
+
+  for (const id of inheritedOrder) {
+    const definition = findReferenceDefinition(inheritedDefinitions, id);
+    if (!definition) {
+      continue;
+    }
+    addDefinition(definition);
+  }
+
+  for (const definition of extracted) {
+    addDefinition(definition);
+  }
+
+  return { referenceDefinitions, referenceOrder };
 }

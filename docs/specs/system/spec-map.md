@@ -86,6 +86,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-WORKFLOW-FRESHNESS-021        | workflow-freshness-hardening         | designed  | component/workflow-freshness-hardening-021.md         | [REL, COMP, CONF]                 | implemented                       |
 | COMP-STORYBOOK-STABILITY-022       | storybook-app-stability              | designed  | component/storybook-app-stability-022.md              | [REL, COMP, CONF]                 | implemented                       |
 | COMP-PRE-RELEASE-CLEANUP-023       | pre-release-cleanup                  | shipped   | component/pre-release-cleanup-023.md                  | [REL, COMP, CONF, CAP]            | implemented                       |
+| COMP-MARKDOWN-PLATFORM-024         | markdown-platform                    | designed  | component/markdown-platform-024.md                    | [REL, SEC, CAP, CONS, COMP, CONF] | draft                             |
 
 ## Interfaces
 
@@ -226,3 +227,4 @@ docs/specs/
 | 2026-03-03 | Harden workflow freshness with staged validators, lighter hooks, and skill-policy alignment                                                                                         | COMP-WORKFLOW-FRESHNESS-021        |
 | 2026-03-03 | Fix native knotd MCP bridge notification forwarding and verify daemon-backed handshake                                                                                               | COMP-KNOTD-OPS-008                 |
 | 2026-03-03 | Stabilize Storybook App runtime mocks, listener failure handling, and coverage inventory                                                                                            | COMP-STORYBOOK-STABILITY-022       |
+| 2026-03-04 | Draft GFM-first markdown platform spec and markdown-extension policy for core markdown notes                                                                                        | COMP-MARKDOWN-PLATFORM-024         |

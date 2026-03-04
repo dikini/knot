@@ -14,6 +14,7 @@ import { syntaxHidePlugin } from "./syntax-hide";
 import { taskListPlugin } from "./task-list";
 import { wikilinkPlugin } from "./wikilinks";
 import { keyBindings } from "./keymap";
+import { tableEditing } from "prosemirror-tables";
 
 /**
  * Create all editor plugins based on configuration
@@ -41,7 +42,8 @@ export function plugins(config: EditorConfig): Plugin[] {
     keymap(keyBindings),
     ...(mathRuleSet ? [mathRuleSet] : []),
     keymap(baseKeymap),
-    
+    tableEditing(),
+
     // Feature plugins
     taskListPlugin(),
     wikilinkPlugin(),

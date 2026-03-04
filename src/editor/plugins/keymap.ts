@@ -7,7 +7,7 @@
 import { EditorState, Transaction } from "prosemirror-state";
 import { canSplit } from "prosemirror-transform";
 import { EditorView } from "prosemirror-view";
-import { insertDisplayMath, insertInlineMath } from "../commands";
+import { insertDisplayMath, insertInlineMath, insertTable } from "../commands";
 import { schema } from "../schema";
 
 /**
@@ -128,6 +128,10 @@ export const keyBindings: Keymap = {
   // SPEC: COMP-MATH-PLUGIN-008 MP-003
   "Mod-Shift-m": (state, dispatch, view): boolean => {
     return insertDisplayMath(state, dispatch, view);
+  },
+
+  "Mod-Shift-t": (state, dispatch): boolean => {
+    return insertTable(state, dispatch);
   },
 
   // Headings

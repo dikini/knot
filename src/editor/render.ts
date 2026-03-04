@@ -1,6 +1,6 @@
 import { DOMSerializer, Fragment, type Node as ProseMirrorNode } from "prosemirror-model";
 import katex from "katex";
-import { parseMarkdown, serializeMarkdown } from "./markdown";
+import { compareMarkdownEngines, parseMarkdown, serializeMarkdown } from "./markdown";
 import { schema } from "./schema";
 
 // TRACE: DESIGN-mermaid-diagrams-001
@@ -83,7 +83,7 @@ function rewriteMathNodes(container: HTMLDivElement): void {
  * used by edit mode, so view mode stays structurally consistent.
  */
 export function renderMarkdownToHtml(markdown: string): string {
-  const doc = parseMarkdown(markdown);
+  const doc = resolveRenderDocument(markdown);
   const serializer = DOMSerializer.fromSchema(schema);
   const fragment = serializer.serializeFragment(doc.content);
   const container = document.createElement("div");
@@ -92,6 +92,15 @@ export function renderMarkdownToHtml(markdown: string): string {
   rewriteMathNodes(container);
   rewriteMermaidBlocks(container);
   return container.innerHTML;
+}
+
+function resolveRenderDocument(markdown: string): ProseMirrorNode {
+  const comparison = compareMarkdownEngines(markdown);
+  if (comparison.gfm.document !== null && comparison.gfm.diagnostics.length === 0) {
+    return comparison.gfm.document;
+  }
+
+  return parseMarkdown(markdown);
 }
 
 export function toggleTaskListItemInMarkdown(markdown: string, taskIndex: number): string | null {
