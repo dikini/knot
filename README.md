@@ -1,139 +1,68 @@
 # Knot
 
-AI-native knowledge base with distraction-free editing.
-
 ## Overview
 
-Knot is a privacy-focused, cross-platform note-taking application built with Tauri 2.0. It features semantic markdown editing where syntax is hidden on inactive lines, creating a distraction-free writing experience.
+Knot is a local-first note app built with Tauri.
+
+The main focus is writing in markdown without a lot of UI noise. The editor hides markdown syntax on inactive lines, and the project also includes a local MCP server and daemon tooling for AI workflows around a vault.
+
+If you already have a Linux AppImage build, you can run it like this:
+
+```bash
+./knot_0.1.0_amd64.AppImage
+./knot_0.1.0_amd64.AppImage ui
+./knot_0.1.0_amd64.AppImage knotd
+./knot_0.1.0_amd64.AppImage mcp status
+```
+
+If you want to run it from source:
+
+```bash
+npm install
+npm run tauri-dev
+```
+
+If you want to build the Linux AppImage from source:
+
+```bash
+npm run tauri-build -- --bundles appimage
+```
 
 ## Architecture
 
-- **Frontend:** React + TypeScript + ProseMirror
-- **Backend:** Rust (reuses core logic from botpane/libvault)
-- **Platforms:** Linux, macOS, Windows, Android
+Knot is split into a web frontend and a Rust backend.
 
-## Project Structure
+- Frontend: React, TypeScript, and ProseMirror in [`src/`](/home/dikini/Projects/knot/src)
+- Backend: Tauri and Rust in [`src-tauri/`](/home/dikini/Projects/knot/src-tauri)
+- Shared app shape: desktop-first, with Android support planned through Tauri's mobile stack
 
-```
-knot/
-├── src/                    # Web frontend (React + ProseMirror)
-│   ├── components/         # React components
-│   ├── editor/            # ProseMirror editor configuration
-│   ├── hooks/             # Custom React hooks
-│   ├── lib/               # Utilities and store
-│   ├── styles/            # CSS files
-│   └── types/             # TypeScript type definitions
-├── src-tauri/             # Rust backend
-│   ├── src/               # Rust source (copied from botpane/libvault)
-│   ├── capabilities/      # Tauri permissions
-│   ├── icons/             # App icons
-│   ├── Cargo.toml         # Rust dependencies
-│   └── tauri.conf.json    # Tauri configuration
-└── docs/                  # Documentation
-    └── REFACTORING_LIBVAULT.md  # Migration guide
-```
+The Linux desktop build also has a launcher layer for AppImage and daemon-based flows, so the UI, `knotd`, and MCP commands can be run from the same artifact.
 
-## Development
+## Features
 
-### Prerequisites
+- Distraction-first markdown editing with hidden syntax on inactive lines
+- Local note storage and search
+- Embedded media support, including image and PDF handling in the app
+- Local MCP access to vault data and operations
+- Linux launcher commands for UI, daemon, MCP, and service management
 
-- [Node.js](https://nodejs.org/) (v18 or later)
-- [Rust](https://rustup.rs/) (latest stable)
-- [Tauri CLI](https://tauri.app/v2/guides/prerequisites/)
-
-### Setup
+Example MCP usage from the AppImage launcher:
 
 ```bash
-# Install dependencies
-npm install
-
-# Run development server (desktop)
-npm run tauri-dev
-
-# Run development server (Android)
-npm run tauri android dev
+./knot_0.1.0_amd64.AppImage mcp bridge
+./knot_0.1.0_amd64.AppImage mcp codex install
 ```
 
-### Building
+## Stack
 
-```bash
-# Build for production
-cd src-tauri
-cargo tauri build
-
-# Build for Android
-cargo tauri android build
-```
-
-## Key Features
-
-### Distraction-Free Editing
-
-Knot's editor hides markdown syntax when your cursor is not on that line:
-
-- `# Heading` appears as **Heading** (no # visible)
-- `**bold**` appears as **bold** (no ** visible)
-- Only the active line shows raw markdown
-
-### Media Embedding
-
-Native support for images and videos embedded in notes.
-
-### AI-Native
-
-Built-in MCP (Model Context Protocol) server for AI agent integration.
-
-Run MCP server against a vault:
-
-```bash
-cargo run --manifest-path src-tauri/Cargo.toml --bin knot-mcp -- --vault /path/to/vault
-```
-
-Or with environment variable:
-
-```bash
-KNOT_VAULT_PATH=/path/to/vault cargo run --manifest-path src-tauri/Cargo.toml --bin knot-mcp
-```
-
-Current MCP tools:
-- `search_notes`, `get_note`, `list_tags`, `graph_neighbors`
-- `create_note`, `delete_note`, `replace_note`
-- `create_directory`, `remove_directory`, `rename_directory`, `list_directory`
-
-### Cross-Platform
-
-Single codebase runs on desktop (Linux, macOS, Windows) and Android.
-
-### Privacy-First
-
-- Local-first storage
-- P2P sync (no cloud dependency)
-- End-to-end encryption for sync
-
-## Migration from BotPane
-
-The Rust core (`src-tauri/src/`) was copied from `botpane/libvault` and needs refactoring:
-
-1. **FFI → Tauri Commands:** Replace FFI bindings with `#[tauri::command]` functions
-2. **Global State → Managed State:** Use Tauri's state management
-3. **Async:** Add async where appropriate
-
-See [docs/REFACTORING_LIBVAULT.md](docs/REFACTORING_LIBVAULT.md) for detailed migration plan.
-
-## Tech Stack
-
-### Frontend
-- React 18
-- TypeScript (strict mode)
-- ProseMirror (rich text editing)
-- Zustand (state management)
-- Vite (build tool)
-
-### Backend
-- Tauri 2.0
-- Tokio (async runtime)
-- Rusqlite (SQLite)
-- Tantivy (search)
+- Tauri 2
+- Rust
+- React
+- TypeScript
+- ProseMirror
+- SQLite via `rusqlite`
+- Tantivy
+- Tokio
 
 ## License
 
