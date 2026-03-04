@@ -48,6 +48,11 @@ The AppImage launcher supports:
 ./knot_0.1.0_amd64.AppImage knotd
 ./knot_0.1.0_amd64.AppImage up
 ./knot_0.1.0_amd64.AppImage down
+./knot_0.1.0_amd64.AppImage tool list_tags
+./knot_0.1.0_amd64.AppImage tool list
+./knot_0.1.0_amd64.AppImage tool get_note --json '{"path":"notes/roadmap.md"}'
+./knot_0.1.0_amd64.AppImage tool search_notes --json '{"query":"graph","limit":10}'
+./knot_0.1.0_amd64.AppImage tool get_note --help
 ./knot_0.1.0_amd64.AppImage mcp bridge
 ./knot_0.1.0_amd64.AppImage mcp status
 ./knot_0.1.0_amd64.AppImage mcp socket-path
@@ -62,6 +67,12 @@ The AppImage launcher supports:
 ```
 
 Linux desktop defaults to daemon-backed UI mode. `ui` and the default entrypoint both ensure `knotd` is reachable before opening the Tauri application.
+
+`tool` is a shell-oriented command surface for MCP tools:
+- Use `knot tool --help` for curated command examples (`list_*` and common read commands).
+- Use `knot tool list` to print the full available MCP tool inventory.
+- Use `knot tool <command> --help` for per-command format details.
+- Use `--json '<payload>'` or `--stdin-json` to pass arguments for tools that require input.
 
 ## Notes
 

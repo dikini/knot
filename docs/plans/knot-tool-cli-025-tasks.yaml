@@ -1,0 +1,63 @@
+tasks:
+  - id: KTC-001
+    title: "Add failing launcher parse tests for knot tool namespace"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-8, FR-9]
+    concerns: [COMP, REL]
+    dependencies: []
+    acceptance: "Parser tests cover valid/invalid tool command forms and fail before implementation."
+
+  - id: KTC-002
+    title: "Extend launcher modes/parser/help to include tool subcommand and curated help output"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-3, FR-4, FR-9]
+    concerns: [CONF, COMP]
+    dependencies: [KTC-001]
+    acceptance: "Launcher recognizes tool mode and help text includes general form plus curated list_* examples."
+
+  - id: KTC-003
+    title: "Implement tool call transport path with JSON argument parsing and exit-code mapping"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-7, FR-8]
+    concerns: [REL, CONF]
+    dependencies: [KTC-002]
+    acceptance: "knot tool <command> invokes MCP tools/call with validated args and stable success/error output contracts."
+
+  - id: KTC-004
+    title: "Implement per-command help introspection using tools/list metadata with offline fallback"
+    status: planned
+    size: M
+    spec_refs: [FR-5, FR-6]
+    concerns: [REL, CONF]
+    dependencies: [KTC-003]
+    acceptance: "knot tool <command> --help renders description and argument format from live metadata when available."
+
+  - id: KTC-005
+    title: "Add failure-mode tests for unknown tool, invalid JSON payloads, and daemon unreachable behavior"
+    status: planned
+    size: S
+    spec_refs: [FR-7, FR-8]
+    concerns: [REL]
+    dependencies: [KTC-003]
+    acceptance: "All tool-call error cases return deterministic non-zero exits and actionable diagnostics."
+
+  - id: KTC-006
+    title: "Integrate tool dispatch into main launcher command handler with regression checks"
+    status: planned
+    size: S
+    spec_refs: [FR-9]
+    concerns: [COMP]
+    dependencies: [KTC-004]
+    acceptance: "Existing launcher flows remain behavior-compatible while tool flows execute through the new dispatch."
+
+  - id: KTC-007
+    title: "Document knot tool usage and shell scripting examples in Linux packaging/operator docs"
+    status: planned
+    size: S
+    spec_refs: [FR-3, FR-4, FR-7]
+    concerns: [CONF]
+    dependencies: [KTC-006]
+    acceptance: "Docs show general command form, curated help intent, and script examples for payload-driven tool calls."

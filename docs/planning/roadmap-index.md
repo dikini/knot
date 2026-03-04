@@ -38,3 +38,4 @@ Canonical component registry: `docs/specs/system/spec-map.md`
 | storybook-app-stability-022          | component | implemented | codex | [storybook-dx-001, ui-qa-dx-001, ui-automation-runtime-013]                     | [COMP-STORYBOOK-STABILITY-022]       |
 | pre-release-cleanup-023             | component | implemented | codex | [ui-qa-dx-001, storybook-dx-001, workflow-freshness-hardening-021, storybook-app-stability-022] | [COMP-PRE-RELEASE-CLEANUP-023] |
 | markdown-platform-024               | component | planned     | codex | [markdown-engine-001, editor-modes-001, math-plugin-008, wikilink-embeds-017]  | [COMP-MARKDOWN-PLATFORM-024]       |
+| knot-tool-cli-025                   | component | planned     | codex | [linux-appimage-packaging-018, mcp-server-001, knotd-mcp-ops-008]               | [COMP-KNOT-TOOL-CLI-025]          |

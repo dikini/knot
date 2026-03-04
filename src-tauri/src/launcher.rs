@@ -28,6 +28,14 @@ pub enum LauncherMode {
     Knotd { service_mode: bool },
     Up,
     Down,
+    ToolOverviewHelp,
+    ToolList,
+    Tool {
+        command: String,
+        args_json: Option<String>,
+        stdin_json: bool,
+        help: bool,
+    },
     Mcp(LauncherMcpCommand),
     Service(LauncherServiceCommand),
     Help,
@@ -103,6 +111,53 @@ pub struct InstallArtifacts {
     pub unit_file: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ToolHelpEntry {
+    pub name: &'static str,
+    pub description: &'static str,
+    pub args_hint: &'static str,
+    pub example: &'static str,
+}
+
+const TOOL_HELP_ENTRIES: [ToolHelpEntry; 6] = [
+    ToolHelpEntry {
+        name: "list_notes",
+        description: "List notes as UI note summaries.",
+        args_hint: "{}",
+        example: "knot tool list_notes",
+    },
+    ToolHelpEntry {
+        name: "list_tags",
+        description: "List all tags in the current vault.",
+        args_hint: "{}",
+        example: "knot tool list_tags",
+    },
+    ToolHelpEntry {
+        name: "list_directory",
+        description: "List entries in a vault directory.",
+        args_hint: "{\"path\":\"notes\"}",
+        example: "knot tool list_directory --json '{\"path\":\"notes\"}'",
+    },
+    ToolHelpEntry {
+        name: "get_note",
+        description: "Get a note by path, including markdown content.",
+        args_hint: "{\"path\":\"notes/roadmap.md\"}",
+        example: "knot tool get_note --json '{\"path\":\"notes/roadmap.md\"}'",
+    },
+    ToolHelpEntry {
+        name: "search_notes",
+        description: "Search notes by query text.",
+        args_hint: "{\"query\":\"graph\", \"limit\": 10}",
+        example: "knot tool search_notes --json '{\"query\":\"graph\"}'",
+    },
+    ToolHelpEntry {
+        name: "graph_neighbors",
+        description: "Get graph neighbors for a note path up to depth.",
+        args_hint: "{\"path\":\"notes/roadmap.md\", \"depth\": 2}",
+        example: "knot tool graph_neighbors --json '{\"path\":\"notes/roadmap.md\"}'",
+    },
+];
+
 pub fn parse_launcher_args(args: &[String]) -> Result<LauncherMode> {
     let mode = match args.get(1).map(String::as_str) {
         None => LauncherMode::Ui,
@@ -112,6 +167,59 @@ pub fn parse_launcher_args(args: &[String]) -> Result<LauncherMode> {
         },
         Some("up") => LauncherMode::Up,
         Some("down") => LauncherMode::Down,
+        Some("tool") => {
+            let Some(raw_command) = args.get(2).map(String::as_str) else {
+                return Err(KnotError::Config(
+                    "missing tool command. Use `knot tool --help`.".to_string(),
+                ));
+            };
+            if matches!(raw_command, "--help" | "-h") {
+                return Ok(LauncherMode::ToolOverviewHelp);
+            }
+            if raw_command == "list" {
+                return Ok(LauncherMode::ToolList);
+            }
+
+            let mut args_json: Option<String> = None;
+            let mut stdin_json = false;
+            let mut help = false;
+            let mut idx = 3;
+            while idx < args.len() {
+                match args[idx].as_str() {
+                    "--json" => {
+                        let value = parse_flag_value(args, idx, "--json")?;
+                        args_json = Some(value.to_string());
+                        idx += 2;
+                    }
+                    "--stdin-json" => {
+                        stdin_json = true;
+                        idx += 1;
+                    }
+                    "--help" | "-h" => {
+                        help = true;
+                        idx += 1;
+                    }
+                    other => {
+                        return Err(KnotError::Config(format!(
+                            "unknown tool argument: {other}"
+                        )));
+                    }
+                }
+            }
+
+            if args_json.is_some() && stdin_json {
+                return Err(KnotError::Config(
+                    "cannot combine --json with --stdin-json".to_string(),
+                ));
+            }
+
+            LauncherMode::Tool {
+                command: raw_command.to_string(),
+                args_json,
+                stdin_json,
+                help,
+            }
+        }
         Some("mcp") => match args.get(2).map(String::as_str) {
             Some("bridge") => LauncherMode::Mcp(LauncherMcpCommand::Bridge),
             Some("status") => LauncherMode::Mcp(LauncherMcpCommand::Status),
@@ -154,6 +262,16 @@ pub fn parse_launcher_args(args: &[String]) -> Result<LauncherMode> {
         }
     };
     Ok(mode)
+}
+
+fn parse_flag_value<'a>(args: &'a [String], idx: usize, flag: &str) -> Result<&'a str> {
+    let Some(value) = args.get(idx + 1) else {
+        return Err(KnotError::Config(format!("Missing value for {flag}")));
+    };
+    if value.starts_with("--") {
+        return Err(KnotError::Config(format!("Missing value for {flag}")));
+    }
+    Ok(value)
 }
 
 pub fn resolve_launcher_paths(env: &LauncherEnv) -> Result<LauncherPaths> {
@@ -310,7 +428,41 @@ pub fn socket_path(config: &LauncherConfig, paths: &LauncherPaths) -> PathBuf {
 }
 
 pub fn command_help() -> &'static str {
-    "knot - AppImage launcher\n\nUsage:\n  knot [ui]\n  knot knotd [--service]\n  knot up\n  knot down\n  knot mcp bridge\n  knot mcp status\n  knot mcp socket-path\n  knot mcp codex install|uninstall\n  knot service install [--dry-run]\n  knot service uninstall [--purge]\n  knot service start|stop|restart|status\n"
+    "knot - AppImage launcher\n\nUsage:\n  knot [ui]\n  knot knotd [--service]\n  knot up\n  knot down\n  knot tool list\n  knot tool <command> [--json '<payload>'|--stdin-json]\n  knot mcp bridge\n  knot mcp status\n  knot mcp socket-path\n  knot mcp codex install|uninstall\n  knot service install [--dry-run]\n  knot service uninstall [--purge]\n  knot service start|stop|restart|status\n\nTool quickstart (curated):\n  knot tool list\n  knot tool list_notes\n  knot tool list_tags\n  knot tool get_note --json '{\"path\":\"notes/roadmap.md\"}'\n  knot tool search_notes --json '{\"query\":\"graph\"}'\n\nUse `knot tool --help` and `knot tool <command> --help` for details.\n"
+}
+
+pub fn tool_help_overview() -> String {
+    let mut lines = vec![
+        "knot tool - call MCP tools from the launcher".to_string(),
+        "".to_string(),
+        "Usage:".to_string(),
+        "  knot tool list".to_string(),
+        "  knot tool <command> [--json '<payload>'|--stdin-json]".to_string(),
+        "  knot tool <command> --help".to_string(),
+        "".to_string(),
+        "Curated commands:".to_string(),
+    ];
+    for entry in tool_help_entries() {
+        lines.push(format!("  {:<18} {}", entry.name, entry.description));
+    }
+    lines.push("".to_string());
+    lines.push("Examples:".to_string());
+    lines.push("  knot tool list".to_string());
+    lines.push("  knot tool list_tags".to_string());
+    lines.push("  knot tool get_note --json '{\"path\":\"notes/roadmap.md\"}'".to_string());
+    lines.push("  knot tool search_notes --json '{\"query\":\"graph\",\"limit\":10}'".to_string());
+    lines.join("\n")
+}
+
+pub fn tool_help_entries() -> &'static [ToolHelpEntry] {
+    &TOOL_HELP_ENTRIES
+}
+
+pub fn tool_help_entry(command: &str) -> Option<ToolHelpEntry> {
+    TOOL_HELP_ENTRIES
+        .iter()
+        .find(|entry| entry.name == command)
+        .copied()
 }
 
 pub fn install_service(
@@ -832,6 +984,67 @@ mod tests {
             .expect("parse mcp codex install"),
             LauncherMode::Mcp(LauncherMcpCommand::CodexInstall)
         );
+        assert_eq!(
+            parse_launcher_args(&["knot".into(), "tool".into(), "list_tags".into()])
+                .expect("parse tool list_tags"),
+            LauncherMode::Tool {
+                command: "list_tags".to_string(),
+                args_json: None,
+                stdin_json: false,
+                help: false,
+            }
+        );
+        assert_eq!(
+            parse_launcher_args(&["knot".into(), "tool".into(), "list".into()])
+                .expect("parse tool list"),
+            LauncherMode::ToolList
+        );
+        assert_eq!(
+            parse_launcher_args(&[
+                "knot".into(),
+                "tool".into(),
+                "get_note".into(),
+                "--json".into(),
+                "{\"path\":\"notes/a.md\"}".into()
+            ])
+            .expect("parse tool get_note json"),
+            LauncherMode::Tool {
+                command: "get_note".to_string(),
+                args_json: Some("{\"path\":\"notes/a.md\"}".to_string()),
+                stdin_json: false,
+                help: false,
+            }
+        );
+        assert_eq!(
+            parse_launcher_args(&[
+                "knot".into(),
+                "tool".into(),
+                "search_notes".into(),
+                "--stdin-json".into(),
+            ])
+            .expect("parse tool stdin json"),
+            LauncherMode::Tool {
+                command: "search_notes".to_string(),
+                args_json: None,
+                stdin_json: true,
+                help: false,
+            }
+        );
+        assert_eq!(
+            parse_launcher_args(&[
+                "knot".into(),
+                "tool".into(),
+                "get_note".into(),
+                "--help".into(),
+            ])
+            .expect("parse tool help"),
+            LauncherMode::Tool {
+                command: "get_note".to_string(),
+                args_json: None,
+                stdin_json: false,
+                help: true,
+            }
+        );
     }
 
     #[test]
@@ -938,6 +1151,28 @@ mod tests {
     fn launcher_tdd_help_lists_down_command() {
         assert!(command_help().contains("knot down"));
         assert!(command_help().contains("knot mcp bridge"));
+        assert!(command_help().contains("knot tool list"));
+        assert!(command_help().contains("knot tool <command>"));
+        assert!(command_help().contains("knot tool list_tags"));
+        assert!(command_help().contains("knot tool get_note"));
+    }
+
+    #[test]
+    fn launcher_tdd_rejects_missing_tool_command_and_conflicting_payload_modes() {
+        let missing =
+            parse_launcher_args(&["knot".into(), "tool".into()]).expect_err("missing tool");
+        assert!(missing.to_string().contains("missing tool command"));
+
+        let conflicting = parse_launcher_args(&[
+            "knot".into(),
+            "tool".into(),
+            "get_note".into(),
+            "--json".into(),
+            "{}".into(),
+            "--stdin-json".into(),
+        ])
+        .expect_err("conflicting args");
+        assert!(conflicting.to_string().contains("cannot combine"));
     }
 
     #[test]

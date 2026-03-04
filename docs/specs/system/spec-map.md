@@ -87,6 +87,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-STORYBOOK-STABILITY-022       | storybook-app-stability              | designed  | component/storybook-app-stability-022.md              | [REL, COMP, CONF]                 | implemented                       |
 | COMP-PRE-RELEASE-CLEANUP-023       | pre-release-cleanup                  | shipped   | component/pre-release-cleanup-023.md                  | [REL, COMP, CONF, CAP]            | implemented                       |
 | COMP-MARKDOWN-PLATFORM-024         | markdown-platform                    | designed  | component/markdown-platform-024.md                    | [REL, SEC, CAP, CONS, COMP, CONF] | draft                             |
+| COMP-KNOT-TOOL-CLI-025             | knot-tool-cli                        | designed  | component/knot-tool-cli-025.md                        | [REL, CONF, COMP]                 | draft                             |
 
 ## Interfaces
 

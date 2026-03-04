@@ -3,7 +3,7 @@
 //! TRACE: DESIGN-knotd-ui-daemon-integration
 
 use crate::error::KnotError;
-use serde::de::DeserializeOwned;
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::UnixStream;
@@ -119,4 +119,30 @@ pub fn call_tool_typed<T: DeserializeOwned>(name: &str, arguments: Value) -> Res
     let value = call_tool(name, arguments)?;
     serde_json::from_value(value)
         .map_err(|e| KnotError::Other(format!("Failed to decode tool {name} payload: {e}")))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolSchema {
+    #[serde(rename = "type", default)]
+    pub schema_type: Option<String>,
+    #[serde(default)]
+    pub properties: Value,
+    #[serde(default)]
+    pub required: Vec<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ToolDescriptor {
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(rename = "inputSchema")]
+    pub input_schema: ToolSchema,
+}
+
+pub fn list_tools() -> Result<Vec<ToolDescriptor>, KnotError> {
+    let result = call_jsonrpc("tools/list", json!({}))?;
+    let tools = result.get("tools").cloned().unwrap_or_else(|| json!([]));
+    serde_json::from_value(tools)
+        .map_err(|e| KnotError::Other(format!("Failed to decode tools/list payload: {e}")))
 }
