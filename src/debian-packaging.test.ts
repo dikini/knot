@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { mkdtempSync, writeFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+
+// Trace: DESIGN-debian-packaging-scaffold-027
 
 function mktemp(prefix: string): string {
   return mkdtempSync(join(tmpdir(), prefix));
