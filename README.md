@@ -6,15 +6,6 @@ Knot is a local-first note app built with Tauri.
 
 The main focus is writing in markdown without a lot of UI noise. The editor hides markdown syntax on inactive lines, and the project also includes a local MCP server and daemon tooling for AI workflows around a vault.
 
-If you already have a Linux AppImage build, you can run it like this:
-
-```bash
-./knot_0.1.0_amd64.AppImage
-./knot_0.1.0_amd64.AppImage ui
-./knot_0.1.0_amd64.AppImage knotd
-./knot_0.1.0_amd64.AppImage mcp status
-```
-
 If you want to run it from source:
 
 ```bash
@@ -22,10 +13,10 @@ npm install
 npm run tauri-dev
 ```
 
-If you want to build the Linux AppImage from source:
+If you want local release artifacts (tarball + self-extracting installer + deb + deb-src):
 
 ```bash
-npm run tauri-build -- --bundles appimage
+npm run release:local -- --version 0.1.0
 ```
 
 ## Architecture
@@ -36,7 +27,7 @@ Knot is split into a web frontend and a Rust backend.
 - Backend: Tauri and Rust in [`src-tauri/`](/home/dikini/Projects/knot/src-tauri)
 - Shared app shape: desktop-first, with Android support planned through Tauri's mobile stack
 
-The Linux desktop build also has a launcher layer for AppImage and daemon-based flows, so the UI, `knotd`, and MCP commands can be run from the same artifact.
+The Linux desktop build has a launcher layer and daemon-based flows, so the UI, `knotd`, and MCP commands can be run from the same artifact.
 
 ## Features
 
@@ -46,11 +37,11 @@ The Linux desktop build also has a launcher layer for AppImage and daemon-based 
 - Local MCP access to vault data and operations
 - Linux launcher commands for UI, daemon, MCP, and service management
 
-Example MCP usage from the AppImage launcher:
+Example MCP usage from the launcher:
 
 ```bash
-./knot_0.1.0_amd64.AppImage mcp bridge
-./knot_0.1.0_amd64.AppImage mcp codex install
+knot mcp bridge
+knot mcp codex install
 ```
 
 ## Stack

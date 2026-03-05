@@ -1,6 +1,5 @@
-//! Linux launcher and installation helpers for AppImage/operator flows.
+//! Linux launcher and installation helpers for operator flows.
 //!
-//! TRACE: DESIGN-linux-appimage-packaging
 
 use crate::error::{KnotError, Result};
 use serde::{Deserialize, Serialize};
@@ -70,8 +69,8 @@ pub enum UiRuntimeMode {
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct LauncherConfig {
-    #[serde(default)]
-    pub appimage_path: Option<PathBuf>,
+    #[serde(default, alias = "appimage_path")]
+    pub launcher_path: Option<PathBuf>,
     #[serde(default)]
     pub vault_path: Option<PathBuf>,
     #[serde(default)]
@@ -313,12 +312,12 @@ pub fn resolve_launcher_paths(env: &LauncherEnv) -> Result<LauncherPaths> {
 
 pub fn render_install_artifacts(
     config: &LauncherConfig,
-    appimage_path: &Path,
+    launcher_path: &Path,
     paths: &LauncherPaths,
 ) -> Result<InstallArtifacts> {
     let wrapper_script = format!(
         "#!/usr/bin/env sh\nexec \"{}\" \"$@\"\n",
-        appimage_path.display()
+        launcher_path.display()
     );
     let mut env_lines = Vec::new();
     if let Some(vault_path) = config.vault_path.as_ref() {
@@ -337,13 +336,13 @@ pub fn render_install_artifacts(
     })
 }
 
-pub fn stale_appimage_message(config: &LauncherConfig) -> Option<String> {
-    let path = config.appimage_path.as_ref()?;
+pub fn stale_launcher_path_message(config: &LauncherConfig) -> Option<String> {
+    let path = config.launcher_path.as_ref()?;
     if path.exists() {
         return None;
     }
     Some(format!(
-        "Configured AppImage path is stale: {}. Rerun `knot service install` to refresh installed paths.",
+        "Configured launcher path is stale: {}. Rerun `knot service install` to refresh installed paths.",
         path.display()
     ))
 }
@@ -364,9 +363,14 @@ pub fn save_launcher_config(paths: &LauncherPaths, config: &LauncherConfig) -> R
 }
 
 pub fn apply_env_overrides(mut config: LauncherConfig, paths: &LauncherPaths) -> LauncherConfig {
+    if let Ok(path) = std::env::var("KNOT_LAUNCHER_PATH") {
+        if !path.trim().is_empty() {
+            config.launcher_path = Some(PathBuf::from(path));
+        }
+    }
     if let Ok(path) = std::env::var("KNOT_APPIMAGE_PATH") {
         if !path.trim().is_empty() {
-            config.appimage_path = Some(PathBuf::from(path));
+            config.launcher_path = Some(PathBuf::from(path));
         }
     }
     if let Ok(path) = std::env::var("KNOT_VAULT_PATH") {
@@ -428,7 +432,7 @@ pub fn socket_path(config: &LauncherConfig, paths: &LauncherPaths) -> PathBuf {
 }
 
 pub fn command_help() -> &'static str {
-    "knot - AppImage launcher\n\nUsage:\n  knot [ui]\n  knot knotd [--service]\n  knot up\n  knot down\n  knot tool list\n  knot tool <command> [--json '<payload>'|--stdin-json]\n  knot mcp bridge\n  knot mcp status\n  knot mcp socket-path\n  knot mcp codex install|uninstall\n  knot service install [--dry-run]\n  knot service uninstall [--purge]\n  knot service start|stop|restart|status\n\nTool quickstart (curated):\n  knot tool list\n  knot tool list_notes\n  knot tool list_tags\n  knot tool get_note --json '{\"path\":\"notes/roadmap.md\"}'\n  knot tool search_notes --json '{\"query\":\"graph\"}'\n\nUse `knot tool --help` and `knot tool <command> --help` for details.\n"
+    "knot - Linux launcher\n\nUsage:\n  knot [ui]\n  knot knotd [--service]\n  knot up\n  knot down\n  knot tool list\n  knot tool <command> [--json '<payload>'|--stdin-json]\n  knot mcp bridge\n  knot mcp status\n  knot mcp socket-path\n  knot mcp codex install|uninstall\n  knot service install [--dry-run]\n  knot service uninstall [--purge]\n  knot service start|stop|restart|status\n\nTool quickstart (curated):\n  knot tool list\n  knot tool list_notes\n  knot tool list_tags\n  knot tool get_note --json '{\"path\":\"notes/roadmap.md\"}'\n  knot tool search_notes --json '{\"query\":\"graph\"}'\n\nUse `knot tool --help` and `knot tool <command> --help` for details.\n"
 }
 
 pub fn tool_help_overview() -> String {
@@ -468,11 +472,11 @@ pub fn tool_help_entry(command: &str) -> Option<ToolHelpEntry> {
 pub fn install_service(
     config: &mut LauncherConfig,
     paths: &LauncherPaths,
-    appimage_path: &Path,
+    launcher_path: &Path,
     dry_run: bool,
 ) -> Result<InstallArtifacts> {
     ensure_vault_path(config)?;
-    config.appimage_path = Some(appimage_path.to_path_buf());
+    config.launcher_path = Some(launcher_path.to_path_buf());
     config.socket_path = Some(socket_path(config, paths));
     config.log_dir = Some(
         config
@@ -481,7 +485,7 @@ pub fn install_service(
             .unwrap_or_else(|| paths.log_dir.clone()),
     );
 
-    let artifacts = render_install_artifacts(config, appimage_path, paths)?;
+    let artifacts = render_install_artifacts(config, launcher_path, paths)?;
     if dry_run {
         return Ok(artifacts);
     }
@@ -546,7 +550,7 @@ where
     }
 }
 
-pub fn current_appimage_or_exe() -> Result<PathBuf> {
+pub fn current_launcher_exe() -> Result<PathBuf> {
     if let Ok(path) = std::env::var("APPIMAGE") {
         if !path.trim().is_empty() {
             return Ok(PathBuf::from(path));
@@ -624,7 +628,7 @@ pub fn spawn_knotd(config: &LauncherConfig, paths: &LauncherPaths) -> Result<Chi
 }
 
 pub fn service_status_summary(config: &LauncherConfig, paths: &LauncherPaths) -> String {
-    if let Some(message) = stale_appimage_message(config) {
+    if let Some(message) = stale_launcher_path_message(config) {
         return message;
     }
     let socket = socket_path(config, paths);
@@ -748,7 +752,7 @@ pub fn codex_command_path(paths: &LauncherPaths) -> Result<PathBuf> {
             return Ok(PathBuf::from(path));
         }
     }
-    current_appimage_or_exe()
+    current_launcher_exe()
 }
 
 fn read_stdio_message<R: BufRead>(input: &mut R) -> io::Result<Option<String>> {
@@ -897,7 +901,7 @@ mod tests {
     use super::{
         apply_env_overrides, bridge_stdio_to_socket, codex_command_path, command_help,
         down_summary, parse_launcher_args, remove_managed_codex_block, render_codex_mcp_block,
-        render_install_artifacts, resolve_launcher_paths, stale_appimage_message, LauncherConfig,
+        render_install_artifacts, resolve_launcher_paths, stale_launcher_path_message, LauncherConfig,
         LauncherEnv, LauncherMcpCommand, LauncherMode, LauncherServiceCommand, UiRuntimeMode,
     };
     use crate::mcp::read_framed_message;
@@ -1078,7 +1082,7 @@ mod tests {
     fn launcher_tdd_renders_wrapper_env_and_unit_files_for_systemd_install() {
         let paths = resolve_launcher_paths(&sample_env()).expect("paths");
         let config = LauncherConfig {
-            appimage_path: Some(PathBuf::from("/opt/Knot.AppImage")),
+            launcher_path: Some(PathBuf::from("/opt/Knot.AppImage")),
             vault_path: Some(PathBuf::from("/vaults/main")),
             socket_path: None,
             log_dir: None,
@@ -1109,16 +1113,16 @@ mod tests {
     }
 
     #[test]
-    fn launcher_tdd_reports_actionable_stale_appimage_diagnostics() {
+    fn launcher_tdd_reports_actionable_stale_launcher_path_diagnostics() {
         let config = LauncherConfig {
-            appimage_path: Some(PathBuf::from("/missing/Knot.AppImage")),
+            launcher_path: Some(PathBuf::from("/missing/Knot.AppImage")),
             vault_path: None,
             socket_path: None,
             log_dir: None,
             ui_mode: UiRuntimeMode::Embedded,
         };
 
-        let message = stale_appimage_message(&config).expect("message");
+        let message = stale_launcher_path_message(&config).expect("message");
         assert!(message.contains("/missing/Knot.AppImage"));
         assert!(message.contains("knot service install"));
     }
@@ -1193,7 +1197,7 @@ mod tests {
     }
 
     #[test]
-    fn launcher_tdd_prefers_installed_wrapper_for_codex_mcp_over_appimage_env() {
+    fn launcher_tdd_prefers_installed_wrapper_for_codex_mcp_over_legacy_appimage_env() {
         let _lock = env_lock().lock().expect("env lock");
         let root = std::env::temp_dir().join(format!("knot-launcher-test-{}", std::process::id()));
         let home_dir = root.join("home");

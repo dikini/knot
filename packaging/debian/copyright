@@ -1,0 +1,7 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: knot
+Source: https://example.invalid/knot
+
+Files: *
+Copyright: 2026 Knot Contributors
+License: Apache-2.0 OR MIT

@@ -1,0 +1,20 @@
+Source: knot
+Section: utils
+Priority: optional
+Maintainer: Knot Contributors <maintainers@knot.invalid>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+Rules-Requires-Root: no
+Homepage: https://example.invalid/knot
+
+Package: knot
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}, libc6, libgcc-s1, libwebkit2gtk-4.1-0, libjavascriptcoregtk-4.1-0, libgtk-3-0 | libgtk-3-0t64
+Description: Knot desktop launcher and UI binary
+ AI-native knowledge base desktop binary.
+
+Package: knotd
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}, libc6, libgcc-s1
+Description: Knot daemon runtime host
+ Daemon-capable MCP runtime host for Knot.

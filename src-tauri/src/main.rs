@@ -256,9 +256,9 @@ fn handle_launcher_command() -> knot::Result<Option<i32>> {
         }
         knot::launcher::LauncherMode::Service(command) => match command {
             knot::launcher::LauncherServiceCommand::Install { dry_run } => {
-                let appimage_path = knot::launcher::current_appimage_or_exe()?;
+                let launcher_bin_path = knot::launcher::current_launcher_exe()?;
                 let artifacts =
-                    knot::launcher::install_service(&mut config, &paths, &appimage_path, dry_run)?;
+                    knot::launcher::install_service(&mut config, &paths, &launcher_bin_path, dry_run)?;
                 if dry_run {
                     println!("[dry-run] wrapper -> {}", paths.wrapper_path.display());
                     println!("{}", artifacts.wrapper_script);

@@ -1,0 +1,5 @@
+knot (@@VERSION@@-1) unstable; urgency=medium
+
+  * Local packaging scaffold build.
+
+ -- Knot Contributors <maintainers@knot.invalid>  @@DATE@@

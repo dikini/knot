@@ -16,9 +16,7 @@ console.error("[deprecated] preferred command: knot mcp codex install");
 
 if (!existsSync(wrapperPath)) {
   console.error(`[setup-codex-knotd-mcp] missing wrapper at ${wrapperPath}`);
-  console.error(
-    "[setup-codex-knotd-mcp] install the AppImage service/wrapper first, or run Knot.AppImage mcp codex install directly"
-  );
+  console.error("[setup-codex-knotd-mcp] install knot into ~/.local/bin first, then rerun.");
   process.exit(1);
 }
 

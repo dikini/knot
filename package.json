@@ -53,7 +53,8 @@
     "workflow:check-staged": "node scripts/validate-staged-workflow.mjs",
     "workflow:check-prepush": "sh -c 'BASE_REF=\"${BASE_REF:-HEAD~1}\"; export BASE_REF; npm run -s typecheck && npm run -s qa:project-registry && npm run -s qa:docsync'",
     "traceability:check-staged": "node scripts/validate-staged-traceability.mjs",
-    "hooks:install": "bash scripts/install-githooks.sh"
+    "hooks:install": "bash scripts/install-githooks.sh",
+    "release:local": "bash scripts/release-local-artifacts.sh"
   },
   "dependencies": {
     "@benrbray/prosemirror-math": "^1.0.0",

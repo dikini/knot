@@ -3,12 +3,16 @@
 ## Metadata
 - ID: `COMP-LINUX-PACKAGING-018`
 - Scope: `component`
-- Status: `draft`
+- Status: `deprecated`
 - Parent: `COMP-KNOTD-DEV-LIFECYCLE-011`, `COMP-KNOTD-UI-010`
 - Concerns: `[REL, CONF, COMP]`
 - Trace: `DESIGN-linux-appimage-packaging`
 - Created: `2026-03-03`
-- Updated: `2026-03-03`
+- Updated: `2026-03-05`
+
+## Deprecation
+This spec is no longer an active packaging target as of `2026-03-05`.
+Linux distribution now prioritizes local tarball/self-extracting installer and Debian package flows.
 
 ## Purpose
 Package the Linux desktop UI, `knotd`, and operator tooling into a single AppImage with a porcelain launcher that supports daemon-only, UI-only, combined launch, daemon shutdown, and `systemd --user` service management with XDG-compliant configuration and state paths.

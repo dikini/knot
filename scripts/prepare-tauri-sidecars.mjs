@@ -37,29 +37,6 @@ function detectTargetTriple() {
   return line.slice("host: ".length).trim();
 }
 
-function ensureLinuxAppImagePrerequisites() {
-  if (process.platform !== "linux") {
-    return;
-  }
-
-  const patchelf = spawnSync("patchelf", ["--version"], {
-    cwd: projectRoot,
-    stdio: "ignore",
-  });
-
-  if (patchelf.status !== 0) {
-    console.error(
-      "[prepare-tauri-sidecars] missing required host tool 'patchelf' for Linux AppImage bundling",
-    );
-    console.error(
-      "[prepare-tauri-sidecars] install it and retry, for example: sudo apt install patchelf",
-    );
-    process.exit(patchelf.status ?? 1);
-  }
-}
-
-ensureLinuxAppImagePrerequisites();
-
 const targetTriple = detectTargetTriple();
 
 run("cargo", ["build", "--manifest-path", "src-tauri/Cargo.toml", "--release", "--bin", "knotd"]);

@@ -70,7 +70,7 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-SETTINGS-PANE-001             | settings-pane                        | designed  | component/settings-pane-001.md                        | [CONF, REL, CAP]                  | draft                             |
 | COMP-KNOTD-UI-010                  | knotd-ui-daemon                      | designed  | component/knotd-ui-daemon-010.md                      | [REL, CONF, CAP]                  | draft                             |
 | COMP-KNOTD-DEV-LIFECYCLE-011       | knotd-dev-lifecycle                  | designed  | component/knotd-dev-lifecycle-011.md                  | [REL, CONF, CAP]                  | draft                             |
-| COMP-LINUX-PACKAGING-018           | linux-appimage-packaging             | designed  | component/linux-appimage-packaging-018.md             | [REL, CONF, COMP]                 | draft                             |
+| COMP-LINUX-PACKAGING-018           | linux-appimage-packaging             | designed  | component/linux-appimage-packaging-018.md             | [REL, CONF, COMP]                 | deprecated                        |
 | COMP-IPC-TEST-CONTRACT-019         | ipc-test-contract-alignment          | designed  | component/ipc-test-contract-alignment-019.md          | [REL, CONS, COMP]                 | draft                             |
 | COMP-REACTIVE-ESSAY-001            | reactive-essay-runtime               | designed  | component/reactive-essay-runtime-001.md               | [REL, CONS, CAP, OBS, CONF]       | draft                             |
 | COMP-DOC-REGISTRY-020              | documentation-registry-alignment     | designed  | component/documentation-registry-alignment-020.md     | [REL, COMP, CONF]                 | implemented                       |
@@ -88,6 +88,8 @@ This file tracks all specifications in the Knot project. Extracted specs are mac
 | COMP-PRE-RELEASE-CLEANUP-023       | pre-release-cleanup                  | shipped   | component/pre-release-cleanup-023.md                  | [REL, COMP, CONF, CAP]            | implemented                       |
 | COMP-MARKDOWN-PLATFORM-024         | markdown-platform                    | designed  | component/markdown-platform-024.md                    | [REL, SEC, CAP, CONS, COMP, CONF] | draft                             |
 | COMP-KNOT-TOOL-CLI-025             | knot-tool-cli                        | designed  | component/knot-tool-cli-025.md                        | [REL, CONF, COMP]                 | draft                             |
+| COMP-LOCAL-INSTALLER-026           | local-user-installer                 | designed  | component/local-user-installer-026.md                 | [REL, CONF, COMP]                 | draft                             |
+| COMP-DEB-PACKAGING-027             | debian-packaging-scaffold            | designed  | component/debian-packaging-scaffold-027.md            | [REL, COMP, CONF]                 | draft                             |
 
 ## Interfaces
 

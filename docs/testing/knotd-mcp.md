@@ -40,12 +40,6 @@ The repository Node bridge setup path is deprecated for installed Linux desktop 
 Preferred operator flow:
 
 ```bash
-~/Applications/knot_0.1.0_amd64.AppImage mcp codex install
-```
-
-or, if the wrapper is already installed:
-
-```bash
 knot mcp codex install
 ```
 

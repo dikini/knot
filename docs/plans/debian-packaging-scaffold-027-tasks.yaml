@@ -1,0 +1,36 @@
+tasks:
+  - id: DPS-001
+    title: "Add failing tests for .deb and deb-src generation"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-3, FR-4, FR-5]
+    dependencies: []
+    acceptance: "Tests fail before scripts/scaffold exist."
+  - id: DPS-002
+    title: "Add Debian template scaffold for knot and knotd"
+    status: planned
+    size: S
+    spec_refs: [FR-3]
+    dependencies: [DPS-001]
+    acceptance: "Template includes two package stanzas and source metadata."
+  - id: DPS-003
+    title: "Implement binary package generation script"
+    status: planned
+    size: M
+    spec_refs: [FR-1, FR-2, FR-5]
+    dependencies: [DPS-002]
+    acceptance: "Two .deb files are emitted with control metadata."
+  - id: DPS-004
+    title: "Implement source package generation script"
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5]
+    dependencies: [DPS-003]
+    acceptance: "Debian source artifacts are emitted via dpkg-source."
+  - id: DPS-005
+    title: "Verify artifacts and write audit"
+    status: planned
+    size: S
+    spec_refs: [AC-1, AC-2, AC-3]
+    dependencies: [DPS-004]
+    acceptance: "Audit captures test and smoke output references."

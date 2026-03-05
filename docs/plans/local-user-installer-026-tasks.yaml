@@ -1,0 +1,32 @@
+tasks:
+  - id: LUI-001
+    title: "Add failing tests for manifest safety and uninstall idempotency"
+    status: planned
+    size: M
+    spec_refs: [FR-4, FR-5, FR-6, FR-7, AC-3, AC-4, AC-5]
+    dependencies: []
+    acceptance: "Tests fail before implementation and assert exact manifest-driven deletion behavior."
+
+  - id: LUI-002
+    title: "Implement user-local installer/uninstaller scaffold"
+    status: planned
+    size: M
+    spec_refs: [FR-3, FR-4, FR-5, FR-6, FR-7]
+    dependencies: [LUI-001]
+    acceptance: "Install writes versioned files and manifest; uninstall removes only listed paths and succeeds when repeated."
+
+  - id: LUI-003
+    title: "Implement local payload tarball packaging script"
+    status: planned
+    size: S
+    spec_refs: [FR-1, AC-1]
+    dependencies: [LUI-002]
+    acceptance: "Script outputs versioned tarball with binaries and installer assets."
+
+  - id: LUI-004
+    title: "Implement self-extracting installer generator"
+    status: planned
+    size: S
+    spec_refs: [FR-2, AC-2]
+    dependencies: [LUI-003]
+    acceptance: "Script outputs executable installer shell with embedded payload and install/uninstall dispatch."

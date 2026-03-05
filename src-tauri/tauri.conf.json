@@ -44,7 +44,9 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": [
+      "deb"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -54,7 +56,9 @@
       "icons/icon.ico"
     ],
     "resources": [],
-    "externalBin": ["binaries/knotd"],
+    "externalBin": [
+      "binaries/knotd"
+    ],
     "copyright": "Copyright (c) 2026 Knot Contributors",
     "category": "Productivity",
     "shortDescription": "AI-native knowledge base",
